@@ -1,0 +1,42 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY src/api/GoldDesk.Api.slnx .
+COPY src/api/GoldDesk.Api/GoldDesk.Api.csproj GoldDesk.Api/
+COPY src/api/GoldDesk.Domain/GoldDesk.Domain.csproj GoldDesk.Domain/
+COPY src/api/GoldDesk.Application/GoldDesk.Application.csproj GoldDesk.Application/
+COPY src/api/GoldDesk.Infrastructure/GoldDesk.Infrastructure.csproj GoldDesk.Infrastructure/
+
+# Restore dependencies
+RUN dotnet restore GoldDesk.Api.slnx
+
+# Copy source code
+COPY src/api/ .
+
+# Build
+RUN dotnet build GoldDesk.Api/GoldDesk.Api.csproj -c Release --no-restore
+
+# Publish
+RUN dotnet publish GoldDesk.Api/GoldDesk.Api.csproj -c Release -o /app/publish --no-build
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Create non-root user
+RUN groupadd -r golddesk && useradd -r -g golddesk golddesk
+
+COPY --from=build /app/publish .
+
+# Create logs directory
+RUN mkdir -p /app/logs && chown -R golddesk:golddesk /app
+
+USER golddesk
+
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+ENTRYPOINT ["dotnet", "GoldDesk.Api.dll"]

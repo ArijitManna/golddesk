@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: golddesk-db
+    environment:
+      POSTGRES_DB: golddesk
+      POSTGRES_USER: golddesk
+      POSTGRES_PASSWORD: golddesk_dev
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U golddesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: golddesk-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=golddesk;Username=golddesk;Password=golddesk_dev"
+      Jwt__Key: "GoldDesk-Super-Secret-Key-That-Should-Be-At-Least-256-Bits-Long!"
+      Jwt__Issuer: "GoldDesk"
+      Jwt__Audience: "GoldDesk"
+    ports:
+      - "5000:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

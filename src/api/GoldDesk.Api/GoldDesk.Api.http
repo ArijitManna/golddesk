@@ -1,0 +1,6 @@
+@GoldDesk.Api_HostAddress = http://localhost:5282
+
+GET {{GoldDesk.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="GoldDesk.Api/GoldDesk.Api.csproj" />
+  <Project Path="GoldDesk.Application/GoldDesk.Application.csproj" />
+  <Project Path="GoldDesk.Domain/GoldDesk.Domain.csproj" />
+  <Project Path="GoldDesk.Infrastructure/GoldDesk.Infrastructure.csproj" />
+</Solution>

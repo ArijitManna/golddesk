@@ -1,0 +1,184 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/di/injection.dart';
+import '../../../data/models/order_models.dart';
+import '../../../data/repositories/order_repository.dart';
+
+class OrderReceiptScreen extends StatefulWidget {
+  final String orderId;
+  const OrderReceiptScreen({super.key, required this.orderId});
+
+  @override
+  State<OrderReceiptScreen> createState() => _OrderReceiptScreenState();
+}
+
+class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
+  OrderDetail? _order;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      _order = await getIt<OrderRepository>().getOrderById(widget.orderId);
+    } catch (_) {}
+    setState(() => _isLoading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryDark,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => context.go('/orders/${widget.orderId}'),
+        ),
+        title: const Text('Order Receipt'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Share/PDF export coming soon')),
+              );
+            },
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+          : _order == null
+              ? const Center(child: Text('Order not found'))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: _buildReceipt(),
+                ),
+    );
+  }
+
+  Widget _buildReceipt() {
+    final order = _order!;
+    final balance = order.estimatedAmount - order.advancePaid;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.divider),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          RichText(
+            text: const TextSpan(children: [
+              TextSpan(text: 'GOLD ', style: TextStyle(color: AppColors.primaryDark, fontSize: 20, fontWeight: FontWeight.bold)),
+              TextSpan(text: 'SHOP', style: TextStyle(color: AppColors.gold, fontSize: 20, fontWeight: FontWeight.bold)),
+            ]),
+          ),
+          const SizedBox(height: 4),
+          const Text('ORDER RECEIPT', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, letterSpacing: 2)),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 12),
+          // Order info
+          _receiptRow('Order No.', order.orderNo),
+          _receiptRow('Customer Name', order.customerName),
+          _receiptRow('Order Date', order.orderDate),
+          _receiptRow('Delivery Date', order.deliveryDate ?? '-'),
+          if (order.karigarName != null)
+            _receiptRow('Karigar Name', order.karigarName!),
+          _receiptRow('Status', order.status),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 12),
+          // Items table header
+          const Row(
+            children: [
+              Expanded(flex: 1, child: Text('#', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
+              Expanded(flex: 4, child: Text('Item Name', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
+              Expanded(flex: 2, child: Text('Weight', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.right)),
+              Expanded(flex: 2, child: Text('Rate', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.right)),
+              Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.right)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Divider(height: 1),
+          const SizedBox(height: 6),
+          // Items
+          ...order.items.asMap().entries.map((entry) {
+            final i = entry.key;
+            final item = entry.value;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(flex: 1, child: Text('${i + 1}', style: const TextStyle(fontSize: 11))),
+                  Expanded(flex: 4, child: Text(item.itemName, style: const TextStyle(fontSize: 11))),
+                  Expanded(flex: 2, child: Text('${item.weight.toStringAsFixed(3)}', style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
+                  Expanded(flex: 2, child: Text('${item.rate.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
+                  Expanded(flex: 2, child: Text('${item.amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          const Divider(),
+          const SizedBox(height: 12),
+          // Totals
+          _receiptRow('Total Weight', '${order.totalWeight.toStringAsFixed(3)} gm'),
+          _receiptRow('Making Charges', '\u20B9${order.makingCharges.toStringAsFixed(0)}'),
+          _receiptRow('Advance Paid', '\u20B9${order.advancePaid.toStringAsFixed(0)}'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Balance Amount', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                Text('\u20B9${balance.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.gold)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Footer
+          const Divider(),
+          const SizedBox(height: 12),
+          const Text('Thank you for your trust!', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+          const SizedBox(height: 8),
+          RichText(
+            text: const TextSpan(children: [
+              TextSpan(text: 'Gold', style: TextStyle(color: AppColors.primaryDark, fontSize: 12, fontWeight: FontWeight.w600)),
+              TextSpan(text: 'Desk', style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w600)),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _receiptRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+        ],
+      ),
+    );
+  }
+}

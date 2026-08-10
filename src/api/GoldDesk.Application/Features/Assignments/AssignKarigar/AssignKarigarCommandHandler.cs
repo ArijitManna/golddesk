@@ -1,0 +1,134 @@
+using GoldDesk.Application.Common.Events;
+using GoldDesk.Application.Common.Interfaces;
+using GoldDesk.Application.Common.Models;
+using GoldDesk.Application.Features.Orders.Dtos;
+using GoldDesk.Domain.Entities;
+using GoldDesk.Domain.Enums;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace GoldDesk.Application.Features.Assignments.AssignKarigar;
+
+public class AssignKarigarCommandHandler : IRequestHandler<AssignKarigarCommand, Result<AssignmentDto>>
+{
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IMediator _mediator;
+
+    public AssignKarigarCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser, IMediator mediator)
+    {
+        _context = context;
+        _currentUser = currentUser;
+        _mediator = mediator;
+    }
+
+    public async Task<Result<AssignmentDto>> Handle(AssignKarigarCommand request, CancellationToken cancellationToken)
+    {
+        var order = await _context.Orders
+            .Include(o => o.Assignments.Where(a => a.IsActive))
+            .FirstOrDefaultAsync(o => o.Id == request.OrderId, cancellationToken);
+
+        if (order == null)
+            return Result<AssignmentDto>.NotFound("Order not found");
+
+        if (order.Status == OrderStatus.Delivered || order.Status == OrderStatus.Closed || order.Status == OrderStatus.Cancelled)
+            return Result<AssignmentDto>.Failure($"Cannot assign Karigar to an order with status '{order.Status}'");
+
+        // Verify Karigar exists and is active
+        var karigar = await _context.Karigars
+            .FirstOrDefaultAsync(k => k.Id == request.KarigarId && k.Status == KarigarStatus.Active, cancellationToken);
+
+        if (karigar == null)
+            return Result<AssignmentDto>.NotFound("Karigar not found or inactive");
+
+        // Parse dates
+        var givenDate = DateOnly.Parse(request.GivenDate);
+        var dueDate = DateOnly.Parse(request.DueDate);
+
+        if (dueDate < givenDate)
+            return Result<AssignmentDto>.Failure("Due date cannot be earlier than given date");
+
+        // Deactivate existing active assignment (reassignment)
+        foreach (var existing in order.Assignments.Where(a => a.IsActive))
+        {
+            existing.IsActive = false;
+            existing.Status = AssignmentStatus.Reassigned;
+        }
+
+        // Create new assignment
+        var assignment = new OrderAssignment
+        {
+            OrderId = order.Id,
+            KarigarId = request.KarigarId,
+            GivenDate = givenDate,
+            DueDate = dueDate,
+            Status = AssignmentStatus.Active,
+            Notes = request.Notes,
+            AssignedBy = _currentUser.UserId ?? Guid.Empty,
+            IsActive = true
+        };
+
+        _context.OrderAssignments.Add(assignment);
+
+        // Update order status to Assigned if currently Pending
+        if (order.Status == OrderStatus.Pending)
+        {
+            var previousStatus = order.Status;
+            order.Status = OrderStatus.Assigned;
+
+            _context.OrderStatusHistory.Add(new OrderStatusHistory
+            {
+                OrderId = order.Id,
+                FromStatus = previousStatus,
+                ToStatus = OrderStatus.Assigned,
+                ChangedBy = _currentUser.UserId ?? Guid.Empty,
+                Remarks = $"Assigned to {karigar.Name}"
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Publish notification events
+        var hadPreviousAssignment = order.Assignments.Count(a => !a.IsActive && a.Status == AssignmentStatus.Reassigned) > 0;
+
+        if (karigar.UserId.HasValue)
+        {
+            if (hadPreviousAssignment)
+            {
+                await _mediator.Publish(new OrderReassignedEvent
+                {
+                    TenantId = order.TenantId,
+                    OrderId = order.Id,
+                    OrderNo = order.OrderNo,
+                    NewKarigarUserId = karigar.UserId.Value,
+                    NewKarigarName = karigar.Name
+                }, cancellationToken);
+            }
+            else
+            {
+                await _mediator.Publish(new OrderAssignedEvent
+                {
+                    TenantId = order.TenantId,
+                    OrderId = order.Id,
+                    OrderNo = order.OrderNo,
+                    KarigarUserId = karigar.UserId.Value,
+                    KarigarName = karigar.Name,
+                    DueDate = dueDate.ToString("yyyy-MM-dd")
+                }, cancellationToken);
+            }
+        }
+
+        return Result<AssignmentDto>.Created(new AssignmentDto
+        {
+            Id = assignment.Id,
+            KarigarName = karigar.Name,
+            KarigarId = karigar.Id,
+            GivenDate = assignment.GivenDate.ToString("yyyy-MM-dd"),
+            DueDate = assignment.DueDate.ToString("yyyy-MM-dd"),
+            Status = assignment.Status.ToString(),
+            Notes = assignment.Notes,
+            IsActive = assignment.IsActive,
+            CreatedAt = assignment.CreatedAt
+        });
+    }
+}
