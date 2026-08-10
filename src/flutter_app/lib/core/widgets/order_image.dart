@@ -9,7 +9,7 @@ class OrderImage extends StatelessWidget {
 
   const OrderImage({super.key, this.imagePath, this.size = 44, this.label});
 
-  String get _fullUrl => 'http://10.0.2.2:5282$imagePath';
+  String get _fullUrl => 'http://162.35.185.106:8082$imagePath';
 
   @override
   Widget build(BuildContext context) {

@@ -163,7 +163,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 borderRadius: BorderRadius.circular(8),
                 child: item.imagePath != null
                     ? Image.network(
-                        'http://10.0.2.2:5282${item.imagePath}',
+                        'http://162.35.185.106:8082${item.imagePath}',
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,
@@ -209,7 +209,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  'http://10.0.2.2:5282$imagePath',
+                  'http://162.35.185.106:8082$imagePath',
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Container(
                     width: 200,
