@@ -11,6 +11,7 @@ class OrderRepository {
 
   Future<PagedResponse<OrderSummary>> getOrders({
     String? status,
+    String? due,
     String? search,
     int page = 1,
     int pageSize = 20,
@@ -18,6 +19,7 @@ class OrderRepository {
     try {
       final response = await _apiClient.dio.get('/orders', queryParameters: {
         if (status != null) 'status': status,
+        if (due != null) 'due': due,
         if (search != null) 'search': search,
         'page': page,
         'pageSize': pageSize,

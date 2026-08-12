@@ -104,6 +104,7 @@ class KarigarData {
   final String id;
   final String name;
   final String mobile;
+  final String? email;
   final String? specialization;
   final String status;
   final bool hasLoginAccess;
@@ -112,6 +113,7 @@ class KarigarData {
     required this.id,
     required this.name,
     required this.mobile,
+    this.email,
     this.specialization,
     required this.status,
     required this.hasLoginAccess,
@@ -121,6 +123,7 @@ class KarigarData {
         id: json['id'],
         name: json['name'],
         mobile: json['mobile'],
+        email: json['email'],
         specialization: json['specialization'],
         status: json['status'],
         hasLoginAccess: json['hasLoginAccess'] ?? false,

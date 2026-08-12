@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
 import '../../../data/models/order_models.dart';
 import '../../../data/repositories/order_repository.dart';
+import '../../../data/repositories/tenant_repository.dart';
 
 class OrderReceiptScreen extends StatefulWidget {
   final String orderId;
@@ -15,6 +17,7 @@ class OrderReceiptScreen extends StatefulWidget {
 
 class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
   OrderDetail? _order;
+  TenantProfile? _shop;
   bool _isLoading = true;
 
   @override
@@ -25,9 +28,18 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
 
   Future<void> _load() async {
     try {
-      _order = await getIt<OrderRepository>().getOrderById(widget.orderId);
-    } catch (_) {}
-    setState(() => _isLoading = false);
+      final results = await Future.wait([
+        getIt<OrderRepository>().getOrderById(widget.orderId),
+        getIt<TenantRepository>().getProfile(),
+      ]);
+      _order = results[0] as OrderDetail;
+      _shop = results[1] as TenantProfile;
+    } catch (_) {
+      try {
+        _order = await getIt<OrderRepository>().getOrderById(widget.orderId);
+      } catch (_) {}
+    }
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -65,6 +77,7 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
   Widget _buildReceipt() {
     final order = _order!;
     final balance = order.estimatedAmount - order.advancePaid;
+    final shopName = _shop?.shopName ?? 'Gold Shop';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -78,19 +91,48 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
       ),
       child: Column(
         children: [
-          // Header
-          RichText(
-            text: const TextSpan(children: [
-              TextSpan(text: 'GOLD ', style: TextStyle(color: AppColors.primaryDark, fontSize: 20, fontWeight: FontWeight.bold)),
-              TextSpan(text: 'SHOP', style: TextStyle(color: AppColors.gold, fontSize: 20, fontWeight: FontWeight.bold)),
-            ]),
+          if (_shop?.logoPath != null && _shop!.logoPath!.isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                '${AppConstants.serverUrl}${_shop!.logoPath}',
+                height: 64,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          Text(
+            shopName.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.primaryDark,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
           ),
-          const SizedBox(height: 4),
+          if (_shop?.address != null && _shop!.address!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              _shop!.address!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+          ],
+          if (_shop?.gstNumber != null && _shop!.gstNumber!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              'GST: ${_shop!.gstNumber}',
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+          ],
+          const SizedBox(height: 8),
           const Text('ORDER RECEIPT', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, letterSpacing: 2)),
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 12),
-          // Order info
           _receiptRow('Order No.', order.orderNo),
           _receiptRow('Customer Name', order.customerName),
           _receiptRow('Order Date', order.orderDate),
@@ -101,7 +143,6 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 12),
-          // Items table header
           const Row(
             children: [
               Expanded(flex: 1, child: Text('#', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
@@ -114,7 +155,6 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
           const SizedBox(height: 6),
           const Divider(height: 1),
           const SizedBox(height: 6),
-          // Items
           ...order.items.asMap().entries.map((entry) {
             final i = entry.key;
             final item = entry.value;
@@ -124,9 +164,9 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
                 children: [
                   Expanded(flex: 1, child: Text('${i + 1}', style: const TextStyle(fontSize: 11))),
                   Expanded(flex: 4, child: Text(item.itemName, style: const TextStyle(fontSize: 11))),
-                  Expanded(flex: 2, child: Text('${item.weight.toStringAsFixed(3)}', style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
-                  Expanded(flex: 2, child: Text('${item.rate.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
-                  Expanded(flex: 2, child: Text('${item.amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
+                  Expanded(flex: 2, child: Text(item.weight.toStringAsFixed(3), style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
+                  Expanded(flex: 2, child: Text(item.rate.toStringAsFixed(0), style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
+                  Expanded(flex: 2, child: Text(item.amount.toStringAsFixed(0), style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
                 ],
               ),
             );
@@ -134,7 +174,6 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
           const SizedBox(height: 8),
           const Divider(),
           const SizedBox(height: 12),
-          // Totals
           _receiptRow('Total Weight', '${order.totalWeight.toStringAsFixed(3)} gm'),
           _receiptRow('Making Charges', '\u20B9${order.makingCharges.toStringAsFixed(0)}'),
           _receiptRow('Advance Paid', '\u20B9${order.advancePaid.toStringAsFixed(0)}'),
@@ -154,7 +193,6 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          // Footer
           const Divider(),
           const SizedBox(height: 12),
           const Text('Thank you for your trust!', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),

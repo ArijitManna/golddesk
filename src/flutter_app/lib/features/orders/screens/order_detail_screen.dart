@@ -87,6 +87,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: _buildAssignButton(order, label: order.assignments.isEmpty ? 'Assign Karigar' : 'Reassign'),
             ),
+          if (order.status == 'Pending') ...[
+            const SizedBox(height: 12),
+            _buildCancelButton(order),
+          ],
         ],
       ),
     );
@@ -354,6 +358,70 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildCancelButton(OrderDetail order) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _confirmCancel(order),
+        icon: const Icon(Icons.cancel_outlined, size: 18),
+        label: const Text('Cancel Order'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.error,
+          side: const BorderSide(color: AppColors.error),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmCancel(OrderDetail order) async {
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Cancel ${order.orderNo}? This cannot be undone.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep Order')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Cancel Order'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final ok = await context.read<OrderDetailCubit>().cancelOrder(
+          order.id,
+          reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
+        );
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order cancelled'), backgroundColor: AppColors.success),
+      );
+    }
   }
 
   Widget _buildSectionTitle(String title) {

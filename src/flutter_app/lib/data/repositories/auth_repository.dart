@@ -83,6 +83,27 @@ class AuthRepository {
     }
   }
 
+  Future<void> updateStoredUser(UserInfo user) async {
+    await _storage.write(
+      key: AppConstants.userDataKey,
+      value: jsonEncode(user.toJson()),
+    );
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _apiClient.dio.post('/auth/change-password', data: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<bool> isLoggedIn() async {
     final token = await _storage.read(key: AppConstants.accessTokenKey);
     return token != null;

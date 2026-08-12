@@ -15,6 +15,8 @@ public class CreateKarigarCommandValidator : AbstractValidator<CreateKarigarComm
             .Matches(@"^\d{10}$").WithMessage("Mobile must be a 10-digit number");
 
         RuleFor(x => x.Email)
+            .NotEmpty().When(x => x.CreateLogin)
+            .WithMessage("Email is required when creating login access")
             .MaximumLength(200)
             .EmailAddress().When(x => !string.IsNullOrEmpty(x.Email))
             .WithMessage("Invalid email format");

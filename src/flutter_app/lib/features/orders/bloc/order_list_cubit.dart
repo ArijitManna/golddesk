@@ -21,6 +21,7 @@ class OrderListLoaded extends OrderListState {
   final int page;
   final bool hasMore;
   final String? activeFilter;
+  final String? activeDueFilter;
 
   const OrderListLoaded({
     required this.orders,
@@ -28,10 +29,12 @@ class OrderListLoaded extends OrderListState {
     required this.page,
     required this.hasMore,
     this.activeFilter,
+    this.activeDueFilter,
   });
 
   @override
-  List<Object?> get props => [orders.length, totalCount, page, activeFilter];
+  List<Object?> get props =>
+      [orders.length, totalCount, page, activeFilter, activeDueFilter];
 }
 
 class OrderListError extends OrderListState {
@@ -47,11 +50,12 @@ class OrderListCubit extends Cubit<OrderListState> {
 
   OrderListCubit(this._repository) : super(OrderListInitial());
 
-  Future<void> loadOrders({String? status, String? search}) async {
+  Future<void> loadOrders({String? status, String? due, String? search}) async {
     emit(OrderListLoading());
     try {
       final response = await _repository.getOrders(
         status: status,
+        due: due,
         search: search,
         page: 1,
         pageSize: 20,
@@ -62,6 +66,7 @@ class OrderListCubit extends Cubit<OrderListState> {
         page: 1,
         hasMore: response.page < response.totalPages,
         activeFilter: status,
+        activeDueFilter: due,
       ));
     } on ApiException catch (e) {
       emit(OrderListError(e.message));
@@ -77,6 +82,7 @@ class OrderListCubit extends Cubit<OrderListState> {
     try {
       final response = await _repository.getOrders(
         status: currentState.activeFilter,
+        due: currentState.activeDueFilter,
         page: currentState.page + 1,
         pageSize: 20,
       );
@@ -86,6 +92,7 @@ class OrderListCubit extends Cubit<OrderListState> {
         page: response.page,
         hasMore: response.page < response.totalPages,
         activeFilter: currentState.activeFilter,
+        activeDueFilter: currentState.activeDueFilter,
       ));
     } catch (_) {
       // Silently fail on load more

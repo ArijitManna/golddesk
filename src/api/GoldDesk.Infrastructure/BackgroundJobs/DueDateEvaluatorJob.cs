@@ -69,6 +69,12 @@ public class DueDateEvaluatorJob : BackgroundService
 
         _logger.LogInformation("Evaluating {Count} active assignments for due dates", activeAssignments.Count);
 
+        var tenantIds = activeAssignments.Select(a => a.Order.TenantId).Distinct().ToList();
+        var tenants = await context.Tenants
+            .IgnoreQueryFilters()
+            .Where(t => tenantIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
+
         foreach (var assignment in activeAssignments)
         {
             var daysUntilDue = assignment.DueDate.DayNumber - today.DayNumber;
@@ -76,6 +82,12 @@ public class DueDateEvaluatorJob : BackgroundService
 
             if (notificationType == null)
                 continue;
+
+            if (tenants.TryGetValue(assignment.Order.TenantId, out var tenant) &&
+                !IsNotificationEnabled(tenant, notificationType.Value))
+            {
+                continue;
+            }
 
             // Check if this notification was already sent
             if (assignment.LastNotificationType == notificationType.Value.ToString())
@@ -124,6 +136,19 @@ public class DueDateEvaluatorJob : BackgroundService
             _logger.LogInformation("Due date notification sent for Order {OrderNo}: {Type}",
                 assignment.Order.OrderNo, notificationType.Value);
         }
+    }
+
+    private static bool IsNotificationEnabled(Domain.Entities.Tenant tenant, NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.DueSoon3Days => tenant.NotifyDueSoon3Days,
+            NotificationType.DueSoon2Days => tenant.NotifyDueSoon2Days,
+            NotificationType.DueSoon1Day => tenant.NotifyDueSoon1Day,
+            NotificationType.DueToday => tenant.NotifyDueToday,
+            NotificationType.Overdue => tenant.NotifyOverdue,
+            _ => true
+        };
     }
 
     private static NotificationType? GetNotificationType(int daysUntilDue)

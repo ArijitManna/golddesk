@@ -31,6 +31,31 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
             query = query.Where(o => o.Status == status);
         }
 
+        // Filter by due date (active assignment, not Ready/Delivered/Cancelled)
+        if (!string.IsNullOrWhiteSpace(request.Due))
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var threeDaysLater = today.AddDays(3);
+            var dueKey = request.Due.Trim().ToLowerInvariant();
+
+            query = query.Where(o =>
+                o.Status != OrderStatus.Ready &&
+                o.Status != OrderStatus.Delivered &&
+                o.Status != OrderStatus.Cancelled &&
+                o.Assignments.Any(a => a.IsActive));
+
+            query = dueKey switch
+            {
+                "today" => query.Where(o =>
+                    o.Assignments.Any(a => a.IsActive && a.DueDate == today)),
+                "overdue" => query.Where(o =>
+                    o.Assignments.Any(a => a.IsActive && a.DueDate < today)),
+                "next3" => query.Where(o =>
+                    o.Assignments.Any(a => a.IsActive && a.DueDate > today && a.DueDate <= threeDaysLater)),
+                _ => query
+            };
+        }
+
         // Search by order number or customer name
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

@@ -1,4 +1,5 @@
 using GoldDesk.Application.Common.Interfaces;
+using GoldDesk.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace GoldDesk.Api.Endpoints;
@@ -151,5 +152,57 @@ public static class FileEndpoints
         .DisableAntiforgery()
         .WithName("UploadImage")
         .WithDescription("Upload a general image file");
+
+        group.MapPost("/upload/tenant-logo", async (
+            IFormFile file,
+            IApplicationDbContext context,
+            ICurrentUserService currentUser,
+            IWebHostEnvironment env) =>
+        {
+            if (currentUser.Role != UserRole.ShopOwner || !currentUser.TenantId.HasValue)
+                return Results.Json(new { error = "Only shop owners can upload shop logo" }, statusCode: 403);
+
+            if (file.Length == 0)
+                return Results.BadRequest(new { error = "No file uploaded" });
+
+            if (file.Length > 5 * 1024 * 1024)
+                return Results.BadRequest(new { error = "File size exceeds 5MB limit" });
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var ext = Path.GetExtension(file.FileName).ToLower();
+            if (!allowedExtensions.Contains(ext))
+                return Results.BadRequest(new { error = "Only jpg, png, webp images are allowed" });
+
+            var tenant = await context.Tenants.FindAsync(new object[] { currentUser.TenantId.Value });
+            if (tenant == null)
+                return Results.NotFound(new { error = "Shop profile not found" });
+
+            var uploadsFolder = Path.Combine(env.ContentRootPath, "uploads", "logos");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = $"{tenant.Id}_{DateTime.UtcNow:yyyyMMddHHmmss}{ext}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            if (!string.IsNullOrEmpty(tenant.LogoPath))
+            {
+                var oldPath = Path.Combine(env.ContentRootPath, tenant.LogoPath.TrimStart('/'));
+                if (File.Exists(oldPath)) File.Delete(oldPath);
+            }
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var relativePath = $"/uploads/logos/{fileName}";
+            tenant.LogoPath = relativePath;
+            await context.SaveChangesAsync();
+
+            return Results.Ok(new { logoPath = relativePath });
+        })
+        .DisableAntiforgery()
+        .RequireAuthorization(policy => policy.RequireRole("ShopOwner"))
+        .WithName("UploadTenantLogo")
+        .WithDescription("Upload company logo for receipts");
     }
 }

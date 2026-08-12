@@ -35,17 +35,11 @@ public class CreateKarigarCommandHandler : IRequestHandler<CreateKarigarCommand,
 
         User? user = null;
 
-        // Create login user if requested
+        // Create login user if requested — email is required and used for login
         if (request.CreateLogin)
         {
-            var email = request.Email;
-            if (string.IsNullOrEmpty(email))
-            {
-                // Generate email from mobile if not provided
-                email = $"karigar.{request.Mobile}@golddesk.local";
-            }
+            var email = request.Email!.Trim().ToLowerInvariant();
 
-            // Check email uniqueness
             var emailExists = await _context.Users
                 .IgnoreQueryFilters()
                 .AnyAsync(u => u.Email == email, cancellationToken);
@@ -72,7 +66,9 @@ public class CreateKarigarCommandHandler : IRequestHandler<CreateKarigarCommand,
             UserId = user?.Id,
             Name = request.Name,
             Mobile = request.Mobile,
-            Email = request.Email,
+            Email = string.IsNullOrWhiteSpace(request.Email)
+                ? null
+                : request.Email.Trim().ToLowerInvariant(),
             Address = request.Address,
             Specialization = request.Specialization,
             Status = KarigarStatus.Active

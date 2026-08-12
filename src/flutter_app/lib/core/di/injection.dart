@@ -7,6 +7,8 @@ import '../../data/repositories/karigar_portal_repository.dart';
 import '../../data/repositories/master_repository.dart';
 import '../../data/repositories/notification_repository.dart';
 import '../../data/repositories/order_repository.dart';
+import '../../data/repositories/team_user_repository.dart';
+import '../../data/repositories/tenant_repository.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/dashboard/bloc/dashboard_cubit.dart';
 import '../../features/orders/bloc/order_list_cubit.dart';
@@ -34,6 +36,10 @@ Future<void> configureDependencies() async {
       () => NotificationRepository(getIt<ApiClient>()));
   getIt.registerLazySingleton<OrderRepository>(
       () => OrderRepository(getIt<ApiClient>()));
+  getIt.registerLazySingleton<TeamUserRepository>(
+      () => TeamUserRepository(getIt<ApiClient>()));
+  getIt.registerLazySingleton<TenantRepository>(
+      () => TenantRepository(getIt<ApiClient>()));
 
   // BLoCs / Cubits
   getIt.registerFactory<AuthBloc>(() => AuthBloc(getIt<AuthRepository>()));
