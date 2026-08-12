@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/order_image.dart';
 import '../../../data/models/order_models.dart';
 import '../bloc/order_detail_cubit.dart';
@@ -86,6 +87,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: _buildAssignButton(order, label: order.assignments.isEmpty ? 'Assign Karigar' : 'Reassign'),
             ),
+          if (order.status == 'Pending') ...[
+            const SizedBox(height: 12),
+            _buildCancelButton(order),
+          ],
         ],
       ),
     );
@@ -163,7 +168,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 borderRadius: BorderRadius.circular(8),
                 child: item.imagePath != null
                     ? Image.network(
-                        'http://162.35.185.106:8082${item.imagePath}',
+                        '${AppConstants.serverUrl}${item.imagePath}',
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,
@@ -209,7 +214,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  'http://162.35.185.106:8082$imagePath',
+                  '${AppConstants.serverUrl}$imagePath',
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Container(
                     width: 200,
@@ -353,6 +358,70 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildCancelButton(OrderDetail order) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _confirmCancel(order),
+        icon: const Icon(Icons.cancel_outlined, size: 18),
+        label: const Text('Cancel Order'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.error,
+          side: const BorderSide(color: AppColors.error),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmCancel(OrderDetail order) async {
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Cancel ${order.orderNo}? This cannot be undone.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep Order')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Cancel Order'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final ok = await context.read<OrderDetailCubit>().cancelOrder(
+          order.id,
+          reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
+        );
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order cancelled'), backgroundColor: AppColors.success),
+      );
+    }
   }
 
   Widget _buildSectionTitle(String title) {

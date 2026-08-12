@@ -33,7 +33,9 @@ public static class ItemEndpoints
             var result = await mediator.Send(command);
             return result.IsSuccess
                 ? Results.Created($"/api/items/{result.Data!.Id}", result.Data)
-                : ToBadRequest(result);
+                : result.StatusCode == 409
+                    ? Results.Conflict(new { error = result.Error })
+                    : ToBadRequest(result);
         })
         .WithName("CreateItem");
 

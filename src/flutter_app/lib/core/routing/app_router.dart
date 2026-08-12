@@ -10,6 +10,7 @@ import '../../features/auth/screens/pending_approval_screen.dart';
 import '../../features/admin/screens/admin_approval_screen.dart';
 import '../../features/masters/screens/customer_list_screen.dart';
 import '../../features/masters/screens/karigar_list_screen.dart';
+import '../../features/masters/screens/item_list_screen.dart';
 import '../../features/dashboard/bloc/dashboard_cubit.dart';
 import '../../features/dashboard/screens/shop_dashboard_screen.dart';
 import '../../features/karigar_portal/screens/karigar_dashboard_screen.dart';
@@ -25,7 +26,10 @@ import '../../features/orders/screens/order_receipt_screen.dart';
 import '../../features/orders/screens/assign_karigar_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/reports/screens/reports_screen.dart';
+import '../../features/settings/screens/edit_profile_screen.dart';
+import '../../features/settings/screens/notification_preferences_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
+import '../../features/settings/screens/team_users_screen.dart';
 import '../../features/splash/splash_screen.dart';
 
 class AppRouter {
@@ -78,12 +82,25 @@ class AppRouter {
         builder: (context, state) => const KarigarListScreen(),
       ),
       GoRoute(
+        path: '/items',
+        name: 'items',
+        builder: (context, state) => const ItemListScreen(),
+      ),
+      GoRoute(
         path: '/orders',
         name: 'orders',
-        builder: (context, state) => BlocProvider(
-          create: (_) => getIt<OrderListCubit>(),
-          child: const OrderListScreen(),
-        ),
+        builder: (context, state) {
+          final status = state.uri.queryParameters['status'];
+          final due = state.uri.queryParameters['due'];
+          return BlocProvider(
+            create: (_) => getIt<OrderListCubit>(),
+            child: OrderListScreen(
+              key: ValueKey('orders_${status}_$due'),
+              initialStatus: status,
+              initialDue: due,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: '/orders/new',
@@ -128,6 +145,21 @@ class AppRouter {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/edit-profile',
+        name: 'edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/settings/notification-prefs',
+        name: 'notification-prefs',
+        builder: (context, state) => const NotificationPreferencesScreen(),
+      ),
+      GoRoute(
+        path: '/settings/team-users',
+        name: 'team-users',
+        builder: (context, state) => const TeamUsersScreen(),
       ),
       // Karigar Portal routes
       GoRoute(

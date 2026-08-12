@@ -50,12 +50,6 @@ class SideDrawer extends StatelessWidget {
                       label: 'Order List',
                       onTap: () => _navigate(context, '/orders'),
                     ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.assignment_ind_outlined,
-                      label: 'Karigar Assignment',
-                      onTap: () => _navigate(context, '/orders'),
-                    ),
                     const Divider(),
                     _buildMenuItem(
                       context,

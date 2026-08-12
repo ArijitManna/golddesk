@@ -32,9 +32,10 @@ class CreateOrderError extends CreateOrderState {
 
 class CreateOrderDataLoaded extends CreateOrderState {
   final List<CustomerItem> customers;
-  const CreateOrderDataLoaded(this.customers);
+  final List<Map<String, dynamic>> items;
+  const CreateOrderDataLoaded(this.customers, this.items);
   @override
-  List<Object?> get props => [customers.length];
+  List<Object?> get props => [customers.length, items.length];
 }
 
 // Cubit
@@ -46,9 +47,11 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
   Future<void> loadFormData() async {
     try {
       final customers = await _repository.getCustomers();
-      emit(CreateOrderDataLoaded(customers));
+      // Load items from API
+      final itemsResponse = await _repository.getItems();
+      emit(CreateOrderDataLoaded(customers, itemsResponse));
     } catch (_) {
-      emit(CreateOrderDataLoaded(const []));
+      emit(CreateOrderDataLoaded(const [], const []));
     }
   }
 

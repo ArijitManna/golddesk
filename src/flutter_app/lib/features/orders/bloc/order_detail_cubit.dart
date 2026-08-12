@@ -62,4 +62,18 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
       emit(OrderDetailError('Failed to assign Karigar'));
     }
   }
+
+  Future<bool> cancelOrder(String orderId, {String? reason}) async {
+    try {
+      await _repository.cancelOrder(orderId, reason: reason);
+      await loadOrder(orderId);
+      return true;
+    } on ApiException catch (e) {
+      emit(OrderDetailError(e.message));
+      return false;
+    } catch (_) {
+      emit(const OrderDetailError('Failed to cancel order'));
+      return false;
+    }
+  }
 }

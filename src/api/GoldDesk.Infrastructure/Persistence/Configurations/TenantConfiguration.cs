@@ -18,8 +18,15 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.Email).HasMaxLength(200).IsRequired();
         builder.Property(t => t.Address).HasMaxLength(500);
         builder.Property(t => t.GstNumber).HasMaxLength(50);
+        builder.Property(t => t.LogoPath).HasMaxLength(500);
         builder.Property(t => t.AdminNote).HasMaxLength(1000);
         builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(50);
+
+        builder.Property(t => t.NotifyDueSoon3Days).HasDefaultValue(true);
+        builder.Property(t => t.NotifyDueSoon2Days).HasDefaultValue(true);
+        builder.Property(t => t.NotifyDueSoon1Day).HasDefaultValue(true);
+        builder.Property(t => t.NotifyDueToday).HasDefaultValue(true);
+        builder.Property(t => t.NotifyOverdue).HasDefaultValue(true);
 
         builder.HasIndex(t => t.Email).IsUnique();
         builder.HasIndex(t => t.Mobile).IsUnique();

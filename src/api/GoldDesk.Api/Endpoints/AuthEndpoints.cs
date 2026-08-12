@@ -1,8 +1,8 @@
 using GoldDesk.Application.Common.Models;
+using GoldDesk.Application.Features.Auth.ChangePassword;
 using GoldDesk.Application.Features.Auth.Login;
 using GoldDesk.Application.Features.Auth.RefreshToken;
 using GoldDesk.Application.Features.Auth.Register;
-using FluentValidation;
 using MediatR;
 
 namespace GoldDesk.Api.Endpoints;
@@ -39,6 +39,17 @@ public static class AuthEndpoints
         .WithName("RefreshToken")
         .WithDescription("Refresh an expired access token using a valid refresh token")
         .AllowAnonymous();
+
+        group.MapPost("/change-password", async (ChangePasswordCommand command, IMediator mediator) =>
+        {
+            var result = await mediator.Send(command);
+            return result.IsSuccess
+                ? Results.Ok(new { message = "Password changed successfully" })
+                : ToResponse(result);
+        })
+        .RequireAuthorization()
+        .WithName("ChangePassword")
+        .WithDescription("Change the current user's password");
     }
 
     private static IResult ToResponse<T>(Result<T> result)

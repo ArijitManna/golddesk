@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/di/injection.dart';
+import '../../../data/repositories/auth_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
 import '../../auth/bloc/auth_state.dart';
@@ -69,12 +71,8 @@ class SettingsScreen extends StatelessWidget {
               _settingsTile(
                 icon: Icons.person_outline,
                 title: 'Edit Profile',
-                subtitle: 'Update shop name, address, GST',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Profile editing coming soon')),
-                  );
-                },
+                subtitle: 'Shop name, address, GST, company logo',
+                onTap: () => context.go('/settings/edit-profile'),
               ),
               _settingsTile(
                 icon: Icons.lock_outline,
@@ -82,17 +80,20 @@ class SettingsScreen extends StatelessWidget {
                 subtitle: 'Update your login password',
                 onTap: () => _showChangePasswordDialog(context),
               ),
+              if (user?.role == 'ShopOwner')
+                _settingsTile(
+                  icon: Icons.group_outlined,
+                  title: 'Team Users',
+                  subtitle: 'Add co-users with shop owner access',
+                  onTap: () => context.go('/settings/team-users'),
+                ),
               const SizedBox(height: 16),
               _sectionTitle(context, 'Notifications'),
               _settingsTile(
                 icon: Icons.notifications_outlined,
                 title: 'Notification Preferences',
                 subtitle: 'Configure due-date reminders',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Notification preferences coming soon')),
-                  );
-                },
+                onTap: () => context.go('/settings/notification-prefs'),
               ),
               const SizedBox(height: 16),
               _sectionTitle(context, 'App'),
@@ -170,57 +171,78 @@ class SettingsScreen extends StatelessWidget {
     final currentCtrl = TextEditingController();
     final newCtrl = TextEditingController();
     final confirmCtrl = TextEditingController();
+    var saving = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Change Password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: currentCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Current Password', isDense: true),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: newCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'New Password', isDense: true),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: confirmCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirm New Password', isDense: true),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Change Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Current Password', isDense: true),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: newCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'New Password', isDense: true),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Confirm New Password', isDense: true),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: saving ? null : () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (newCtrl.text != confirmCtrl.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Passwords do not match'), backgroundColor: AppColors.error),
+                        );
+                        return;
+                      }
+                      if (newCtrl.text.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: AppColors.error),
+                        );
+                        return;
+                      }
+                      setDialogState(() => saving = true);
+                      try {
+                        await getIt<AuthRepository>().changePassword(
+                          currentPassword: currentCtrl.text,
+                          newPassword: newCtrl.text,
+                        );
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Password changed'), backgroundColor: AppColors.success),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() => saving = false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
+                          );
+                        }
+                      }
+                    },
+              child: Text(saving ? 'Saving...' : 'Change'),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              if (newCtrl.text != confirmCtrl.text) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Passwords do not match'), backgroundColor: AppColors.error),
-                );
-                return;
-              }
-              if (newCtrl.text.length < 6) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: AppColors.error),
-                );
-                return;
-              }
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Password change API coming soon'), backgroundColor: AppColors.statusPending),
-              );
-            },
-            child: const Text('Change'),
-          ),
-        ],
       ),
     );
   }

@@ -7,11 +7,12 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API
-  // Use 'http://10.0.2.2:5282/api' for Android emulator
-  // Use 'http://localhost:5282/api' for iOS simulator or web
-  // Use your machine's IP (e.g., 'http://192.168.x.x:5282/api') for physical device
-  // Production server:
-  static const String baseUrl = 'http://162.35.185.106:8082/api';
+  // Use 'http://localhost:5282' for Android emulator
+  // Use 'http://localhost:5282' for iOS simulator or web
+  // Use 'http://192.168.x.x:5282' for physical device
+  // Production: 'http://162.35.185.106:8082'
+  static const String serverUrl = 'http://localhost:5282';
+  static const String baseUrl = '$serverUrl/api';
 
   // Storage Keys
   static const String accessTokenKey = 'access_token';

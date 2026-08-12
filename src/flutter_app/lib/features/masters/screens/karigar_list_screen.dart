@@ -34,6 +34,7 @@ class _KarigarListScreenState extends State<KarigarListScreen> {
   void _showAddDialog() {
     final nameCtrl = TextEditingController();
     final mobileCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
     final specCtrl = TextEditingController();
     final passwordCtrl = TextEditingController();
     bool createLogin = true;
@@ -47,68 +48,100 @@ class _KarigarListScreenState extends State<KarigarListScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
           padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Add Karigar', style: Theme.of(ctx).textTheme.titleLarge),
-              const SizedBox(height: 16),
-              GoldDeskTextField(label: 'Name *', hint: 'Karigar name', controller: nameCtrl),
-              const SizedBox(height: 12),
-              GoldDeskTextField(label: 'Mobile *', hint: '10-digit number', controller: mobileCtrl, keyboardType: TextInputType.phone),
-              const SizedBox(height: 12),
-              GoldDeskTextField(label: 'Specialization', hint: 'e.g. Necklace, Ring...', controller: specCtrl),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Checkbox(
-                    value: createLogin,
-                    onChanged: (v) => setModalState(() => createLogin = v ?? false),
-                    activeColor: AppColors.gold,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Add Karigar', style: Theme.of(ctx).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                GoldDeskTextField(label: 'Name *', hint: 'Karigar name', controller: nameCtrl),
+                const SizedBox(height: 12),
+                GoldDeskTextField(label: 'Mobile *', hint: '10-digit number', controller: mobileCtrl, keyboardType: TextInputType.phone),
+                const SizedBox(height: 12),
+                GoldDeskTextField(label: 'Specialization', hint: 'e.g. Necklace, Ring...', controller: specCtrl),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: createLogin,
+                      onChanged: (v) => setModalState(() => createLogin = v ?? false),
+                      activeColor: AppColors.gold,
+                    ),
+                    const Expanded(child: Text('Create login access for Karigar')),
+                  ],
+                ),
+                if (createLogin) ...[
+                  const SizedBox(height: 8),
+                  GoldDeskTextField(
+                    label: 'Login Email *',
+                    hint: 'email used to log in',
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
                   ),
-                  const Text('Create login access for Karigar'),
+                  const SizedBox(height: 12),
+                  GoldDeskTextField(label: 'Password *', hint: 'Min 6 characters', controller: passwordCtrl, obscureText: true),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  GoldDeskTextField(
+                    label: 'Email',
+                    hint: 'Email (optional)',
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
                 ],
-              ),
-              if (createLogin) ...[
-                const SizedBox(height: 8),
-                GoldDeskTextField(label: 'Password', hint: 'Min 6 characters', controller: passwordCtrl, obscureText: true),
+                const SizedBox(height: 20),
+                GoldDeskButton(
+                  text: 'SAVE KARIGAR',
+                  onPressed: () async {
+                    if (nameCtrl.text.trim().isEmpty || mobileCtrl.text.trim().isEmpty) return;
+                    final email = emailCtrl.text.trim();
+                    if (createLogin) {
+                      if (email.isEmpty || !email.contains('@')) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Enter a valid login email'), backgroundColor: AppColors.error),
+                        );
+                        return;
+                      }
+                      if (passwordCtrl.text.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: AppColors.error),
+                        );
+                        return;
+                      }
+                    }
+                    try {
+                      await getIt<MasterRepository>().createKarigar(
+                        name: nameCtrl.text.trim(),
+                        mobile: mobileCtrl.text.trim(),
+                        email: email.isEmpty ? null : email,
+                        specialization: specCtrl.text.trim().isEmpty ? null : specCtrl.text.trim(),
+                        createLogin: createLogin,
+                        password: createLogin ? passwordCtrl.text : null,
+                      );
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      _load();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(createLogin
+                                ? 'Karigar added. Login: $email'
+                                : 'Karigar added!'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+                        );
+                      }
+                    }
+                  },
+                ),
               ],
-              const SizedBox(height: 20),
-              GoldDeskButton(
-                text: 'SAVE KARIGAR',
-                onPressed: () async {
-                  if (nameCtrl.text.trim().isEmpty || mobileCtrl.text.trim().isEmpty) return;
-                  if (createLogin && passwordCtrl.text.length < 6) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: AppColors.error),
-                    );
-                    return;
-                  }
-                  try {
-                    await getIt<MasterRepository>().createKarigar(
-                      name: nameCtrl.text.trim(),
-                      mobile: mobileCtrl.text.trim(),
-                      specialization: specCtrl.text.trim().isEmpty ? null : specCtrl.text.trim(),
-                      createLogin: createLogin,
-                      password: createLogin ? passwordCtrl.text : null,
-                    );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    _load();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Karigar added!'), backgroundColor: AppColors.success),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
-                      );
-                    }
-                  }
-                },
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -148,7 +181,11 @@ class _KarigarListScreenState extends State<KarigarListScreen> {
                           ),
                           title: Text(k.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text(
-                            '${k.mobile}${k.specialization != null ? ' | ${k.specialization}' : ''}',
+                            [
+                              k.mobile,
+                              if (k.email != null && k.email!.isNotEmpty) k.email!,
+                              if (k.specialization != null) k.specialization!,
+                            ].join(' | '),
                             style: const TextStyle(fontSize: 12),
                           ),
                           trailing: k.hasLoginAccess

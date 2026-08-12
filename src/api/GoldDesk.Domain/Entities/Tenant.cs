@@ -11,6 +11,12 @@ public class Tenant : BaseEntity
     public string Email { get; set; } = string.Empty;
     public string? Address { get; set; }
     public string? GstNumber { get; set; }
+    public string? LogoPath { get; set; }
+    public bool NotifyDueSoon3Days { get; set; } = true;
+    public bool NotifyDueSoon2Days { get; set; } = true;
+    public bool NotifyDueSoon1Day { get; set; } = true;
+    public bool NotifyDueToday { get; set; } = true;
+    public bool NotifyOverdue { get; set; } = true;
     public TenantStatus Status { get; set; } = TenantStatus.PendingApproval;
     public string? AdminNote { get; set; }
     public Guid? ApprovedBy { get; set; }

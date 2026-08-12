@@ -7,7 +7,14 @@ import '../../../data/models/dashboard_models.dart';
 import '../bloc/order_list_cubit.dart';
 
 class OrderListScreen extends StatefulWidget {
-  const OrderListScreen({super.key});
+  final String? initialStatus;
+  final String? initialDue;
+
+  const OrderListScreen({
+    super.key,
+    this.initialStatus,
+    this.initialDue,
+  });
 
   @override
   State<OrderListScreen> createState() => _OrderListScreenState();
@@ -18,28 +25,93 @@ class _OrderListScreenState extends State<OrderListScreen>
   late TabController _tabController;
   final _searchController = TextEditingController();
 
-  final _tabs = const [
+  /// Parallel arrays: tab label, status filter, due filter
+  static const _tabs = [
     Tab(text: 'All'),
     Tab(text: 'Pending'),
+    Tab(text: 'Assigned'),
     Tab(text: 'In Progress'),
     Tab(text: 'Ready'),
+    Tab(text: 'Due Today'),
+    Tab(text: 'Overdue'),
+    Tab(text: 'Due 3 Days'),
     Tab(text: 'Cancel'),
   ];
 
-  final _statusFilters = [null, 'Pending', 'InProgress', 'Ready', 'Cancelled'];
+  static const _statusFilters = <String?>[
+    null,
+    'Pending',
+    'Assigned',
+    'InProgress',
+    'Ready',
+    null,
+    null,
+    null,
+    'Cancelled',
+  ];
+
+  static const _dueFilters = <String?>[
+    null,
+    null,
+    null,
+    null,
+    null,
+    'today',
+    'overdue',
+    'next3',
+    null,
+  ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    final initialIndex = _resolveInitialTabIndex();
+    _tabController = TabController(
+      length: _tabs.length,
+      vsync: this,
+      initialIndex: initialIndex,
+    );
     _tabController.addListener(_onTabChanged);
-    context.read<OrderListCubit>().loadOrders();
+    context.read<OrderListCubit>().loadOrders(
+          status: _statusFilters[initialIndex],
+          due: _dueFilters[initialIndex],
+        );
+  }
+
+  int _resolveInitialTabIndex() {
+    final due = widget.initialDue?.toLowerCase();
+    if (due != null && due.isNotEmpty) {
+      final dueIndex = _dueFilters.indexOf(due);
+      if (dueIndex >= 0) return dueIndex;
+    }
+
+    final status = widget.initialStatus;
+    if (status != null && status.isNotEmpty) {
+      final statusIndex = _statusFilters.indexWhere(
+        (s) => s != null && s.toLowerCase() == status.toLowerCase(),
+      );
+      if (statusIndex >= 0) return statusIndex;
+    }
+
+    return 0;
   }
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
+    final index = _tabController.index;
     context.read<OrderListCubit>().loadOrders(
-          status: _statusFilters[_tabController.index],
+          status: _statusFilters[index],
+          due: _dueFilters[index],
+          search: _searchController.text.isEmpty ? null : _searchController.text,
+        );
+  }
+
+  void _reloadCurrent() {
+    final index = _tabController.index;
+    context.read<OrderListCubit>().loadOrders(
+          status: _statusFilters[index],
+          due: _dueFilters[index],
+          search: _searchController.text.isEmpty ? null : _searchController.text,
         );
   }
 
@@ -80,7 +152,6 @@ class _OrderListScreenState extends State<OrderListScreen>
       ),
       body: Column(
         children: [
-          // Search bar
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
@@ -93,24 +164,16 @@ class _OrderListScreenState extends State<OrderListScreen>
                         icon: const Icon(Icons.clear, size: 18),
                         onPressed: () {
                           _searchController.clear();
-                          context.read<OrderListCubit>().loadOrders(
-                                status: _statusFilters[_tabController.index],
-                              );
+                          _reloadCurrent();
                         },
                       )
                     : null,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 isDense: true,
               ),
-              onSubmitted: (value) {
-                context.read<OrderListCubit>().loadOrders(
-                      status: _statusFilters[_tabController.index],
-                      search: value.isEmpty ? null : value,
-                    );
-              },
+              onSubmitted: (_) => _reloadCurrent(),
             ),
           ),
-          // Order list
           Expanded(
             child: BlocBuilder<OrderListCubit, OrderListState>(
               builder: (context, state) {
@@ -126,8 +189,7 @@ class _OrderListScreenState extends State<OrderListScreen>
                         Text(state.message),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: () =>
-                              context.read<OrderListCubit>().loadOrders(),
+                          onPressed: _reloadCurrent,
                           child: const Text('Retry'),
                         ),
                       ],
@@ -150,9 +212,7 @@ class _OrderListScreenState extends State<OrderListScreen>
                     );
                   }
                   return RefreshIndicator(
-                    onRefresh: () => context.read<OrderListCubit>().loadOrders(
-                          status: _statusFilters[_tabController.index],
-                        ),
+                    onRefresh: () async => _reloadCurrent(),
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       itemCount: state.orders.length,
@@ -181,15 +241,12 @@ class _OrderListScreenState extends State<OrderListScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Order image
               OrderImage(imagePath: order.firstItemImage, size: 50, label: order.orderNo),
               const SizedBox(width: 12),
-              // Order info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header row
                     Row(
                       children: [
                         Text(order.orderNo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
@@ -198,7 +255,6 @@ class _OrderListScreenState extends State<OrderListScreen>
                       ],
                     ),
                     const SizedBox(height: 6),
-                    // Customer + weight
                     Row(
                       children: [
                         const Icon(Icons.person_outline, size: 14, color: AppColors.textSecondary),
@@ -210,7 +266,6 @@ class _OrderListScreenState extends State<OrderListScreen>
                       ],
                     ),
                     const SizedBox(height: 4),
-                    // Date + Karigar
                     Row(
                       children: [
                         const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textSecondary),

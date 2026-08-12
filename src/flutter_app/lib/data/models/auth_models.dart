@@ -94,6 +94,24 @@ class UserInfo {
         'role': role,
         'shopName': shopName,
       };
+
+  UserInfo copyWith({
+    String? userId,
+    String? tenantId,
+    String? email,
+    String? fullName,
+    String? role,
+    String? shopName,
+  }) {
+    return UserInfo(
+      userId: userId ?? this.userId,
+      tenantId: tenantId ?? this.tenantId,
+      email: email ?? this.email,
+      fullName: fullName ?? this.fullName,
+      role: role ?? this.role,
+      shopName: shopName ?? this.shopName,
+    );
+  }
 }
 
 class RegisterResponse {

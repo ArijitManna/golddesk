@@ -127,9 +127,11 @@ app.MapGet("/api/health", () => Results.Ok(new
 // Feature endpoints
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
+app.MapTenantEndpoints();
 app.MapCustomerEndpoints();
 app.MapItemEndpoints();
 app.MapKarigarEndpoints();
+app.MapTeamUserEndpoints();
 app.MapOrderEndpoints();
 app.MapDashboardEndpoints();
 app.MapNotificationEndpoints();

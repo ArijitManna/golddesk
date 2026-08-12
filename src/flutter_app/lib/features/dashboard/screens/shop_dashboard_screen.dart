@@ -137,74 +137,97 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
       crossAxisSpacing: 10,
       childAspectRatio: 1.1,
       children: [
-        _buildStatCard('Total', data.totalOrders, AppColors.primaryDark),
-        _buildStatCard('Pending', data.pending, AppColors.statusPending),
-        _buildStatCard('Assigned', data.assigned, AppColors.statusAssigned),
-        _buildStatCard('In Progress', data.inProgress, AppColors.statusInProgress),
-        _buildStatCard('Due Today', data.dueToday, AppColors.due2Days),
-        _buildStatCard('Overdue', data.overdue, AppColors.statusOverdue),
-        _buildStatCard('Ready', data.ready, AppColors.statusReady),
-        _buildStatCard('Due 3 Days', data.dueNext3Days, AppColors.due3Days),
-        _buildStatCard('Karigars', data.activeKarigars, AppColors.gold),
+        _buildStatCard('Total', data.totalOrders, AppColors.primaryDark,
+            onTap: () => context.go('/orders')),
+        _buildStatCard('Pending', data.pending, AppColors.statusPending,
+            onTap: () => context.go('/orders?status=Pending')),
+        _buildStatCard('Assigned', data.assigned, AppColors.statusAssigned,
+            onTap: () => context.go('/orders?status=Assigned')),
+        _buildStatCard('In Progress', data.inProgress, AppColors.statusInProgress,
+            onTap: () => context.go('/orders?status=InProgress')),
+        _buildStatCard('Due Today', data.dueToday, AppColors.due2Days,
+            onTap: () => context.go('/orders?due=today')),
+        _buildStatCard('Overdue', data.overdue, AppColors.statusOverdue,
+            onTap: () => context.go('/orders?due=overdue')),
+        _buildStatCard('Ready', data.ready, AppColors.statusReady,
+            onTap: () => context.go('/orders?status=Ready')),
+        _buildStatCard('Due 3 Days', data.dueNext3Days, AppColors.due3Days,
+            onTap: () => context.go('/orders?due=next3')),
+        _buildStatCard('Karigars', data.activeKarigars, AppColors.gold,
+            onTap: () => context.go('/karigars')),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, int count, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+  Widget _buildStatCard(String label, int count, Color color, {VoidCallback? onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildOverdueAlert(int count) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.go('/orders?due=overdue'),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.warning_amber_rounded, color: AppColors.error),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '$count order(s) are overdue!',
-              style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
-            ),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.error.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
           ),
-          TextButton(
-            onPressed: () => context.go('/orders'),
-            child: const Text('View', style: TextStyle(color: AppColors.error)),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: AppColors.error),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '$count order(s) are overdue!',
+                  style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton(
+                onPressed: () => context.go('/orders?due=overdue'),
+                child: const Text('View', style: TextStyle(color: AppColors.error)),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

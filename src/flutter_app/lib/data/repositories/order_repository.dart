@@ -11,6 +11,7 @@ class OrderRepository {
 
   Future<PagedResponse<OrderSummary>> getOrders({
     String? status,
+    String? due,
     String? search,
     int page = 1,
     int pageSize = 20,
@@ -18,6 +19,7 @@ class OrderRepository {
     try {
       final response = await _apiClient.dio.get('/orders', queryParameters: {
         if (status != null) 'status': status,
+        if (due != null) 'due': due,
         if (search != null) 'search': search,
         'page': page,
         'pageSize': pageSize,
@@ -111,6 +113,17 @@ class OrderRepository {
       return (response.data['items'] as List)
           .map((e) => KarigarItem.fromJson(e))
           .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getItems() async {
+    try {
+      final response = await _apiClient.dio.get('/items', queryParameters: {
+        'pageSize': 100,
+      });
+      return List<Map<String, dynamic>>.from(response.data['items']);
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
