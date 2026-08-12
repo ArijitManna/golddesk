@@ -1,6 +1,7 @@
 using GoldDesk.Application.Common.Models;
 using GoldDesk.Application.Features.Admin.ApproveShop;
 using GoldDesk.Application.Features.Admin.GetPendingRegistrations;
+using GoldDesk.Application.Features.Admin.GetPlatformShopsReport;
 using GoldDesk.Application.Features.Admin.RejectShop;
 using MediatR;
 
@@ -45,6 +46,14 @@ public static class AdminEndpoints
         })
         .WithName("RejectShop")
         .WithDescription("Reject a pending shop registration");
+
+        group.MapGet("/reports/shops", async (IMediator mediator) =>
+        {
+            var result = await mediator.Send(new GetPlatformShopsReportQuery());
+            return ToResponse(result);
+        })
+        .WithName("GetPlatformShopsReport")
+        .WithDescription("Platform report: shops with karigar counts");
     }
 
     private static IResult ToResponse<T>(Result<T> result)
@@ -60,7 +69,6 @@ public static class AdminEndpoints
     }
 }
 
-// Request DTOs for endpoints that need body separate from route params
 public record ApproveShopRequest
 {
     public string? AdminNote { get; init; }

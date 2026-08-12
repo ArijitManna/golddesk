@@ -8,6 +8,7 @@ import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/pending_approval_screen.dart';
 import '../../features/admin/screens/admin_approval_screen.dart';
+import '../../features/admin/screens/platform_reports_screen.dart';
 import '../../features/masters/screens/customer_list_screen.dart';
 import '../../features/masters/screens/karigar_list_screen.dart';
 import '../../features/masters/screens/item_list_screen.dart';
@@ -139,7 +140,14 @@ class AppRouter {
       GoRoute(
         path: '/reports',
         name: 'reports',
-        builder: (context, state) => const ReportsScreen(),
+        builder: (context, state) {
+          final authState = getIt<AuthBloc>().state;
+          final isSuperAdmin =
+              authState is AuthAuthenticated && authState.user.role == 'SuperAdmin';
+          return isSuperAdmin
+              ? const PlatformReportsScreen()
+              : const ReportsScreen();
+        },
       ),
       GoRoute(
         path: '/settings',

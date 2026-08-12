@@ -17,6 +17,8 @@ class SideDrawer extends StatelessWidget {
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final user = state is AuthAuthenticated ? state.user : null;
+          final isSuperAdmin = user?.role == 'SuperAdmin';
+
           return Column(
             children: [
               _buildHeader(context, user),
@@ -30,7 +32,7 @@ class SideDrawer extends StatelessWidget {
                       label: 'Dashboard',
                       onTap: () => _navigate(context, '/dashboard'),
                     ),
-                    if (user?.role == 'SuperAdmin')
+                    if (isSuperAdmin) ...[
                       _buildMenuItem(
                         context,
                         icon: Icons.approval_outlined,
@@ -38,56 +40,64 @@ class SideDrawer extends StatelessWidget {
                         onTap: () => _navigate(context, '/admin/approvals'),
                         color: AppColors.gold,
                       ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.add_box_outlined,
-                      label: 'New Order',
-                      onTap: () => _navigate(context, '/orders/new'),
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.list_alt_outlined,
-                      label: 'Order List',
-                      onTap: () => _navigate(context, '/orders'),
-                    ),
-                    const Divider(),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.engineering_outlined,
-                      label: 'Karigar Master',
-                      onTap: () => _navigate(context, '/karigars'),
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.people_outlined,
-                      label: 'Customer Master',
-                      onTap: () => _navigate(context, '/customers'),
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.diamond_outlined,
-                      label: 'Item Master',
-                      onTap: () => _navigate(context, '/items'),
-                    ),
-                    const Divider(),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.bar_chart_outlined,
-                      label: 'Reports',
-                      onTap: () => _navigate(context, '/reports'),
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.notifications_outlined,
-                      label: 'Notifications',
-                      onTap: () => _navigate(context, '/notifications'),
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.settings_outlined,
-                      label: 'Settings',
-                      onTap: () => _navigate(context, '/settings'),
-                    ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.bar_chart_outlined,
+                        label: 'Reports',
+                        onTap: () => _navigate(context, '/reports'),
+                      ),
+                    ] else ...[
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.add_box_outlined,
+                        label: 'New Order',
+                        onTap: () => _navigate(context, '/orders/new'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.list_alt_outlined,
+                        label: 'Order List',
+                        onTap: () => _navigate(context, '/orders'),
+                      ),
+                      const Divider(),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.engineering_outlined,
+                        label: 'Karigar Master',
+                        onTap: () => _navigate(context, '/karigars'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.people_outlined,
+                        label: 'Customer Master',
+                        onTap: () => _navigate(context, '/customers'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.diamond_outlined,
+                        label: 'Item Master',
+                        onTap: () => _navigate(context, '/items'),
+                      ),
+                      const Divider(),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.bar_chart_outlined,
+                        label: 'Reports',
+                        onTap: () => _navigate(context, '/reports'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.notifications_outlined,
+                        label: 'Notifications',
+                        onTap: () => _navigate(context, '/notifications'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                        onTap: () => _navigate(context, '/settings'),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -111,6 +121,10 @@ class SideDrawer extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, UserInfo? user) {
+    final title = user?.role == 'SuperAdmin'
+        ? 'Platform Admin'
+        : (user?.shopName ?? AppConstants.appName);
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 16, 16, 16),
@@ -121,7 +135,7 @@ class SideDrawer extends StatelessWidget {
           Image.asset('assets/images/logo.png', width: 160, height: 60, fit: BoxFit.contain),
           const SizedBox(height: 16),
           Text(
-            user?.shopName ?? AppConstants.appName,
+            title,
             style: const TextStyle(
               color: AppColors.textOnDark,
               fontSize: 16,
