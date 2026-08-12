@@ -22,11 +22,20 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<DashboardCubit>().loadDashboard();
+    final authState = context.read<AuthBloc>().state;
+    final isSuperAdmin =
+        authState is AuthAuthenticated && authState.user.role == 'SuperAdmin';
+    if (!isSuperAdmin) {
+      context.read<DashboardCubit>().loadDashboard();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final isSuperAdmin =
+        authState is AuthAuthenticated && authState.user.role == 'SuperAdmin';
+
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthUnauthenticated) context.go('/login');
@@ -53,7 +62,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
             ]),
           ),
           actions: [
-            const NotificationBell(),
+            if (!isSuperAdmin) const NotificationBell(),
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () =>
@@ -62,39 +71,79 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
           ],
         ),
         drawer: const SideDrawer(),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => context.go('/orders/new'),
-          icon: const Icon(Icons.add),
-          label: const Text('NEW ORDER'),
-          backgroundColor: AppColors.gold,
-          foregroundColor: AppColors.textOnGold,
-        ),
-        body: BlocBuilder<DashboardCubit, DashboardState>(
-          builder: (context, state) {
-            if (state is DashboardLoading) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.gold));
-            }
-            if (state is DashboardError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(state.message),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => context.read<DashboardCubit>().loadDashboard(),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              );
-            }
-            if (state is DashboardLoaded) {
-              return _buildDashboardContent(context, state.data);
-            }
-            return const SizedBox();
-          },
-        ),
+        floatingActionButton: isSuperAdmin
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => context.go('/orders/new'),
+                icon: const Icon(Icons.add),
+                label: const Text('NEW ORDER'),
+                backgroundColor: AppColors.gold,
+                foregroundColor: AppColors.textOnGold,
+              ),
+        body: isSuperAdmin
+            ? _buildSuperAdminHome(context)
+            : BlocBuilder<DashboardCubit, DashboardState>(
+                builder: (context, state) {
+                  if (state is DashboardLoading) {
+                    return const Center(child: CircularProgressIndicator(color: AppColors.gold));
+                  }
+                  if (state is DashboardError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(state.message),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => context.read<DashboardCubit>().loadDashboard(),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  if (state is DashboardLoaded) {
+                    return _buildDashboardContent(context, state.data);
+                  }
+                  return const SizedBox();
+                },
+              ),
+      ),
+    );
+  }
+
+  Widget _buildSuperAdminHome(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Platform Admin', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          const Text(
+            'Manage shop approvals and view platform reports.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 24),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.approval_outlined, color: AppColors.gold),
+              title: const Text('Pending Approvals'),
+              subtitle: const Text('Review and approve new shop registrations'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/admin/approvals'),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primaryDark),
+              title: const Text('Platform Reports'),
+              subtitle: const Text('Shop count with karigars per shop'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/reports'),
+            ),
+          ),
+        ],
       ),
     );
   }
