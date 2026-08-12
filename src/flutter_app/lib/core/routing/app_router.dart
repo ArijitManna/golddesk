@@ -10,6 +10,7 @@ import '../../features/auth/screens/pending_approval_screen.dart';
 import '../../features/admin/screens/admin_approval_screen.dart';
 import '../../features/masters/screens/customer_list_screen.dart';
 import '../../features/masters/screens/karigar_list_screen.dart';
+import '../../features/masters/screens/item_list_screen.dart';
 import '../../features/dashboard/bloc/dashboard_cubit.dart';
 import '../../features/dashboard/screens/shop_dashboard_screen.dart';
 import '../../features/karigar_portal/screens/karigar_dashboard_screen.dart';
@@ -76,6 +77,11 @@ class AppRouter {
         path: '/karigars',
         name: 'karigars',
         builder: (context, state) => const KarigarListScreen(),
+      ),
+      GoRoute(
+        path: '/items',
+        name: 'items',
+        builder: (context, state) => const ItemListScreen(),
       ),
       GoRoute(
         path: '/orders',

@@ -70,6 +70,55 @@ public static class FileEndpoints
         .WithDescription("Upload an image for an order item");
 
         // General image upload (returns path, can be attached later)
+        group.MapPost("/upload/item/{itemId:guid}", async (
+            Guid itemId,
+            IFormFile file,
+            IApplicationDbContext context,
+            IWebHostEnvironment env) =>
+        {
+            if (file.Length == 0)
+                return Results.BadRequest(new { error = "No file uploaded" });
+
+            if (file.Length > 5 * 1024 * 1024)
+                return Results.BadRequest(new { error = "File size exceeds 5MB limit" });
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var ext = Path.GetExtension(file.FileName).ToLower();
+            if (!allowedExtensions.Contains(ext))
+                return Results.BadRequest(new { error = "Only jpg, png, webp images are allowed" });
+
+            var item = await context.Items.FindAsync(new object[] { itemId });
+            if (item == null)
+                return Results.NotFound(new { error = "Item not found" });
+
+            var uploadsFolder = Path.Combine(env.ContentRootPath, "uploads", "items");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = $"{itemId}_{DateTime.UtcNow:yyyyMMddHHmmss}{ext}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            if (!string.IsNullOrEmpty(item.ImagePath))
+            {
+                var oldPath = Path.Combine(env.ContentRootPath, item.ImagePath.TrimStart('/'));
+                if (File.Exists(oldPath)) File.Delete(oldPath);
+            }
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var relativePath = $"/uploads/items/{fileName}";
+            item.ImagePath = relativePath;
+            await context.SaveChangesAsync();
+
+            return Results.Ok(new { imagePath = relativePath });
+        })
+        .DisableAntiforgery()
+        .WithName("UploadItemImage")
+        .WithDescription("Upload an image for an item master");
+
+        // General image upload (returns path, can be attached later)
         group.MapPost("/upload", async (
             IFormFile file,
             IWebHostEnvironment env) =>

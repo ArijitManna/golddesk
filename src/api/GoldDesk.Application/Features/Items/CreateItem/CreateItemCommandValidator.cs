@@ -6,6 +6,10 @@ public class CreateItemCommandValidator : AbstractValidator<CreateItemCommand>
 {
     public CreateItemCommandValidator()
     {
+        RuleFor(x => x.ItemCode)
+            .NotEmpty().WithMessage("Item code is required")
+            .MaximumLength(50);
+
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Item name is required")
             .MaximumLength(200);

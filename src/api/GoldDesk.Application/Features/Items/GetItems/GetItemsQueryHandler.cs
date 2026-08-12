@@ -22,7 +22,7 @@ public class GetItemsQueryHandler : IRequestHandler<GetItemsQuery, Result<PagedR
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.ToLower();
-            query = query.Where(i => i.Name.ToLower().Contains(search));
+            query = query.Where(i => i.Name.ToLower().Contains(search) || i.ItemCode.ToLower().Contains(search));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Category))
@@ -39,11 +39,13 @@ public class GetItemsQueryHandler : IRequestHandler<GetItemsQuery, Result<PagedR
             .Select(i => new ItemDto
             {
                 Id = i.Id,
+                ItemCode = i.ItemCode,
                 Name = i.Name,
                 Category = i.Category,
                 Purity = i.Purity,
                 DefaultRate = i.DefaultRate,
                 DefaultMakingCharge = i.DefaultMakingCharge,
+                ImagePath = i.ImagePath,
                 IsActive = i.IsActive,
                 CreatedAt = i.CreatedAt
             })

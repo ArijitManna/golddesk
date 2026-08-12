@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/golddesk_button.dart';
 import '../../../core/widgets/golddesk_text_field.dart';
 import '../../../data/models/order_models.dart';
@@ -26,6 +25,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   final _advanceController = TextEditingController(text: '0');
   final List<_OrderItemForm> _items = [_OrderItemForm()];
   List<CustomerItem> _customers = [];
+  List<Map<String, dynamic>> _masterItems = [];
 
   @override
   void initState() {
@@ -100,6 +100,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           final making = double.tryParse(item.makingChargeController.text) ?? 0;
           final amount = (weight * rate) + making;
           return OrderItemRequest(
+            itemMasterId: item.selectedItemId,
             itemName: item.nameController.text,
             weight: weight,
             quantity: int.tryParse(item.quantityController.text) ?? 1,
@@ -111,10 +112,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         }).toList(),
       );
 
-      context.read<CreateOrderCubit>().createOrder(
-        request,
-        itemImages: _items.map((item) => item.imagePath).toList(),
-      );
+      context.read<CreateOrderCubit>().createOrder(request);
     }
   }
 
@@ -124,6 +122,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       listener: (context, state) {
         if (state is CreateOrderDataLoaded) {
           _customers = state.customers;
+          _masterItems = state.items;
         } else if (state is CreateOrderSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -303,17 +302,84 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
+            // Item search by code/name
             Row(
               children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: item.nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Item Name *',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                // Image from master
+                if (item.imagePath != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      '${AppConstants.serverUrl}${item.imagePath}',
+                      width: 44, height: 44, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _itemPlaceholder(),
                     ),
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                  )
+                else
+                  _itemPlaceholder(),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Autocomplete<Map<String, dynamic>>(
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) return _masterItems;
+                      final search = textEditingValue.text.toLowerCase();
+                      return _masterItems.where((i) =>
+                          (i['itemCode'] ?? '').toString().toLowerCase().contains(search) ||
+                          (i['name'] ?? '').toString().toLowerCase().contains(search));
+                    },
+                    displayStringForOption: (i) => '${i['itemCode']} - ${i['name']}',
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      if (item.nameController.text.isNotEmpty && controller.text.isEmpty) {
+                        controller.text = item.nameController.text;
+                      }
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Search Item Code / Name *',
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          prefixIcon: Icon(Icons.search, size: 18),
+                        ),
+                        validator: (v) => item.nameController.text.isEmpty ? 'Select an item' : null,
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4,
+                          borderRadius: BorderRadius.circular(8),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (context, i) {
+                                final opt = options.elementAt(i);
+                                return ListTile(
+                                  dense: true,
+                                  title: Text('${opt['itemCode']} - ${opt['name']}', style: const TextStyle(fontSize: 13)),
+                                  subtitle: Text('${opt['purity'] ?? ''} | Rate: ${opt['defaultRate'] ?? 0}', style: const TextStyle(fontSize: 10)),
+                                  onTap: () => onSelected(opt),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    onSelected: (Map<String, dynamic> selection) {
+                      setState(() {
+                        item.nameController.text = '${selection['itemCode']} - ${selection['name']}';
+                        item.selectedItemId = selection['id'];
+                        item.purityController.text = selection['purity'] ?? '';
+                        item.rateController.text = (selection['defaultRate'] ?? 0).toString();
+                        item.makingChargeController.text = (selection['defaultMakingCharge'] ?? 0).toString();
+                        item.imagePath = selection['imagePath'];
+                      });
+                    },
                   ),
                 ),
                 if (_items.length > 1)
@@ -343,10 +409,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                   child: TextFormField(
                     controller: item.purityController,
                     decoration: const InputDecoration(
-                      labelText: 'Purity (e.g. 22K)',
+                      labelText: 'Purity',
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
+                    readOnly: true,
                   ),
                 ),
               ],
@@ -382,34 +449,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            // Item total + image button
+            // Item total
             Row(
               children: [
-                // Image/photo button or thumbnail
-                if (item.imagePath != null)
-                  GestureDetector(
-                    onTap: () => _showImagePicker(index),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.file(
-                        File(item.imagePath!),
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  )
-                else
-                  OutlinedButton.icon(
-                    onPressed: () => _showImagePicker(index),
-                    icon: const Icon(Icons.camera_alt_outlined, size: 16, color: AppColors.textSecondary),
-                    label: const Text('Add Photo', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      side: const BorderSide(color: AppColors.divider),
-                      minimumSize: Size.zero,
-                    ),
-                  ),
                 const Spacer(),
                 Text(
                   'Total: \u20B9${itemTotal.toStringAsFixed(0)}',
@@ -423,48 +465,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     );
   }
 
-  void _showImagePicker(int index) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.gold),
-              title: const Text('Take Photo'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final picker = ImagePicker();
-                final photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 70, maxWidth: 800);
-                if (photo != null && mounted) {
-                  setState(() => _items[index].imagePath = photo.path);
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.gold),
-              title: const Text('Choose from Gallery'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final picker = ImagePicker();
-                final photo = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70, maxWidth: 800);
-                if (photo != null && mounted) {
-                  setState(() => _items[index].imagePath = photo.path);
-                }
-              },
-            ),
-            if (_items[index].imagePath != null)
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                title: const Text('Remove Photo'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  setState(() => _items[index].imagePath = null);
-                },
-              ),
-          ],
-        ),
-      ),
+  Widget _itemPlaceholder() {
+    return Container(
+      width: 44, height: 44,
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.divider)),
+      child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 20),
     );
   }
 
@@ -533,5 +538,6 @@ class _OrderItemForm {
   final purityController = TextEditingController();
   final rateController = TextEditingController();
   final makingChargeController = TextEditingController();
+  String? selectedItemId;
   String? imagePath;
 }

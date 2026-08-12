@@ -115,4 +115,15 @@ class OrderRepository {
       throw ApiException.fromDioError(e);
     }
   }
+
+  Future<List<Map<String, dynamic>>> getItems() async {
+    try {
+      final response = await _apiClient.dio.get('/items', queryParameters: {
+        'pageSize': 100,
+      });
+      return List<Map<String, dynamic>>.from(response.data['items']);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }

@@ -6,6 +6,7 @@ namespace GoldDesk.Application.Features.Items.CreateItem;
 
 public record CreateItemCommand : IRequest<Result<ItemDto>>
 {
+    public string ItemCode { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string? Category { get; init; }
     public string? Purity { get; init; }

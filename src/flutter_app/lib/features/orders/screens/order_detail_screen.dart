@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/order_image.dart';
 import '../../../data/models/order_models.dart';
 import '../bloc/order_detail_cubit.dart';
@@ -163,7 +164,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 borderRadius: BorderRadius.circular(8),
                 child: item.imagePath != null
                     ? Image.network(
-                        'http://162.35.185.106:8082${item.imagePath}',
+                        '${AppConstants.serverUrl}${item.imagePath}',
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,
@@ -209,7 +210,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  'http://162.35.185.106:8082$imagePath',
+                  '${AppConstants.serverUrl}$imagePath',
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Container(
                     width: 200,

@@ -139,3 +139,7 @@ app.*.map.json
 Thumbs.db
 *.tmp
 *.temp
+
+# Local uploaded files
+**/uploads/
+
