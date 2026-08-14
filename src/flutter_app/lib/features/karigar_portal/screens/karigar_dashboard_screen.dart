@@ -96,7 +96,7 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
             // Stats row
             Row(
               children: [
-                _buildStatCard('Total\nAssigned', data.totalAssigned, AppColors.primaryDark),
+                _buildStatCard('Send to\nKarigar', data.totalAssigned, AppColors.primaryDark),
                 const SizedBox(width: 10),
                 _buildStatCard('In\nProgress', data.inProgress, AppColors.statusInProgress),
                 const SizedBox(width: 10),

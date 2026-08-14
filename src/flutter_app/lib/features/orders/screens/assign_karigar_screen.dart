@@ -25,25 +25,52 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
   final _dueDateController = TextEditingController();
   final _notesController = TextEditingController();
   List<KarigarItem> _karigars = [];
+  OrderDetail? _order;
+  bool _dueDateAuto = false;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _assignDateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    _loadKarigars();
+    _load();
   }
 
-  Future<void> _loadKarigars() async {
+  Future<void> _load() async {
     try {
-      final karigars = await getIt<OrderRepository>().getKarigars();
-      setState(() => _karigars = karigars);
-    } catch (_) {}
+      final results = await Future.wait([
+        getIt<OrderRepository>().getKarigars(),
+        getIt<OrderRepository>().getOrderById(widget.orderId),
+      ]);
+      final karigars = results[0] as List<KarigarItem>;
+      final order = results[1] as OrderDetail;
+      final delivery = DateTime.tryParse(order.deliveryDate ?? '');
+      String dueText = '';
+      var auto = false;
+      if (delivery != null) {
+        final assignDay = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+        var due = delivery.subtract(const Duration(days: 1));
+        if (due.isBefore(assignDay)) due = assignDay;
+        dueText = DateFormat('yyyy-MM-dd').format(due);
+        auto = true;
+      }
+      if (!mounted) return;
+      setState(() {
+        _karigars = karigars;
+        _order = order;
+        _dueDateController.text = dueText;
+        _dueDateAuto = auto;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _pickDate(TextEditingController controller) async {
     final date = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: DateTime.tryParse(controller.text) ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
@@ -104,91 +131,101 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
             icon: const Icon(Icons.arrow_back_ios),
             onPressed: () => context.go('/orders/${widget.orderId}'),
           ),
-          title: const Text('Assign Karigar'),
+          title: const Text('Send to Karigar'),
         ),
-        body: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Order number display
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  child: Row(
+        body: _loading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+            : Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.receipt_outlined, color: AppColors.gold, size: 20),
-                      const SizedBox(width: 8),
-                      Text('Order: ', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-                      Text(widget.orderId.substring(0, 8) + '...',
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.receipt_outlined, color: AppColors.gold, size: 20),
+                            const SizedBox(width: 8),
+                            Text('Order: ', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                            Text(_order?.orderNo ?? widget.orderId.substring(0, 8),
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                      if (_order?.deliveryDate != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Order delivery date: ${_order!.deliveryDate}',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      Text('Karigar', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<KarigarItem>(
+                        value: _selectedKarigar,
+                        items: _karigars.map((k) => DropdownMenuItem(
+                          value: k,
+                          child: Text('${k.name}${k.specialization != null ? ' (${k.specialization})' : ''}'),
+                        )).toList(),
+                        onChanged: (val) => setState(() => _selectedKarigar = val),
+                        decoration: const InputDecoration(hintText: 'Select Karigar'),
+                        validator: (val) => val == null ? 'Karigar is required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      GoldDeskTextField(
+                        label: 'Assign Date',
+                        controller: _assignDateController,
+                        readOnly: true,
+                        onTap: () => _pickDate(_assignDateController),
+                        suffixIcon: const Icon(Icons.calendar_today, size: 18),
+                        validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      GoldDeskTextField(
+                        label: 'Due Date (Target)',
+                        hint: _dueDateAuto ? '1 day before order delivery' : 'Select target completion date',
+                        controller: _dueDateController,
+                        readOnly: true,
+                        onTap: _dueDateAuto ? null : () => _pickDate(_dueDateController),
+                        suffixIcon: const Icon(Icons.calendar_today, size: 18),
+                        validator: (v) => v == null || v.isEmpty ? 'Due date is required' : null,
+                      ),
+                      if (_dueDateAuto) ...[
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Automatically set to 1 day before the order delivery date',
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      GoldDeskTextField(
+                        label: 'Notes (Optional)',
+                        hint: 'Any special instructions...',
+                        controller: _notesController,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 32),
+                      BlocBuilder<OrderDetailCubit, OrderDetailState>(
+                        builder: (context, state) {
+                          return GoldDeskButton(
+                            text: 'ASSIGN ORDER',
+                            onPressed: _onAssign,
+                            isLoading: state is AssignKarigarLoading,
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                // Karigar selection
-                Text('Karigar', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<KarigarItem>(
-                  value: _selectedKarigar,
-                  items: _karigars.map((k) => DropdownMenuItem(
-                    value: k,
-                    child: Text('${k.name}${k.specialization != null ? ' (${k.specialization})' : ''}'),
-                  )).toList(),
-                  onChanged: (val) => setState(() => _selectedKarigar = val),
-                  decoration: const InputDecoration(hintText: 'Select Karigar'),
-                  validator: (val) => val == null ? 'Karigar is required' : null,
-                ),
-                const SizedBox(height: 20),
-                // Assign Date
-                GoldDeskTextField(
-                  label: 'Assign Date',
-                  controller: _assignDateController,
-                  readOnly: true,
-                  onTap: () => _pickDate(_assignDateController),
-                  suffixIcon: const Icon(Icons.calendar_today, size: 18),
-                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                ),
-                const SizedBox(height: 20),
-                // Due Date (Target)
-                GoldDeskTextField(
-                  label: 'Due Date (Target)',
-                  hint: 'Select target completion date',
-                  controller: _dueDateController,
-                  readOnly: true,
-                  onTap: () => _pickDate(_dueDateController),
-                  suffixIcon: const Icon(Icons.calendar_today, size: 18),
-                  validator: (v) => v == null || v.isEmpty ? 'Due date is required' : null,
-                ),
-                const SizedBox(height: 20),
-                // Notes
-                GoldDeskTextField(
-                  label: 'Notes (Optional)',
-                  hint: 'Any special instructions...',
-                  controller: _notesController,
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 32),
-                // Assign button
-                BlocBuilder<OrderDetailCubit, OrderDetailState>(
-                  builder: (context, state) {
-                    return GoldDeskButton(
-                      text: 'ASSIGN ORDER',
-                      onPressed: _onAssign,
-                      isLoading: state is AssignKarigarLoading,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
     );
   }

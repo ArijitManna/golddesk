@@ -57,6 +57,15 @@ class OrderRepository {
     }
   }
 
+  Future<OrderSummary> updateOrder(String orderId, CreateOrderRequest request) async {
+    try {
+      final response = await _apiClient.dio.post('/orders/$orderId/update', data: request.toJson());
+      return OrderSummary.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<void> assignKarigar(String orderId, AssignKarigarRequest request) async {
     try {
       await _apiClient.dio.post('/orders/$orderId/assign', data: request.toJson());

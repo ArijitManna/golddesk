@@ -30,6 +30,7 @@ public record OrderDetailDto : OrderDto
 public record OrderItemDto
 {
     public Guid Id { get; init; }
+    public Guid? ItemMasterId { get; init; }
     public string ItemName { get; init; } = string.Empty;
     public decimal Weight { get; init; }
     public int Quantity { get; init; }

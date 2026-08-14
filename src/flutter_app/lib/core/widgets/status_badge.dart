@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../utils/order_status_labels.dart';
 
 class StatusBadge extends StatelessWidget {
   final String status;
@@ -23,7 +24,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
-        status,
+        formatOrderStatus(status),
         style: TextStyle(
           color: textColor ?? colors.$1,
           fontSize: 11,

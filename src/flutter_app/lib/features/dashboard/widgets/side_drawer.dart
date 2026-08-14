@@ -40,12 +40,6 @@ class SideDrawer extends StatelessWidget {
                         onTap: () => _navigate(context, '/admin/approvals'),
                         color: AppColors.gold,
                       ),
-                      _buildMenuItem(
-                        context,
-                        icon: Icons.bar_chart_outlined,
-                        label: 'Reports',
-                        onTap: () => _navigate(context, '/reports'),
-                      ),
                     ] else ...[
                       _buildMenuItem(
                         context,

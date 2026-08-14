@@ -26,6 +26,7 @@ class CreateOrderRequest {
 }
 
 class OrderItemRequest {
+  final String? id;
   final String? itemMasterId;
   final String itemName;
   final double weight;
@@ -37,6 +38,7 @@ class OrderItemRequest {
   final String? size;
 
   OrderItemRequest({
+    this.id,
     this.itemMasterId,
     required this.itemName,
     this.weight = 0,
@@ -49,6 +51,7 @@ class OrderItemRequest {
   });
 
   Map<String, dynamic> toJson() => {
+        if (id != null) 'id': id,
         if (itemMasterId != null) 'itemMasterId': itemMasterId,
         'itemName': itemName,
         'weight': weight,
@@ -149,6 +152,7 @@ class OrderDetail {
 
 class OrderItemDetail {
   final String id;
+  final String? itemMasterId;
   final String itemName;
   final double weight;
   final int quantity;
@@ -156,10 +160,12 @@ class OrderItemDetail {
   final double rate;
   final double makingCharge;
   final double amount;
+  final String? size;
   final String? imagePath;
 
   OrderItemDetail({
     required this.id,
+    this.itemMasterId,
     required this.itemName,
     required this.weight,
     required this.quantity,
@@ -167,12 +173,14 @@ class OrderItemDetail {
     required this.rate,
     required this.makingCharge,
     required this.amount,
+    this.size,
     this.imagePath,
   });
 
   factory OrderItemDetail.fromJson(Map<String, dynamic> json) {
     return OrderItemDetail(
       id: json['id'],
+      itemMasterId: json['itemMasterId'],
       itemName: json['itemName'],
       weight: (json['weight'] ?? 0).toDouble(),
       quantity: json['quantity'] ?? 1,
@@ -180,6 +188,7 @@ class OrderItemDetail {
       rate: (json['rate'] ?? 0).toDouble(),
       makingCharge: (json['makingCharge'] ?? 0).toDouble(),
       amount: (json['amount'] ?? 0).toDouble(),
+      size: json['size'],
       imagePath: json['imagePath'],
     );
   }

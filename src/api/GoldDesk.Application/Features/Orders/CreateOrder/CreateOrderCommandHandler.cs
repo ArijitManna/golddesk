@@ -73,19 +73,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Res
                 Size = itemDto.Size
             };
 
-            // Copy image from Item Master if linked
-            if (itemDto.ItemMasterId.HasValue)
-            {
-                var master = await _context.Items
-                    .FirstOrDefaultAsync(i => i.Id == itemDto.ItemMasterId.Value, cancellationToken);
-                if (master != null && !string.IsNullOrEmpty(master.ImagePath))
-                {
-                    orderItem.ImagePath = master.ImagePath;
-                }
-            }
-
             order.Items.Add(orderItem);
-            totalWeight += itemDto.Weight;
+            totalWeight += itemDto.Weight * Math.Max(itemDto.Quantity, 1);
             totalMakingCharges += itemDto.MakingCharge;
             totalAmount += itemDto.Amount;
         }
