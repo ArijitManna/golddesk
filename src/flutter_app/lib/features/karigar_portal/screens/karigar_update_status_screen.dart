@@ -131,7 +131,14 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
                             color: AppColors.statusInProgress.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(_order!.status, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.statusInProgress)),
+                          child: Text(
+                            _order!.status == 'Assigned'
+                                ? 'Send to Karigar'
+                                : _order!.status == 'InProgress'
+                                    ? 'In Progress'
+                                    : _order!.status,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.statusInProgress),
+                          ),
                         ),
                       ],
                     ),

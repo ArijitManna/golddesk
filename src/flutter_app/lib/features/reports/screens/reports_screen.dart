@@ -150,7 +150,7 @@ class _OrderSummaryTabState extends State<_OrderSummaryTab> {
         children: [
           Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 8),
-          Expanded(child: Text(status == 'InProgress' ? 'In Progress' : status, style: const TextStyle(fontSize: 13))),
+          Expanded(child: Text(status == 'Assigned' ? 'Send to Karigar' : status == 'InProgress' ? 'In Progress' : status, style: const TextStyle(fontSize: 13))),
           Text('$count', style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(width: 8),
           SizedBox(
@@ -262,7 +262,7 @@ class _KarigarWiseTabState extends State<_KarigarWiseTab> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    _chip('Assigned', assigned, AppColors.statusAssigned),
+                    _chip('Send to Karigar', assigned, AppColors.statusAssigned),
                     const SizedBox(width: 6),
                     _chip('In Progress', inProgress, AppColors.statusInProgress),
                     const SizedBox(width: 6),
@@ -369,7 +369,7 @@ class _DueOverdueTabState extends State<_DueOverdueTab> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text('Due: ${order.dueDate}', style: const TextStyle(fontSize: 11, color: AppColors.statusOverdue, fontWeight: FontWeight.w600)),
-                      Text(order.status, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                      Text(order.status == 'Assigned' ? 'Send to Karigar' : order.status == 'InProgress' ? 'In Progress' : order.status, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                     ],
                   ),
                 ],

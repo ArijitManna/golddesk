@@ -73,6 +73,11 @@ class AppRouter {
         builder: (context, state) => const AdminApprovalScreen(),
       ),
       GoRoute(
+        path: '/admin/reports',
+        name: 'admin-reports',
+        builder: (context, state) => const PlatformReportsScreen(),
+      ),
+      GoRoute(
         path: '/customers',
         name: 'customers',
         builder: (context, state) => const CustomerListScreen(),
@@ -128,6 +133,14 @@ class AppRouter {
         ),
       ),
       GoRoute(
+        path: '/orders/:id/edit',
+        name: 'edit-order',
+        builder: (context, state) => BlocProvider(
+          create: (_) => getIt<CreateOrderCubit>(),
+          child: CreateOrderScreen(orderId: state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
         path: '/orders/:id/receipt',
         name: 'order-receipt',
         builder: (context, state) => OrderReceiptScreen(orderId: state.pathParameters['id']!),
@@ -140,14 +153,7 @@ class AppRouter {
       GoRoute(
         path: '/reports',
         name: 'reports',
-        builder: (context, state) {
-          final authState = getIt<AuthBloc>().state;
-          final isSuperAdmin =
-              authState is AuthAuthenticated && authState.user.role == 'SuperAdmin';
-          return isSuperAdmin
-              ? const PlatformReportsScreen()
-              : const ReportsScreen();
-        },
+        builder: (context, state) => const ReportsScreen(),
       ),
       GoRoute(
         path: '/settings',

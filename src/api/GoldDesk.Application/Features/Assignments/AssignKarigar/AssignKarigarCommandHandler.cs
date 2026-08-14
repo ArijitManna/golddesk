@@ -41,12 +41,24 @@ public class AssignKarigarCommandHandler : IRequestHandler<AssignKarigarCommand,
         if (karigar == null)
             return Result<AssignmentDto>.NotFound("Karigar not found or inactive");
 
-        // Parse dates
+        // Parse dates — karigar due date is one day before the order delivery date
         var givenDate = DateOnly.Parse(request.GivenDate);
-        var dueDate = DateOnly.Parse(request.DueDate);
+        DateOnly dueDate;
+        if (order.DeliveryDate.HasValue)
+        {
+            dueDate = order.DeliveryDate.Value.AddDays(-1);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.DueDate) && DateOnly.TryParse(request.DueDate, out var parsedDue))
+        {
+            dueDate = parsedDue;
+        }
+        else
+        {
+            return Result<AssignmentDto>.Failure("Due date is required when the order has no delivery date");
+        }
 
         if (dueDate < givenDate)
-            return Result<AssignmentDto>.Failure("Due date cannot be earlier than given date");
+            dueDate = givenDate;
 
         // Deactivate existing active assignment (reassignment)
         foreach (var existing in order.Assignments.Where(a => a.IsActive))

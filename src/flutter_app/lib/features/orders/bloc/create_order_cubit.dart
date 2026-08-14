@@ -33,9 +33,10 @@ class CreateOrderError extends CreateOrderState {
 class CreateOrderDataLoaded extends CreateOrderState {
   final List<CustomerItem> customers;
   final List<Map<String, dynamic>> items;
-  const CreateOrderDataLoaded(this.customers, this.items);
+  final OrderDetail? existingOrder;
+  const CreateOrderDataLoaded(this.customers, this.items, {this.existingOrder});
   @override
-  List<Object?> get props => [customers.length, items.length];
+  List<Object?> get props => [customers.length, items.length, existingOrder?.id];
 }
 
 // Cubit
@@ -44,14 +45,17 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
 
   CreateOrderCubit(this._repository) : super(CreateOrderInitial());
 
-  Future<void> loadFormData() async {
+  Future<void> loadFormData({String? editOrderId}) async {
     try {
       final customers = await _repository.getCustomers();
-      // Load items from API
       final itemsResponse = await _repository.getItems();
-      emit(CreateOrderDataLoaded(customers, itemsResponse));
+      OrderDetail? existing;
+      if (editOrderId != null) {
+        existing = await _repository.getOrderById(editOrderId);
+      }
+      emit(CreateOrderDataLoaded(customers, itemsResponse, existingOrder: existing));
     } catch (_) {
-      emit(CreateOrderDataLoaded(const [], const []));
+      emit(const CreateOrderDataLoaded([], []));
     }
   }
 
@@ -59,27 +63,63 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
     emit(CreateOrderLoading());
     try {
       final order = await _repository.createOrder(request);
+      await _uploadItemImages(order.id, itemImages, existingIds: request.items.map((e) => e.id).toList());
+      emit(CreateOrderSuccess(order));
+    } on ApiException catch (e) {
+      emit(CreateOrderError(e.message));
+    } catch (e) {
+      emit(const CreateOrderError('Failed to create order'));
+    }
+  }
 
-      // Upload images for items that have them
-      if (itemImages.isNotEmpty) {
-        // Get full order detail to get item IDs
-        final detail = await _repository.getOrderById(order.id);
-        for (var i = 0; i < detail.items.length && i < itemImages.length; i++) {
-          if (itemImages[i] != null) {
-            try {
-              await _repository.uploadOrderItemImage(detail.items[i].id, itemImages[i]!);
-            } catch (_) {
-              // Don't fail order creation if image upload fails
+  Future<void> updateOrder(String orderId, CreateOrderRequest request, {List<String?> itemImages = const []}) async {
+    emit(CreateOrderLoading());
+    try {
+      final order = await _repository.updateOrder(orderId, request);
+      await _uploadItemImages(order.id, itemImages, existingIds: request.items.map((e) => e.id).toList());
+      emit(CreateOrderSuccess(order));
+    } on ApiException catch (e) {
+      emit(CreateOrderError(e.message));
+    } catch (e) {
+      emit(const CreateOrderError('Failed to update order'));
+    }
+  }
+
+  Future<void> _uploadItemImages(String orderId, List<String?> itemImages, {List<String?> existingIds = const []}) async {
+    if (itemImages.every((e) => e == null)) return;
+    final detail = await _repository.getOrderById(orderId);
+    final used = <String>{};
+    for (var i = 0; i < itemImages.length; i++) {
+      final path = itemImages[i];
+      if (path == null) continue;
+
+      String? targetId;
+      final existingId = i < existingIds.length ? existingIds[i] : null;
+      if (existingId != null && detail.items.any((it) => it.id == existingId)) {
+        targetId = existingId;
+      } else {
+        final knownIds = existingIds.whereType<String>().toSet();
+        for (final it in detail.items) {
+          if (!used.contains(it.id) && !knownIds.contains(it.id)) {
+            targetId = it.id;
+            break;
+          }
+        }
+        if (targetId == null) {
+          for (final it in detail.items) {
+            if (!used.contains(it.id)) {
+              targetId = it.id;
+              break;
             }
           }
         }
       }
 
-      emit(CreateOrderSuccess(order));
-    } on ApiException catch (e) {
-      emit(CreateOrderError(e.message));
-    } catch (e) {
-      emit(CreateOrderError('Failed to create order'));
+      if (targetId == null) continue;
+      used.add(targetId);
+      try {
+        await _repository.uploadOrderItemImage(targetId, path);
+      } catch (_) {}
     }
   }
 }

@@ -47,9 +47,12 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
             KarigarName = activeAssignment?.Karigar.Name,
             DueDate = activeAssignment?.DueDate.ToString("yyyy-MM-dd"),
             CreatedAt = order.CreatedAt,
-            Items = order.Items.Select(i => new OrderItemDto
+            Items = order.Items
+                .OrderBy(i => i.CreatedAt)
+                .Select(i => new OrderItemDto
             {
                 Id = i.Id,
+                ItemMasterId = i.ItemMasterId,
                 ItemName = i.ItemName,
                 Weight = i.Weight,
                 Quantity = i.Quantity,

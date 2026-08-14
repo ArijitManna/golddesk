@@ -6,6 +6,7 @@ using GoldDesk.Application.Features.Orders.CancelOrder;
 using GoldDesk.Application.Features.Orders.CreateOrder;
 using GoldDesk.Application.Features.Orders.GetOrderById;
 using GoldDesk.Application.Features.Orders.GetOrders;
+using GoldDesk.Application.Features.Orders.UpdateOrder;
 using GoldDesk.Application.Features.Orders.UpdateOrderStatus;
 using MediatR;
 
@@ -48,6 +49,24 @@ public static class OrderEndpoints
                 : ToErrorResponse(result);
         })
         .WithName("CreateOrder");
+
+        group.MapPut("/{id:guid}", async (Guid id, UpdateOrderCommand command, IMediator mediator) =>
+        {
+            var result = await mediator.Send(command with { OrderId = id });
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : ToErrorResponse(result);
+        })
+        .WithName("UpdateOrder");
+
+        group.MapPost("/{id:guid}/update", async (Guid id, UpdateOrderCommand command, IMediator mediator) =>
+        {
+            var result = await mediator.Send(command with { OrderId = id });
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : ToErrorResponse(result);
+        })
+        .WithName("UpdateOrderPost");
 
         group.MapPost("/{id:guid}/cancel", async (Guid id, CancelOrderRequest? request, IMediator mediator) =>
         {

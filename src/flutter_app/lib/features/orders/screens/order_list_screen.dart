@@ -29,7 +29,7 @@ class _OrderListScreenState extends State<OrderListScreen>
   static const _tabs = [
     Tab(text: 'All'),
     Tab(text: 'Pending'),
-    Tab(text: 'Assigned'),
+    Tab(text: 'Send to Karigar'),
     Tab(text: 'In Progress'),
     Tab(text: 'Ready'),
     Tab(text: 'Due Today'),
@@ -307,6 +307,8 @@ class _OrderListScreenState extends State<OrderListScreen>
 
   String _formatStatus(String status) {
     switch (status) {
+      case 'Assigned':
+        return 'Send to Karigar';
       case 'InProgress':
         return 'In Progress';
       default:

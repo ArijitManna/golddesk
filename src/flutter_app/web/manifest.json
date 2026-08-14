@@ -1,6 +1,6 @@
 {
-    "name": "golddesk",
-    "short_name": "golddesk",
+    "name": "GoldDesk",
+    "short_name": "GoldDesk",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

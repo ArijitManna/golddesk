@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/di/injection.dart';
 import '../../../core/widgets/notification_bell.dart';
 import '../../../core/widgets/order_image.dart';
 import '../../../data/models/dashboard_models.dart';
+import '../../../data/repositories/admin_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
 import '../../auth/bloc/auth_state.dart';
@@ -19,15 +21,34 @@ class ShopDashboardScreen extends StatefulWidget {
 }
 
 class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
+  PlatformShopsReport? _platformReport;
+  bool _platformLoading = false;
+  String? _platformError;
+
   @override
   void initState() {
     super.initState();
     final authState = context.read<AuthBloc>().state;
     final isSuperAdmin =
         authState is AuthAuthenticated && authState.user.role == 'SuperAdmin';
-    if (!isSuperAdmin) {
+    if (isSuperAdmin) {
+      _loadPlatformReport();
+    } else {
       context.read<DashboardCubit>().loadDashboard();
     }
+  }
+
+  Future<void> _loadPlatformReport() async {
+    setState(() {
+      _platformLoading = true;
+      _platformError = null;
+    });
+    try {
+      _platformReport = await getIt<AdminRepository>().getShopsReport();
+    } catch (e) {
+      _platformError = e.toString();
+    }
+    if (mounted) setState(() => _platformLoading = false);
   }
 
   @override
@@ -113,37 +134,123 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   }
 
   Widget _buildSuperAdminHome(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    if (_platformLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.gold));
+    }
+    if (_platformError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_platformError!, style: const TextStyle(color: AppColors.error)),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _loadPlatformReport, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    final report = _platformReport;
+    return RefreshIndicator(
+      onRefresh: _loadPlatformReport,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
           Text('Platform Admin', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           const Text(
-            'Manage shop approvals and view platform reports.',
+            'Shops using GoldDesk and their Karigar counts.',
             style: TextStyle(color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Card(
             child: ListTile(
               leading: const Icon(Icons.approval_outlined, color: AppColors.gold),
               title: const Text('Pending Approvals'),
-              subtitle: const Text('Review and approve new shop registrations'),
+              subtitle: Text(
+                report == null
+                    ? 'Review new shop registrations'
+                    : '${report.pendingShops} pending registration(s)',
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go('/admin/approvals'),
             ),
           ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primaryDark),
-              title: const Text('Platform Reports'),
-              subtitle: const Text('Shop count with karigars per shop'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/reports'),
+          const SizedBox(height: 16),
+          if (report != null) ...[
+            Row(
+              children: [
+                Expanded(child: _platformStat('Total Shops', report.totalShops, AppColors.primaryDark)),
+                const SizedBox(width: 10),
+                Expanded(child: _platformStat('Active', report.activeShops, AppColors.success)),
+                const SizedBox(width: 10),
+                Expanded(child: _platformStat('Karigars', report.totalKarigars, AppColors.gold)),
+              ],
             ),
-          ),
+            const SizedBox(height: 20),
+            Text(
+              'Shop List',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            if (report.shops.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    'No shops registered yet',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              )
+            else
+              ...report.shops.map(_buildPlatformShopCard),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _platformStat(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Text('$count', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlatformShopCard(PlatformShopSummary shop) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppColors.primaryDark.withValues(alpha: 0.1),
+          child: const Icon(Icons.storefront, color: AppColors.primaryDark, size: 20),
+        ),
+        title: Text(shop.shopName, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(
+          '${shop.ownerName}\nKarigars: ${shop.activeKarigarCount} active / ${shop.karigarCount} total',
+          style: const TextStyle(fontSize: 12),
+        ),
+        isThreeLine: true,
+        trailing: Text(
+          '${shop.karigarCount}',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.gold,
+          ),
+        ),
       ),
     );
   }
@@ -184,13 +291,13 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 1.1,
+      childAspectRatio: 0.95,
       children: [
         _buildStatCard('Total', data.totalOrders, AppColors.primaryDark,
             onTap: () => context.go('/orders')),
         _buildStatCard('Pending', data.pending, AppColors.statusPending,
             onTap: () => context.go('/orders?status=Pending')),
-        _buildStatCard('Assigned', data.assigned, AppColors.statusAssigned,
+        _buildStatCard('Send to Karigar', data.assigned, AppColors.statusAssigned,
             onTap: () => context.go('/orders?status=Assigned')),
         _buildStatCard('In Progress', data.inProgress, AppColors.statusInProgress,
             onTap: () => context.go('/orders?status=InProgress')),
@@ -237,7 +344,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
                 label,
                 style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -341,7 +448,11 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status,
+        status == 'Assigned'
+            ? 'Send to Karigar'
+            : status == 'InProgress'
+                ? 'In Progress'
+                : status,
         style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );

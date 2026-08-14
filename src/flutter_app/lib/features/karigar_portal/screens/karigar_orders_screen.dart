@@ -20,7 +20,7 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
   final _tabs = const [
     Tab(text: 'All'),
     Tab(text: 'In Progress'),
-    Tab(text: 'Assigned'),
+    Tab(text: 'Send to Karigar'),
     Tab(text: 'Ready'),
   ];
   final _filters = [null, 'InProgress', 'Assigned', 'Ready'];
@@ -113,7 +113,11 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      order.status == 'InProgress' ? 'In Progress' : order.status,
+                      order.status == 'Assigned'
+                          ? 'Send to Karigar'
+                          : order.status == 'InProgress'
+                              ? 'In Progress'
+                              : order.status,
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor),
                     ),
                   ),

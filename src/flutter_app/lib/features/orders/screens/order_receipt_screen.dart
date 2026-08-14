@@ -139,7 +139,7 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
           _receiptRow('Delivery Date', order.deliveryDate ?? '-'),
           if (order.karigarName != null)
             _receiptRow('Karigar Name', order.karigarName!),
-          _receiptRow('Status', order.status),
+          _receiptRow('Status', order.status == 'Assigned' ? 'Send to Karigar' : order.status == 'InProgress' ? 'In Progress' : order.status),
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 12),
