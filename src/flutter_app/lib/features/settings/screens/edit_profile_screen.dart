@@ -111,8 +111,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _ownerNameCtrl.text.trim().isEmpty ||
         _mobileCtrl.text.trim().length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter shop name, owner name, and 10-digit mobile'),
+        SnackBar(
+          content: Text(
+            'Enter ${_businessNameLabel.toLowerCase()}, ${_contactNameLabel.toLowerCase()}, and a 10-digit mobile',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -183,16 +185,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       Center(child: _buildLogoPicker()),
                       const SizedBox(height: 8),
-                      const Center(
+                      Center(
                         child: Text(
-                          'Company logo (used on receipts)',
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          _logoHelpText,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
-                      GoldDeskTextField(label: 'Shop Name *', hint: 'Shop name', controller: _shopNameCtrl),
+                      GoldDeskTextField(
+                        label: '$_businessNameLabel *',
+                        hint: _businessNameHint,
+                        controller: _shopNameCtrl,
+                      ),
                       const SizedBox(height: 12),
-                      GoldDeskTextField(label: 'Owner Name *', hint: 'Owner name', controller: _ownerNameCtrl),
+                      GoldDeskTextField(
+                        label: '$_contactNameLabel *',
+                        hint: _contactNameHint,
+                        controller: _ownerNameCtrl,
+                      ),
                       const SizedBox(height: 12),
                       GoldDeskTextField(
                         label: 'Mobile *',
@@ -208,9 +221,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         readOnly: true,
                       ),
                       const SizedBox(height: 12),
-                      GoldDeskTextField(label: 'Address', hint: 'Shop address', controller: _addressCtrl),
-                      const SizedBox(height: 12),
-                      GoldDeskTextField(label: 'GST Number', hint: 'GST (optional)', controller: _gstCtrl),
+                      GoldDeskTextField(
+                        label: _addressLabel,
+                        hint: _addressHint,
+                        controller: _addressCtrl,
+                      ),
+                      if (!_isKarigar) ...[
+                        const SizedBox(height: 12),
+                        GoldDeskTextField(
+                          label: 'GST Number',
+                          hint: 'GST (optional)',
+                          controller: _gstCtrl,
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       GoldDeskButton(
                         text: 'SAVE PROFILE',
@@ -231,10 +254,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       image = Image.network(
         '${AppConstants.serverUrl}${_profile!.logoPath}',
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Icon(Icons.storefront, size: 40, color: AppColors.gold),
+        errorBuilder: (_, __, ___) => Icon(
+          _businessIcon,
+          size: 40,
+          color: AppColors.gold,
+        ),
       );
     } else {
-      image = const Icon(Icons.storefront, size: 40, color: AppColors.gold);
+      image = Icon(_businessIcon, size: 40, color: AppColors.gold);
     }
 
     return GestureDetector(
@@ -268,4 +295,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
+
+  String get _businessType => _profile?.businessType ?? 'Shop';
+
+  bool get _isKarigar => _businessType == 'Karigar';
+
+  String get _businessNameLabel => switch (_businessType) {
+    'Showroom' => 'Showroom Name',
+    'Karigar' => 'Karigar Name',
+    _ => 'Shop Name',
+  };
+
+  String get _businessNameHint => switch (_businessType) {
+    'Showroom' => 'Your showroom name',
+    'Karigar' => 'Your name or workshop name',
+    _ => 'Your shop name',
+  };
+
+  String get _contactNameLabel => _isKarigar ? 'Contact Name' : 'Owner Name';
+
+  String get _contactNameHint => _isKarigar ? 'Your full name' : 'Owner name';
+
+  String get _addressLabel => _isKarigar ? 'Address' : 'Business Address';
+
+  String get _addressHint => _isKarigar ? 'Your address' : 'Business address';
+
+  String get _logoHelpText => _isKarigar
+      ? 'Profile photo or workshop logo'
+      : 'Business logo (used on receipts)';
+
+  IconData get _businessIcon => switch (_businessType) {
+    'Showroom' => Icons.storefront_outlined,
+    'Karigar' => Icons.handyman_outlined,
+    _ => Icons.store_outlined,
+  };
 }

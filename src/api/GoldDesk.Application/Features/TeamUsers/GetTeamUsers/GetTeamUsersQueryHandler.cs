@@ -23,10 +23,14 @@ public class GetTeamUsersQueryHandler : IRequestHandler<GetTeamUsersQuery, Resul
         if (_currentUser.Role != UserRole.ShopOwner)
             return Result<List<TeamUserDto>>.Forbidden("Only shop owners can manage team users");
 
+        if (!_currentUser.TenantId.HasValue)
+            return Result<List<TeamUserDto>>.Unauthorized();
+
         var currentUserId = _currentUser.UserId;
 
         var users = await _context.Users
-            .Where(u => u.Role == UserRole.ShopOwner)
+            .Where(u => u.TenantId == _currentUser.TenantId.Value &&
+                        u.Role == UserRole.ShopOwner)
             .OrderBy(u => u.CreatedAt)
             .Select(u => new TeamUserDto
             {

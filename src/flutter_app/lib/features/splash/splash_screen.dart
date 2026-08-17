@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/role_navigation.dart';
 import '../auth/bloc/auth_bloc.dart';
 import '../auth/bloc/auth_state.dart';
 
@@ -55,11 +56,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
-      if (authState.user.role == 'Karigar') {
-        context.go('/karigar/dashboard');
-      } else {
-        context.go('/dashboard');
-      }
+      context.go(homePathForUser(authState.user));
     } else {
       context.go('/login');
     }
@@ -78,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen>
         // If auth check completes while on splash, handle navigation
         if (state is AuthAuthenticated) {
           Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) context.go('/dashboard');
+            if (mounted) context.go(homePathForUser(state.user));
           });
         }
       },

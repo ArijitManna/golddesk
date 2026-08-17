@@ -1,7 +1,9 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection.dart';
+import 'core/services/fcm_service.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
@@ -12,10 +14,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -23,8 +27,12 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  await Firebase.initializeApp();
+
   // Initialize dependency injection
   await configureDependencies();
+  await getIt<FcmService>().initialize();
+  getIt<AuthBloc>().add(AuthCheckStatus());
 
   runApp(const GoldDeskApp());
 }
@@ -35,11 +43,7 @@ class GoldDeskApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      providers: [
-        BlocProvider<AuthBloc>(
-          create: (_) => getIt<AuthBloc>()..add(AuthCheckStatus()),
-        ),
-      ],
+      providers: [BlocProvider<AuthBloc>.value(value: getIt<AuthBloc>())],
       child: MaterialApp.router(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,

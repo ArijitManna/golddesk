@@ -58,7 +58,13 @@ public class DueDateEvaluatorJob : BackgroundService
         var activeAssignments = await context.OrderAssignments
             .IgnoreQueryFilters()
             .Include(a => a.Order)
-                .ThenInclude(o => o.Customer)
+                .ThenInclude(o => o.OrderFromBusiness)
+            .Include(a => a.Order)
+                .ThenInclude(o => o.OrderFromExternalBusiness)
+            .Include(a => a.Order)
+                .ThenInclude(o => o.CreatedByBusiness)
+            .Include(a => a.Order)
+                .ThenInclude(o => o.Tenant)
             .Include(a => a.Karigar)
             .Where(a => a.IsActive &&
                 a.Order.Status != OrderStatus.Ready &&
@@ -69,7 +75,10 @@ public class DueDateEvaluatorJob : BackgroundService
 
         _logger.LogInformation("Evaluating {Count} active assignments for due dates", activeAssignments.Count);
 
-        var tenantIds = activeAssignments.Select(a => a.Order.TenantId).Distinct().ToList();
+        var tenantIds = activeAssignments
+            .SelectMany(a => new[] { a.Order.TenantId, a.Order.CreatedByBusinessId })
+            .Distinct()
+            .ToList();
         var tenants = await context.Tenants
             .IgnoreQueryFilters()
             .Where(t => tenantIds.Contains(t.Id))
@@ -89,12 +98,32 @@ public class DueDateEvaluatorJob : BackgroundService
                 continue;
             }
 
-            // Check if this notification was already sent
-            if (assignment.LastNotificationType == notificationType.Value.ToString())
+            var isRepeatingReminder = notificationType is NotificationType.DueToday or NotificationType.Overdue;
+
+            // Advance warnings are sent once. Due-today and overdue reminders
+            // repeat every three hours until the work is completed.
+            if (!isRepeatingReminder &&
+                assignment.LastNotificationType == notificationType.Value.ToString())
                 continue;
 
+            if (isRepeatingReminder)
+            {
+                var sentInLastThreeHours = await context.Notifications
+                    .IgnoreQueryFilters()
+                    .AnyAsync(n => n.OrderId == assignment.OrderId &&
+                                   n.Type == notificationType.Value &&
+                                   n.CreatedAt >= DateTime.UtcNow.AddHours(-3),
+                        cancellationToken);
+
+                if (sentInLastThreeHours)
+                    continue;
+            }
+
             var title = GetNotificationTitle(notificationType.Value, assignment.Order.OrderNo);
-            var message = GetNotificationMessage(notificationType.Value, assignment.Order.OrderNo, assignment.Order.Customer.Name, daysUntilDue);
+            var orderFrom = assignment.Order.OrderFromBusiness?.ShopName ??
+                            assignment.Order.OrderFromExternalBusiness?.Name ??
+                            "business order";
+            var message = GetNotificationMessage(notificationType.Value, assignment.Order.OrderNo, orderFrom, daysUntilDue);
 
             // Notify Karigar
             if (assignment.Karigar.UserId.HasValue)
@@ -127,6 +156,39 @@ public class DueDateEvaluatorJob : BackgroundService
                     title,
                     message,
                     cancellationToken);
+            }
+
+            // A Showroom that created an order needs its own order-level due
+            // alert. Do not expose the assigned Karigar or internal work notes.
+            var showroomBusinessId = assignment.Order.CreatedByBusinessId;
+            if (showroomBusinessId != assignment.Order.TenantId &&
+                tenants.TryGetValue(showroomBusinessId, out var showroom) &&
+                IsNotificationEnabled(showroom, notificationType.Value))
+            {
+                var showroomOwners = await context.Users
+                    .IgnoreQueryFilters()
+                    .Where(u => u.TenantId == showroomBusinessId &&
+                        u.Role == UserRole.ShopOwner &&
+                        u.Status == UserStatus.Active)
+                    .ToListAsync(cancellationToken);
+
+                var showroomMessage = GetShowroomNotificationMessage(
+                    notificationType.Value,
+                    assignment.Order.OrderNo,
+                    assignment.Order.Tenant.ShopName,
+                    daysUntilDue);
+
+                foreach (var owner in showroomOwners)
+                {
+                    await notificationService.CreateAndPushAsync(
+                        showroomBusinessId,
+                        owner.Id,
+                        assignment.OrderId,
+                        notificationType.Value,
+                        title,
+                        showroomMessage,
+                        cancellationToken);
+                }
             }
 
             // Update last notification type to prevent duplicates
@@ -186,6 +248,23 @@ public class DueDateEvaluatorJob : BackgroundService
             NotificationType.DueSoon1Day => $"Order {orderNo} for {customerName} is due tomorrow",
             NotificationType.DueToday => $"Order {orderNo} for {customerName} is due today",
             NotificationType.Overdue => $"Order {orderNo} for {customerName} is overdue by {Math.Abs(daysUntilDue)} day(s)",
+            _ => $"Notification for order {orderNo}"
+        };
+    }
+
+    private static string GetShowroomNotificationMessage(
+        NotificationType type,
+        string orderNo,
+        string shopName,
+        int daysUntilDue)
+    {
+        return type switch
+        {
+            NotificationType.DueSoon3Days => $"Order {orderNo} for {shopName} is due in 3 days",
+            NotificationType.DueSoon2Days => $"Order {orderNo} for {shopName} is due in 2 days",
+            NotificationType.DueSoon1Day => $"Order {orderNo} for {shopName} is due tomorrow",
+            NotificationType.DueToday => $"Order {orderNo} for {shopName} is due today",
+            NotificationType.Overdue => $"Order {orderNo} for {shopName} is overdue by {Math.Abs(daysUntilDue)} day(s)",
             _ => $"Notification for order {orderNo}"
         };
     }

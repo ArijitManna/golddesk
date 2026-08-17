@@ -31,15 +31,36 @@ public class AssignKarigarCommandHandler : IRequestHandler<AssignKarigarCommand,
         if (order == null)
             return Result<AssignmentDto>.NotFound("Order not found");
 
+        if (!_currentUser.TenantId.HasValue || order.TenantId != _currentUser.TenantId.Value)
+            return Result<AssignmentDto>.Forbidden("Only the fulfilling Shop can assign a Karigar");
+
+        if (order.AcceptanceStatus != OrderAcceptanceStatus.Accepted)
+            return Result<AssignmentDto>.Failure("Accept the incoming order before giving work to a Karigar.");
+
         if (order.Status == OrderStatus.Delivered || order.Status == OrderStatus.Closed || order.Status == OrderStatus.Cancelled)
             return Result<AssignmentDto>.Failure($"Cannot assign Karigar to an order with status '{order.Status}'");
 
-        // Verify Karigar exists and is active
+        // A legacy, shop-owned Karigar remains supported. An independent Karigar
+        // must have an accepted Shop↔Karigar connection with this fulfilling Shop.
         var karigar = await _context.Karigars
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(k => k.Id == request.KarigarId && k.Status == KarigarStatus.Active, cancellationToken);
 
         if (karigar == null)
             return Result<AssignmentDto>.NotFound("Karigar not found or inactive");
+
+        if (karigar.TenantId != order.TenantId)
+        {
+            var connected = await _context.BusinessConnections.AnyAsync(c =>
+                c.ConnectionType == ConnectionType.ShopKarigar &&
+                c.Status == ConnectionStatus.Accepted &&
+                ((c.FromBusinessId == order.TenantId && c.ToBusinessId == karigar.TenantId) ||
+                 (c.FromBusinessId == karigar.TenantId && c.ToBusinessId == order.TenantId)),
+                cancellationToken);
+
+            if (!connected)
+                return Result<AssignmentDto>.Forbidden("Assign only a Karigar with an accepted connection");
+        }
 
         // Parse dates — karigar due date is one day before the order delivery date
         var givenDate = DateOnly.Parse(request.GivenDate);
@@ -74,13 +95,21 @@ public class AssignKarigarCommandHandler : IRequestHandler<AssignKarigarCommand,
             KarigarId = request.KarigarId,
             GivenDate = givenDate,
             DueDate = dueDate,
-            Status = AssignmentStatus.Active,
+            Status = AssignmentStatus.PendingAcceptance,
             Notes = request.Notes,
             AssignedBy = _currentUser.UserId ?? Guid.Empty,
             IsActive = true
         };
 
         _context.OrderAssignments.Add(assignment);
+        _context.OrderEvents.Add(new OrderEvent
+        {
+            OrderId = order.Id,
+            BusinessId = order.TenantId,
+            UserId = _currentUser.UserId,
+            EventType = "WorkGiven",
+            Description = $"Work given to {karigar.Name}; awaiting Karigar acceptance"
+        });
 
         // Update order status to Assigned if currently Pending
         if (order.Status == OrderStatus.Pending)
@@ -109,7 +138,7 @@ public class AssignKarigarCommandHandler : IRequestHandler<AssignKarigarCommand,
             {
                 await _mediator.Publish(new OrderReassignedEvent
                 {
-                    TenantId = order.TenantId,
+                    TenantId = karigar.TenantId,
                     OrderId = order.Id,
                     OrderNo = order.OrderNo,
                     NewKarigarUserId = karigar.UserId.Value,
@@ -120,7 +149,7 @@ public class AssignKarigarCommandHandler : IRequestHandler<AssignKarigarCommand,
             {
                 await _mediator.Publish(new OrderAssignedEvent
                 {
-                    TenantId = order.TenantId,
+                    TenantId = karigar.TenantId,
                     OrderId = order.Id,
                     OrderNo = order.OrderNo,
                     KarigarUserId = karigar.UserId.Value,

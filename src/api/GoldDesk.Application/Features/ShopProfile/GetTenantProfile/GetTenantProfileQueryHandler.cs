@@ -42,6 +42,8 @@ public class GetTenantProfileQueryHandler : IRequestHandler<GetTenantProfileQuer
         Address = tenant.Address,
         GstNumber = tenant.GstNumber,
         LogoPath = tenant.LogoPath,
+        BusinessType = tenant.BusinessType.ToString(),
+        GoldDeskId = tenant.GoldDeskId,
         NotifyDueSoon3Days = tenant.NotifyDueSoon3Days,
         NotifyDueSoon2Days = tenant.NotifyDueSoon2Days,
         NotifyDueSoon1Day = tenant.NotifyDueSoon1Day,

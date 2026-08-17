@@ -1,7 +1,9 @@
 import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
+import '../services/fcm_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/admin_repository.dart';
+import '../../data/repositories/connection_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import '../../data/repositories/karigar_portal_repository.dart';
 import '../../data/repositories/master_repository.dart';
@@ -20,35 +22,55 @@ final getIt = GetIt.instance;
 Future<void> configureDependencies() async {
   // Core
   getIt.registerLazySingleton<ApiClient>(() => ApiClient());
+  getIt.registerLazySingleton<FcmService>(() => FcmService());
 
   // Repositories
   getIt.registerLazySingleton<AuthRepository>(
-      () => AuthRepository(getIt<ApiClient>()));
+    () => AuthRepository(getIt<ApiClient>()),
+  );
   getIt.registerLazySingleton<AdminRepository>(
-      () => AdminRepository(getIt<ApiClient>()));
+    () => AdminRepository(getIt<ApiClient>()),
+  );
+  getIt.registerLazySingleton<ConnectionRepository>(
+    () => ConnectionRepository(getIt<ApiClient>()),
+  );
   getIt.registerLazySingleton<DashboardRepository>(
-      () => DashboardRepository(getIt<ApiClient>()));
+    () => DashboardRepository(getIt<ApiClient>()),
+  );
   getIt.registerLazySingleton<KarigarPortalRepository>(
-      () => KarigarPortalRepository(getIt<ApiClient>()));
+    () => KarigarPortalRepository(getIt<ApiClient>()),
+  );
   getIt.registerLazySingleton<MasterRepository>(
-      () => MasterRepository(getIt<ApiClient>()));
+    () => MasterRepository(getIt<ApiClient>()),
+  );
   getIt.registerLazySingleton<NotificationRepository>(
-      () => NotificationRepository(getIt<ApiClient>()));
+    () => NotificationRepository(getIt<ApiClient>()),
+  );
   getIt.registerLazySingleton<OrderRepository>(
-      () => OrderRepository(getIt<ApiClient>()));
+    () => OrderRepository(getIt<ApiClient>()),
+  );
   getIt.registerLazySingleton<TeamUserRepository>(
-      () => TeamUserRepository(getIt<ApiClient>()));
+    () => TeamUserRepository(getIt<ApiClient>()),
+  );
   getIt.registerLazySingleton<TenantRepository>(
-      () => TenantRepository(getIt<ApiClient>()));
+    () => TenantRepository(getIt<ApiClient>()),
+  );
 
-  // BLoCs / Cubits
-  getIt.registerFactory<AuthBloc>(() => AuthBloc(getIt<AuthRepository>()));
+  // BLoCs / Cubits — AuthBloc must be a singleton so router redirect
+  // and UI share the same auth session.
+  getIt.registerLazySingleton<AuthBloc>(
+    () => AuthBloc(getIt<AuthRepository>(), getIt<FcmService>()),
+  );
   getIt.registerFactory<DashboardCubit>(
-      () => DashboardCubit(getIt<DashboardRepository>()));
+    () => DashboardCubit(getIt<DashboardRepository>()),
+  );
   getIt.registerFactory<OrderListCubit>(
-      () => OrderListCubit(getIt<OrderRepository>()));
+    () => OrderListCubit(getIt<OrderRepository>()),
+  );
   getIt.registerFactory<CreateOrderCubit>(
-      () => CreateOrderCubit(getIt<OrderRepository>()));
+    () => CreateOrderCubit(getIt<OrderRepository>()),
+  );
   getIt.registerFactory<OrderDetailCubit>(
-      () => OrderDetailCubit(getIt<OrderRepository>()));
+    () => OrderDetailCubit(getIt<OrderRepository>()),
+  );
 }

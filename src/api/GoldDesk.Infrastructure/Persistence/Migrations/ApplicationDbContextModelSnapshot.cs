@@ -78,6 +78,65 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
+            modelBuilder.Entity("GoldDesk.Domain.Entities.BusinessConnection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConnectionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FromBusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ToBusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromBusinessId", "Status");
+
+                    b.HasIndex("ToBusinessId", "Status");
+
+                    b.HasIndex("FromBusinessId", "ToBusinessId", "ConnectionType")
+                        .IsUnique();
+
+                    b.ToTable("business_connections", (string)null);
+                });
+
             modelBuilder.Entity("GoldDesk.Domain.Entities.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -130,6 +189,65 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId", "Name");
 
                     b.ToTable("customers", (string)null);
+                });
+
+            modelBuilder.Entity("GoldDesk.Domain.Entities.ExternalBusiness", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("BusinessType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ContactPerson")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("LinkedBusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Mobile")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LinkedBusinessId");
+
+                    b.HasIndex("TenantId", "Name");
+
+                    b.ToTable("external_businesses", (string)null);
                 });
 
             modelBuilder.Entity("GoldDesk.Domain.Entities.ItemMaster", b =>
@@ -319,6 +437,18 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AcceptanceNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("AcceptanceStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<decimal>("AdvancePaid")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -329,7 +459,10 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CustomerId")
+                    b.Property<Guid>("CreatedByBusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustomerId")
                         .HasColumnType("uuid");
 
                     b.Property<DateOnly?>("DeliveryDate")
@@ -350,10 +483,24 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("OrderDate")
                         .HasColumnType("date");
 
+                    b.Property<Guid?>("OrderFromBusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OrderFromExternalBusinessId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("OrderNo")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -379,6 +526,12 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DeliveryDate");
 
+                    b.HasIndex("CreatedByBusinessId", "Status");
+
+                    b.HasIndex("OrderFromBusinessId", "AcceptanceStatus");
+
+                    b.HasIndex("OrderFromExternalBusinessId", "AcceptanceStatus");
+
                     b.HasIndex("TenantId", "OrderNo")
                         .IsUnique();
 
@@ -392,6 +545,9 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("AssignedBy")
                         .HasColumnType("uuid");
@@ -448,6 +604,98 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrderId", "IsActive");
 
                     b.ToTable("order_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("GoldDesk.Domain.Entities.OrderComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorBusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AuthorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorBusinessId");
+
+                    b.HasIndex("OrderId", "Channel", "CreatedAt");
+
+                    b.ToTable("order_comments", (string)null);
+                });
+
+            modelBuilder.Entity("GoldDesk.Domain.Entities.OrderEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BusinessId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("OrderId", "CreatedAt");
+
+                    b.ToTable("order_events", (string)null);
                 });
 
             modelBuilder.Entity("GoldDesk.Domain.Entities.OrderItem", b =>
@@ -584,6 +832,11 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("ApprovedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BusinessType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -594,6 +847,11 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("GoldDeskId")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("GstNumber")
                         .HasMaxLength(50)
@@ -656,7 +914,11 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("BusinessType");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("GoldDeskId")
                         .IsUnique();
 
                     b.HasIndex("Mobile")
@@ -734,12 +996,31 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("Email", "TenantId")
                         .IsUnique();
 
                     b.HasIndex("TenantId", "Role");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("GoldDesk.Domain.Entities.BusinessConnection", b =>
+                {
+                    b.HasOne("GoldDesk.Domain.Entities.Tenant", "FromBusiness")
+                        .WithMany("ConnectionsFrom")
+                        .HasForeignKey("FromBusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GoldDesk.Domain.Entities.Tenant", "ToBusiness")
+                        .WithMany("ConnectionsTo")
+                        .HasForeignKey("ToBusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromBusiness");
+
+                    b.Navigation("ToBusiness");
                 });
 
             modelBuilder.Entity("GoldDesk.Domain.Entities.Customer", b =>
@@ -751,6 +1032,16 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("GoldDesk.Domain.Entities.ExternalBusiness", b =>
+                {
+                    b.HasOne("GoldDesk.Domain.Entities.Tenant", "LinkedBusiness")
+                        .WithMany()
+                        .HasForeignKey("LinkedBusinessId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("LinkedBusiness");
                 });
 
             modelBuilder.Entity("GoldDesk.Domain.Entities.ItemMaster", b =>
@@ -810,11 +1101,26 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("GoldDesk.Domain.Entities.Order", b =>
                 {
+                    b.HasOne("GoldDesk.Domain.Entities.Tenant", "CreatedByBusiness")
+                        .WithMany("OrdersCreated")
+                        .HasForeignKey("CreatedByBusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("GoldDesk.Domain.Entities.Customer", "Customer")
                         .WithMany("Orders")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("GoldDesk.Domain.Entities.Tenant", "OrderFromBusiness")
+                        .WithMany()
+                        .HasForeignKey("OrderFromBusinessId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("GoldDesk.Domain.Entities.ExternalBusiness", "OrderFromExternalBusiness")
+                        .WithMany("OrdersFrom")
+                        .HasForeignKey("OrderFromExternalBusinessId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("GoldDesk.Domain.Entities.Tenant", "Tenant")
                         .WithMany("Orders")
@@ -822,7 +1128,13 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("CreatedByBusiness");
+
                     b.Navigation("Customer");
+
+                    b.Navigation("OrderFromBusiness");
+
+                    b.Navigation("OrderFromExternalBusiness");
 
                     b.Navigation("Tenant");
                 });
@@ -842,6 +1154,44 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Karigar");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("GoldDesk.Domain.Entities.OrderComment", b =>
+                {
+                    b.HasOne("GoldDesk.Domain.Entities.Tenant", "AuthorBusiness")
+                        .WithMany()
+                        .HasForeignKey("AuthorBusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GoldDesk.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AuthorBusiness");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("GoldDesk.Domain.Entities.OrderEvent", b =>
+                {
+                    b.HasOne("GoldDesk.Domain.Entities.Tenant", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GoldDesk.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
 
                     b.Navigation("Order");
                 });
@@ -891,6 +1241,11 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Orders");
                 });
 
+            modelBuilder.Entity("GoldDesk.Domain.Entities.ExternalBusiness", b =>
+                {
+                    b.Navigation("OrdersFrom");
+                });
+
             modelBuilder.Entity("GoldDesk.Domain.Entities.Karigar", b =>
                 {
                     b.Navigation("Assignments");
@@ -907,6 +1262,10 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("GoldDesk.Domain.Entities.Tenant", b =>
                 {
+                    b.Navigation("ConnectionsFrom");
+
+                    b.Navigation("ConnectionsTo");
+
                     b.Navigation("Customers");
 
                     b.Navigation("Items");
@@ -914,6 +1273,8 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Karigars");
 
                     b.Navigation("Orders");
+
+                    b.Navigation("OrdersCreated");
 
                     b.Navigation("Users");
                 });

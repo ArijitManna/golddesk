@@ -1,5 +1,7 @@
 class ShopDashboardData {
   final int totalOrders;
+  final int fromShowrooms;
+  final int directOrders;
   final int pending;
   final int assigned;
   final int inProgress;
@@ -9,11 +11,15 @@ class ShopDashboardData {
   final int ready;
   final int unassigned;
   final int activeKarigars;
+  final String businessType;
+  final List<BusinessOrderCount> connectedShops;
   final List<OrderSummary> recentOrders;
   final List<OrderSummary> overdueOrders;
 
   ShopDashboardData({
     required this.totalOrders,
+    required this.fromShowrooms,
+    required this.directOrders,
     required this.pending,
     required this.assigned,
     required this.inProgress,
@@ -23,6 +29,8 @@ class ShopDashboardData {
     required this.ready,
     required this.unassigned,
     required this.activeKarigars,
+    required this.businessType,
+    required this.connectedShops,
     required this.recentOrders,
     required this.overdueOrders,
   });
@@ -30,6 +38,8 @@ class ShopDashboardData {
   factory ShopDashboardData.fromJson(Map<String, dynamic> json) {
     return ShopDashboardData(
       totalOrders: json['totalOrders'] ?? 0,
+      fromShowrooms: json['fromShowrooms'] ?? 0,
+      directOrders: json['directOrders'] ?? 0,
       pending: json['pending'] ?? 0,
       assigned: json['assigned'] ?? 0,
       inProgress: json['inProgress'] ?? 0,
@@ -39,11 +49,19 @@ class ShopDashboardData {
       ready: json['ready'] ?? 0,
       unassigned: json['unassigned'] ?? 0,
       activeKarigars: json['activeKarigars'] ?? 0,
-      recentOrders: (json['recentOrders'] as List?)
+      businessType: json['businessType'] ?? 'Shop',
+      connectedShops:
+          (json['connectedShops'] as List?)
+              ?.map((e) => BusinessOrderCount.fromJson(e))
+              .toList() ??
+          [],
+      recentOrders:
+          (json['recentOrders'] as List?)
               ?.map((e) => OrderSummary.fromJson(e))
               .toList() ??
           [],
-      overdueOrders: (json['overdueOrders'] as List?)
+      overdueOrders:
+          (json['overdueOrders'] as List?)
               ?.map((e) => OrderSummary.fromJson(e))
               .toList() ??
           [],
@@ -51,11 +69,28 @@ class ShopDashboardData {
   }
 }
 
+class BusinessOrderCount {
+  final String businessId;
+  final String businessName;
+  final int orderCount;
+
+  const BusinessOrderCount({
+    required this.businessId,
+    required this.businessName,
+    required this.orderCount,
+  });
+
+  factory BusinessOrderCount.fromJson(Map<String, dynamic> json) =>
+      BusinessOrderCount(
+        businessId: json['businessId'],
+        businessName: json['businessName'],
+        orderCount: json['orderCount'] ?? 0,
+      );
+}
+
 class OrderSummary {
   final String id;
   final String orderNo;
-  final String customerName;
-  final String customerId;
   final String orderDate;
   final String? deliveryDate;
   final String status;
@@ -65,14 +100,18 @@ class OrderSummary {
   final double estimatedAmount;
   final String? notes;
   final String? karigarName;
+  final String? assignmentStatus;
   final String? dueDate;
   final String? firstItemImage;
+  final String source;
+  final String acceptanceStatus;
+  final String orderFromBusinessName;
+  final String createdByBusinessName;
+  final String createdForBusinessName;
 
   OrderSummary({
     required this.id,
     required this.orderNo,
-    required this.customerName,
-    required this.customerId,
     required this.orderDate,
     this.deliveryDate,
     required this.status,
@@ -82,16 +121,20 @@ class OrderSummary {
     required this.estimatedAmount,
     this.notes,
     this.karigarName,
+    this.assignmentStatus,
     this.dueDate,
     this.firstItemImage,
+    this.source = 'Direct',
+    this.acceptanceStatus = 'Accepted',
+    this.orderFromBusinessName = '',
+    this.createdByBusinessName = '',
+    this.createdForBusinessName = '',
   });
 
   factory OrderSummary.fromJson(Map<String, dynamic> json) {
     return OrderSummary(
       id: json['id'],
       orderNo: json['orderNo'],
-      customerName: json['customerName'],
-      customerId: json['customerId'],
       orderDate: json['orderDate'],
       deliveryDate: json['deliveryDate'],
       status: json['status'],
@@ -101,8 +144,14 @@ class OrderSummary {
       estimatedAmount: (json['estimatedAmount'] ?? 0).toDouble(),
       notes: json['notes'],
       karigarName: json['karigarName'],
+      assignmentStatus: json['assignmentStatus'],
       dueDate: json['dueDate'],
       firstItemImage: json['firstItemImage'],
+      source: json['source'] ?? 'Direct',
+      acceptanceStatus: json['acceptanceStatus'] ?? 'Accepted',
+      orderFromBusinessName: json['orderFromBusinessName'] ?? '',
+      createdByBusinessName: json['createdByBusinessName'] ?? '',
+      createdForBusinessName: json['createdForBusinessName'] ?? '',
     );
   }
 }

@@ -9,5 +9,13 @@ public enum NotificationType
     DueToday = 4,
     Overdue = 5,
     StatusChangedToReady = 6,
-    OrderReassigned = 7
+    OrderReassigned = 7,
+    CommentAdded = 8,
+    ConnectionRequested = 9,
+    ConnectionAccepted = 10,
+    OrderAccepted = 11,
+    OrderRejected = 12,
+    WorkAccepted = 13,
+    WorkStarted = 14,
+    OrderDelivered = 15
 }

@@ -1,5 +1,7 @@
 class CreateOrderRequest {
-  final String customerId;
+  final String? orderFromBusinessId;
+  final String? orderFromExternalBusinessId;
+  final String? orderToBusinessId;
   final String? orderDate;
   final String? deliveryDate;
   final String? notes;
@@ -7,7 +9,9 @@ class CreateOrderRequest {
   final List<OrderItemRequest> items;
 
   CreateOrderRequest({
-    required this.customerId,
+    this.orderFromBusinessId,
+    this.orderFromExternalBusinessId,
+    this.orderToBusinessId,
     this.orderDate,
     this.deliveryDate,
     this.notes,
@@ -16,13 +20,16 @@ class CreateOrderRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'customerId': customerId,
-        if (orderDate != null) 'orderDate': orderDate,
-        if (deliveryDate != null) 'deliveryDate': deliveryDate,
-        if (notes != null) 'notes': notes,
-        'advancePaid': advancePaid,
-        'items': items.map((e) => e.toJson()).toList(),
-      };
+    if (orderFromBusinessId != null) 'orderFromBusinessId': orderFromBusinessId,
+    if (orderFromExternalBusinessId != null)
+      'orderFromExternalBusinessId': orderFromExternalBusinessId,
+    if (orderToBusinessId != null) 'orderToBusinessId': orderToBusinessId,
+    if (orderDate != null) 'orderDate': orderDate,
+    if (deliveryDate != null) 'deliveryDate': deliveryDate,
+    if (notes != null) 'notes': notes,
+    'advancePaid': advancePaid,
+    'items': items.map((e) => e.toJson()).toList(),
+  };
 }
 
 class OrderItemRequest {
@@ -51,17 +58,17 @@ class OrderItemRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        if (id != null) 'id': id,
-        if (itemMasterId != null) 'itemMasterId': itemMasterId,
-        'itemName': itemName,
-        'weight': weight,
-        'quantity': quantity,
-        if (purity != null) 'purity': purity,
-        'rate': rate,
-        'makingCharge': makingCharge,
-        'amount': amount,
-        if (size != null) 'size': size,
-      };
+    if (id != null) 'id': id,
+    if (itemMasterId != null) 'itemMasterId': itemMasterId,
+    'itemName': itemName,
+    'weight': weight,
+    'quantity': quantity,
+    if (purity != null) 'purity': purity,
+    'rate': rate,
+    'makingCharge': makingCharge,
+    'amount': amount,
+    if (size != null) 'size': size,
+  };
 }
 
 class AssignKarigarRequest {
@@ -78,18 +85,16 @@ class AssignKarigarRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'karigarId': karigarId,
-        'givenDate': givenDate,
-        'dueDate': dueDate,
-        if (notes != null) 'notes': notes,
-      };
+    'karigarId': karigarId,
+    'givenDate': givenDate,
+    'dueDate': dueDate,
+    if (notes != null) 'notes': notes,
+  };
 }
 
 class OrderDetail {
   final String id;
   final String orderNo;
-  final String customerName;
-  final String customerId;
   final String orderDate;
   final String? deliveryDate;
   final String status;
@@ -99,15 +104,19 @@ class OrderDetail {
   final double estimatedAmount;
   final String? notes;
   final String? karigarName;
+  final String? assignmentStatus;
   final String? dueDate;
+  final String source;
+  final String acceptanceStatus;
+  final String orderFromBusinessName;
+  final String createdByBusinessName;
+  final String createdForBusinessName;
   final List<OrderItemDetail> items;
   final List<AssignmentDetail> assignments;
 
   OrderDetail({
     required this.id,
     required this.orderNo,
-    required this.customerName,
-    required this.customerId,
     required this.orderDate,
     this.deliveryDate,
     required this.status,
@@ -117,7 +126,13 @@ class OrderDetail {
     required this.estimatedAmount,
     this.notes,
     this.karigarName,
+    this.assignmentStatus,
     this.dueDate,
+    this.source = 'Direct',
+    this.acceptanceStatus = 'Accepted',
+    this.orderFromBusinessName = '',
+    this.createdByBusinessName = '',
+    this.createdForBusinessName = '',
     required this.items,
     required this.assignments,
   });
@@ -126,8 +141,6 @@ class OrderDetail {
     return OrderDetail(
       id: json['id'],
       orderNo: json['orderNo'],
-      customerName: json['customerName'],
-      customerId: json['customerId'],
       orderDate: json['orderDate'],
       deliveryDate: json['deliveryDate'],
       status: json['status'],
@@ -137,12 +150,20 @@ class OrderDetail {
       estimatedAmount: (json['estimatedAmount'] ?? 0).toDouble(),
       notes: json['notes'],
       karigarName: json['karigarName'],
+      assignmentStatus: json['assignmentStatus'],
       dueDate: json['dueDate'],
-      items: (json['items'] as List?)
+      source: json['source'] ?? 'Direct',
+      acceptanceStatus: json['acceptanceStatus'] ?? 'Accepted',
+      orderFromBusinessName: json['orderFromBusinessName'] ?? '',
+      createdByBusinessName: json['createdByBusinessName'] ?? '',
+      createdForBusinessName: json['createdForBusinessName'] ?? '',
+      items:
+          (json['items'] as List?)
               ?.map((e) => OrderItemDetail.fromJson(e))
               .toList() ??
           [],
-      assignments: (json['assignments'] as List?)
+      assignments:
+          (json['assignments'] as List?)
               ?.map((e) => AssignmentDetail.fromJson(e))
               .toList() ??
           [],
@@ -229,18 +250,50 @@ class AssignmentDetail {
   }
 }
 
-class CustomerItem {
+class OrderCommentData {
   final String id;
-  final String name;
-  final String? mobile;
+  final String authorBusinessName;
+  final String channel;
+  final String message;
+  final DateTime createdAt;
 
-  CustomerItem({required this.id, required this.name, this.mobile});
+  const OrderCommentData({
+    required this.id,
+    required this.authorBusinessName,
+    required this.channel,
+    required this.message,
+    required this.createdAt,
+  });
 
-  factory CustomerItem.fromJson(Map<String, dynamic> json) => CustomerItem(
+  factory OrderCommentData.fromJson(Map<String, dynamic> json) =>
+      OrderCommentData(
         id: json['id'],
-        name: json['name'],
-        mobile: json['mobile'],
+        authorBusinessName: json['authorBusinessName'],
+        channel: json['channel'],
+        message: json['message'],
+        createdAt: DateTime.parse(json['createdAt']),
       );
+}
+
+class OrderEventData {
+  final String eventType;
+  final String description;
+  final String businessName;
+  final DateTime occurredAt;
+
+  const OrderEventData({
+    required this.eventType,
+    required this.description,
+    required this.businessName,
+    required this.occurredAt,
+  });
+
+  factory OrderEventData.fromJson(Map<String, dynamic> json) => OrderEventData(
+    eventType: json['eventType'],
+    description: json['description'],
+    businessName: json['businessName'],
+    occurredAt: DateTime.parse(json['occurredAt']),
+  );
 }
 
 class KarigarItem {
@@ -251,8 +304,8 @@ class KarigarItem {
   KarigarItem({required this.id, required this.name, this.specialization});
 
   factory KarigarItem.fromJson(Map<String, dynamic> json) => KarigarItem(
-        id: json['id'],
-        name: json['name'],
-        specialization: json['specialization'],
-      );
+    id: json['id'],
+    name: json['name'],
+    specialization: json['specialization'],
+  );
 }

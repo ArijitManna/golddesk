@@ -1,5 +1,6 @@
 using GoldDesk.Application.Common.Interfaces;
 using GoldDesk.Application.Common.Models;
+using GoldDesk.Application.Common.Services;
 using GoldDesk.Domain.Entities;
 using GoldDesk.Domain.Enums;
 using MediatR;
@@ -20,22 +21,33 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
 
     public async Task<Result<RegisterResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        // Check if email already exists
-        var emailExists = await _context.Users
+        var existingUser = await _context.Users
             .IgnoreQueryFilters()
-            .AnyAsync(u => u.Email == request.Email, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
 
-        if (emailExists)
-            return Result<RegisterResponse>.Conflict("An account with this email already exists");
+        if (existingUser != null &&
+            !_authProvider.VerifyPassword(request.Password, existingUser.PasswordHash))
+            return Result<RegisterResponse>.Conflict(
+                "This email is already linked to another business. Use the same account password to add this profile.");
 
-        // Check if mobile already exists in tenants
+        var alreadyHasBusinessType = await _context.Users
+            .IgnoreQueryFilters()
+            .Include(u => u.Tenant)
+            .AnyAsync(u => u.Email == request.Email &&
+                           u.Tenant.BusinessType == request.BusinessType, cancellationToken);
+
+        if (alreadyHasBusinessType)
+            return Result<RegisterResponse>.Conflict(
+                $"This email already has a {request.BusinessType} profile. Switch business after login instead.");
+
         var mobileExists = await _context.Tenants
             .AnyAsync(t => t.Mobile == request.Mobile, cancellationToken);
 
         if (mobileExists)
-            return Result<RegisterResponse>.Conflict("An account with this mobile number already exists");
+            return Result<RegisterResponse>.Conflict("An account with this mobile number already exists. Use a different mobile for the new business profile.");
 
-        // Create tenant
+        var goldDeskId = await GoldDeskIdGenerator.GenerateAsync(_context, request.BusinessType, cancellationToken);
+
         var tenant = new Tenant
         {
             ShopName = request.ShopName,
@@ -43,30 +55,47 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
             Mobile = request.Mobile,
             Email = request.Email,
             Address = request.Address,
+            BusinessType = request.BusinessType,
+            GoldDeskId = goldDeskId,
             Status = TenantStatus.PendingApproval
         };
 
         _context.Tenants.Add(tenant);
 
-        // Create user
         var user = new User
         {
             TenantId = tenant.Id,
             Email = request.Email,
-            PasswordHash = _authProvider.HashPassword(request.Password),
+            PasswordHash = existingUser?.PasswordHash ?? _authProvider.HashPassword(request.Password),
             FullName = request.OwnerName,
             Mobile = request.Mobile,
-            Role = UserRole.ShopOwner,
-            Status = UserStatus.Inactive // Will become Active when admin approves
+            Role = request.BusinessType == BusinessType.Karigar
+                ? UserRole.Karigar
+                : UserRole.ShopOwner,
+            Status = UserStatus.Inactive
         };
 
         _context.Users.Add(user);
+        if (request.BusinessType == BusinessType.Karigar)
+        {
+            _context.Karigars.Add(new Karigar
+            {
+                TenantId = tenant.Id,
+                UserId = user.Id,
+                Name = request.OwnerName,
+                Mobile = request.Mobile,
+                Email = request.Email,
+                Address = request.Address,
+                Status = KarigarStatus.Active
+            });
+        }
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<RegisterResponse>.Created(new RegisterResponse
         {
             TenantId = tenant.Id,
             UserId = user.Id,
+            GoldDeskId = tenant.GoldDeskId,
             Message = "Registration successful. Your account is pending approval."
         });
     }

@@ -1,13 +1,18 @@
 using GoldDesk.Application.Common.Models;
 using GoldDesk.Application.Features.Assignments.AssignKarigar;
+using GoldDesk.Application.Features.Assignments.AcceptAssignment;
 using GoldDesk.Application.Features.Assignments.GetAssignmentHistory;
 using GoldDesk.Application.Features.Assignments.KarigarUpdateStatus;
 using GoldDesk.Application.Features.Orders.CancelOrder;
 using GoldDesk.Application.Features.Orders.CreateOrder;
 using GoldDesk.Application.Features.Orders.GetOrderById;
 using GoldDesk.Application.Features.Orders.GetOrders;
+using GoldDesk.Application.Features.Orders.RespondToOrder;
+using GoldDesk.Application.Features.Orders.Comments;
+using GoldDesk.Application.Features.Orders.Events;
 using GoldDesk.Application.Features.Orders.UpdateOrder;
 using GoldDesk.Application.Features.Orders.UpdateOrderStatus;
+using GoldDesk.Domain.Enums;
 using MediatR;
 
 namespace GoldDesk.Api.Endpoints;
@@ -59,15 +64,6 @@ public static class OrderEndpoints
         })
         .WithName("UpdateOrder");
 
-        group.MapPost("/{id:guid}/update", async (Guid id, UpdateOrderCommand command, IMediator mediator) =>
-        {
-            var result = await mediator.Send(command with { OrderId = id });
-            return result.IsSuccess
-                ? Results.Ok(result.Data)
-                : ToErrorResponse(result);
-        })
-        .WithName("UpdateOrderPost");
-
         group.MapPost("/{id:guid}/cancel", async (Guid id, CancelOrderRequest? request, IMediator mediator) =>
         {
             var result = await mediator.Send(new CancelOrderCommand
@@ -80,6 +76,18 @@ public static class OrderEndpoints
                 : ToErrorResponse(result);
         })
         .WithName("CancelOrder");
+
+        group.MapPost("/{id:guid}/respond", async (Guid id, RespondToOrderRequest request, IMediator mediator) =>
+        {
+            var result = await mediator.Send(new RespondToOrderCommand
+            {
+                OrderId = id,
+                Accept = request.Accept,
+                Note = request.Note
+            });
+            return ToResponse(result);
+        })
+        .WithName("RespondToOrder");
 
         group.MapPost("/{id:guid}/status", async (Guid id, UpdateStatusRequest request, IMediator mediator) =>
         {
@@ -112,12 +120,50 @@ public static class OrderEndpoints
         })
         .WithName("AssignKarigar");
 
+        group.MapPost("/{id:guid}/assignment/accept", async (Guid id, IMediator mediator) =>
+        {
+            var result = await mediator.Send(new AcceptAssignmentCommand(id));
+            return result.IsSuccess
+                ? Results.Ok(new { message = "Work accepted" })
+                : ToErrorResponse(result);
+        })
+        .WithName("AcceptAssignment")
+        .RequireAuthorization(policy => policy.RequireRole("Karigar"));
+
         group.MapGet("/{id:guid}/assignments", async (Guid id, IMediator mediator) =>
         {
             var result = await mediator.Send(new GetAssignmentHistoryQuery(id));
             return ToResponse(result);
         })
         .WithName("GetAssignmentHistory");
+
+        group.MapGet("/{id:guid}/comments/{channel}", async (Guid id, string channel, IMediator mediator) =>
+        {
+            if (!Enum.TryParse<OrderCommentChannel>(channel, true, out var parsedChannel))
+                return Results.BadRequest(new { error = "Invalid comment channel." });
+            return ToResponse(await mediator.Send(new GetOrderCommentsQuery(id, parsedChannel)));
+        })
+        .WithName("GetOrderComments");
+
+        group.MapPost("/{id:guid}/comments", async (Guid id, AddOrderCommentRequest request, IMediator mediator) =>
+        {
+            if (!Enum.TryParse<OrderCommentChannel>(request.Channel, true, out var channel))
+                return Results.BadRequest(new { error = "Invalid comment channel." });
+            var result = await mediator.Send(new AddOrderCommentCommand
+            {
+                OrderId = id,
+                Channel = channel,
+                Message = request.Message
+            });
+            return result.IsSuccess
+                ? Results.Created($"/api/orders/{id}/comments/{result.Data!.Id}", result.Data)
+                : ToErrorResponse(result);
+        })
+        .WithName("AddOrderComment");
+
+        group.MapGet("/{id:guid}/events", async (Guid id, IMediator mediator) =>
+            ToResponse(await mediator.Send(new GetOrderEventsQuery(id))))
+        .WithName("GetOrderEvents");
 
         // Karigar status update
         group.MapPost("/{id:guid}/karigar-update", async (Guid id, KarigarStatusUpdateRequest request, IMediator mediator) =>
@@ -162,6 +208,18 @@ public static class OrderEndpoints
 public record CancelOrderRequest
 {
     public string? Reason { get; init; }
+}
+
+public record RespondToOrderRequest
+{
+    public bool Accept { get; init; }
+    public string? Note { get; init; }
+}
+
+public record AddOrderCommentRequest
+{
+    public string Channel { get; init; } = string.Empty;
+    public string Message { get; init; } = string.Empty;
 }
 
 public record UpdateStatusRequest

@@ -4,10 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/widgets/notification_bell.dart';
+import '../../../core/widgets/app_bottom_navigation.dart';
 import '../../../data/repositories/karigar_portal_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
-import '../../auth/bloc/auth_event.dart';
 import '../../auth/bloc/auth_state.dart';
+import '../../dashboard/widgets/side_drawer.dart';
 
 class KarigarDashboardScreen extends StatefulWidget {
   const KarigarDashboardScreen({super.key});
@@ -28,7 +29,10 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       _data = await getIt<KarigarPortalRepository>().getDashboard();
     } catch (e) {
@@ -44,40 +48,36 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
         if (state is AuthUnauthenticated) context.go('/login');
       },
       child: Scaffold(
+        drawer: const SideDrawer(),
         appBar: AppBar(
           backgroundColor: AppColors.primaryDark,
           title: const Text('Karigar Dashboard'),
-          actions: [
-            const NotificationBell(),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () => context.read<AuthBloc>().add(AuthLogoutRequested()),
-            ),
-          ],
+          actions: [const NotificationBell()],
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.gold),
+              )
             : _error != null
-                ? Center(child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!, style: const TextStyle(color: AppColors.error)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _load, child: const Text('Retry')),
-                    ],
-                  ))
-                : _buildContent(),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: 0,
-          selectedItemColor: AppColors.gold,
-          unselectedItemColor: AppColors.textSecondary,
-          onTap: (i) {
-            if (i == 1) context.go('/karigar/orders');
-          },
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-            BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'My Orders'),
-          ],
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _error!,
+                      style: const TextStyle(color: AppColors.error),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _load,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+            : _buildContent(),
+        bottomNavigationBar: const AppBottomNavigation(
+          selectedPath: '/karigar/dashboard',
         ),
       ),
     );
@@ -96,21 +96,41 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
             // Stats row
             Row(
               children: [
-                _buildStatCard('Send to\nKarigar', data.totalAssigned, AppColors.primaryDark),
+                _buildStatCard(
+                  'New\nWork',
+                  data.newWork,
+                  AppColors.primaryDark,
+                ),
                 const SizedBox(width: 10),
-                _buildStatCard('In\nProgress', data.inProgress, AppColors.statusInProgress),
+                _buildStatCard(
+                  'Work\nAccepted',
+                  data.workAccepted,
+                  AppColors.statusAssigned,
+                ),
                 const SizedBox(width: 10),
-                _buildStatCard('Due\nSoon', data.dueSoon + data.dueToday, AppColors.statusPending),
+                _buildStatCard(
+                  'Making',
+                  data.inProgress,
+                  AppColors.statusInProgress,
+                ),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                _buildStatCard('Overdue', data.overdue, AppColors.statusOverdue),
-                const SizedBox(width: 10),
-                _buildStatCard('Ready', data.ready, AppColors.statusReady),
+                _buildStatCard(
+                  'Work\nReady',
+                  data.ready,
+                  AppColors.statusReady,
+                ),
                 const SizedBox(width: 10),
                 _buildStatCard('Due\nToday', data.dueToday, AppColors.due1Day),
+                const SizedBox(width: 10),
+                _buildStatCard(
+                  'Overdue',
+                  data.overdue,
+                  AppColors.statusOverdue,
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -129,7 +149,10 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
                   _sectionTitle('Recent Orders'),
                   TextButton(
                     onPressed: () => context.go('/karigar/orders'),
-                    child: const Text('View All', style: TextStyle(color: AppColors.gold)),
+                    child: const Text(
+                      'View All',
+                      style: TextStyle(color: AppColors.gold),
+                    ),
                   ),
                 ],
               ),
@@ -139,7 +162,10 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(32),
-                  child: Text('No orders assigned yet.', style: TextStyle(color: AppColors.textSecondary)),
+                  child: Text(
+                    'No orders assigned yet.',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
                 ),
               ),
           ],
@@ -159,9 +185,23 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
         ),
         child: Column(
           children: [
-            Text('$count', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+            Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary), textAlign: TextAlign.center),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
@@ -173,9 +213,13 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
   }
 
   Widget _buildOrderCard(KarigarOrderItem order) {
-    final dueColor = order.daysLeft <= 0 ? AppColors.due1Day
-        : order.daysLeft <= 1 ? AppColors.due1Day
-        : order.daysLeft <= 2 ? AppColors.due2Days
+    final isCompleted = order.status == 'Delivered' || order.status == 'Closed';
+    final dueColor = order.daysLeft <= 0
+        ? AppColors.due1Day
+        : order.daysLeft <= 1
+        ? AppColors.due1Day
+        : order.daysLeft <= 2
+        ? AppColors.due2Days
         : AppColors.due3Days;
 
     return Card(
@@ -191,25 +235,61 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(order.orderNo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    Text(
+                      order.orderNo,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(order.customerName, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                    const SizedBox(height: 2),
-                    Text('Due: ${order.dueDate}', style: TextStyle(fontSize: 11, color: dueColor)),
+                    Text(
+                      order.orderFromBusinessName,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    if (order.sourceShopName.isNotEmpty)
+                      Text(
+                        order.sourceShopName,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.gold,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    if (!isCompleted) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Due: ${order.dueDate}',
+                        style: TextStyle(fontSize: 11, color: dueColor),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: dueColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
+              if (!isCompleted)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: dueColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    order.daysLeft <= 0
+                        ? 'Overdue'
+                        : '${order.daysLeft} Day${order.daysLeft > 1 ? 's' : ''} Left',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: dueColor,
+                    ),
+                  ),
                 ),
-                child: Text(
-                  order.daysLeft <= 0 ? 'Overdue' : '${order.daysLeft} Day${order.daysLeft > 1 ? 's' : ''} Left',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dueColor),
-                ),
-              ),
             ],
           ),
         ),

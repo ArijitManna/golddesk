@@ -22,12 +22,17 @@ class AuthRepository {
 
       // Store tokens
       await _storage.write(
-          key: AppConstants.accessTokenKey, value: loginResponse.accessToken);
+        key: AppConstants.accessTokenKey,
+        value: loginResponse.accessToken,
+      );
       await _storage.write(
-          key: AppConstants.refreshTokenKey, value: loginResponse.refreshToken);
+        key: AppConstants.refreshTokenKey,
+        value: loginResponse.refreshToken,
+      );
       await _storage.write(
-          key: AppConstants.userDataKey,
-          value: jsonEncode(loginResponse.user.toJson()));
+        key: AppConstants.userDataKey,
+        value: jsonEncode(loginResponse.user.toJson()),
+      );
 
       return loginResponse;
     } on DioException catch (e) {
@@ -49,8 +54,9 @@ class AuthRepository {
 
   Future<LoginResponse> refreshToken() async {
     try {
-      final refreshToken =
-          await _storage.read(key: AppConstants.refreshTokenKey);
+      final refreshToken = await _storage.read(
+        key: AppConstants.refreshTokenKey,
+      );
       if (refreshToken == null) throw ApiException(message: 'No refresh token');
 
       final response = await _apiClient.dio.post(
@@ -60,14 +66,73 @@ class AuthRepository {
       final loginResponse = LoginResponse.fromJson(response.data);
 
       await _storage.write(
-          key: AppConstants.accessTokenKey, value: loginResponse.accessToken);
+        key: AppConstants.accessTokenKey,
+        value: loginResponse.accessToken,
+      );
       await _storage.write(
-          key: AppConstants.refreshTokenKey, value: loginResponse.refreshToken);
+        key: AppConstants.refreshTokenKey,
+        value: loginResponse.refreshToken,
+      );
       await _storage.write(
-          key: AppConstants.userDataKey,
-          value: jsonEncode(loginResponse.user.toJson()));
+        key: AppConstants.userDataKey,
+        value: jsonEncode(loginResponse.user.toJson()),
+      );
 
       return loginResponse;
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<List<UserInfo>> getProfiles() async {
+    try {
+      final response = await _apiClient.dio.get('/auth/profiles');
+      return (response.data as List)
+          .map((profile) => UserInfo.fromJson(profile))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<LoginResponse> switchProfile(
+    String tenantId, {
+    String? fcmToken,
+  }) async {
+    try {
+      final data = <String, String>{'tenantId': tenantId};
+      if (fcmToken != null) {
+        data['fcmToken'] = fcmToken;
+      }
+      final response = await _apiClient.dio.post(
+        '/auth/switch-profile',
+        data: data,
+      );
+      final loginResponse = LoginResponse.fromJson(response.data);
+      await _storage.write(
+        key: AppConstants.accessTokenKey,
+        value: loginResponse.accessToken,
+      );
+      await _storage.write(
+        key: AppConstants.refreshTokenKey,
+        value: loginResponse.refreshToken,
+      );
+      await _storage.write(
+        key: AppConstants.userDataKey,
+        value: jsonEncode(loginResponse.user.toJson()),
+      );
+      return loginResponse;
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> updateFcmToken(String token) async {
+    try {
+      await _apiClient.dio.post(
+        '/auth/device-token',
+        data: {'fcmToken': token},
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
@@ -95,10 +160,10 @@ class AuthRepository {
     required String newPassword,
   }) async {
     try {
-      await _apiClient.dio.post('/auth/change-password', data: {
-        'currentPassword': currentPassword,
-        'newPassword': newPassword,
-      });
+      await _apiClient.dio.post(
+        '/auth/change-password',
+        data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }

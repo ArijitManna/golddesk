@@ -22,11 +22,16 @@ public class DeactivateTeamUserCommandHandler : IRequestHandler<DeactivateTeamUs
         if (_currentUser.Role != UserRole.ShopOwner)
             return Result<bool>.Forbidden("Only shop owners can deactivate team users");
 
+        if (!_currentUser.TenantId.HasValue)
+            return Result<bool>.Unauthorized();
+
         if (_currentUser.UserId == request.UserId)
             return Result<bool>.Failure("You cannot deactivate your own account");
 
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == request.UserId && u.Role == UserRole.ShopOwner, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == request.UserId &&
+                                      u.TenantId == _currentUser.TenantId.Value &&
+                                      u.Role == UserRole.ShopOwner, cancellationToken);
 
         if (user == null)
             return Result<bool>.NotFound("Team user not found");
@@ -35,7 +40,9 @@ public class DeactivateTeamUserCommandHandler : IRequestHandler<DeactivateTeamUs
             return Result<bool>.Failure("User is already inactive");
 
         var activeOwners = await _context.Users
-            .CountAsync(u => u.Role == UserRole.ShopOwner && u.Status == UserStatus.Active, cancellationToken);
+            .CountAsync(u => u.TenantId == _currentUser.TenantId.Value &&
+                             u.Role == UserRole.ShopOwner &&
+                             u.Status == UserStatus.Active, cancellationToken);
 
         if (activeOwners <= 1)
             return Result<bool>.Failure("Cannot deactivate the last active shop owner");

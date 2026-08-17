@@ -8,6 +8,8 @@ public record GetKarigarDashboardQuery : IRequest<Result<KarigarDashboardDto>>;
 public record KarigarDashboardDto
 {
     public int TotalAssigned { get; init; }
+    public int NewWork { get; init; }
+    public int WorkAccepted { get; init; }
     public int InProgress { get; init; }
     public int DueToday { get; init; }
     public int DueSoon { get; init; } // Next 3 days
@@ -21,8 +23,10 @@ public record KarigarOrderDto
 {
     public Guid OrderId { get; init; }
     public string OrderNo { get; init; } = string.Empty;
-    public string CustomerName { get; init; } = string.Empty;
+    public string OrderFromBusinessName { get; init; } = string.Empty;
+    public string SourceShopName { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
+    public string AssignmentStatus { get; init; } = string.Empty;
     public string DueDate { get; init; } = string.Empty;
     public int DaysLeft { get; init; }
     public string? Notes { get; init; }

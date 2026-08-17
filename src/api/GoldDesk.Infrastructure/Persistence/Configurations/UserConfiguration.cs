@@ -21,7 +21,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.FcmToken).HasMaxLength(500);
         builder.Property(u => u.RefreshToken).HasMaxLength(500);
 
-        builder.HasIndex(u => u.Email).IsUnique();
+        builder.HasIndex(u => new { u.Email, u.TenantId }).IsUnique();
         builder.HasIndex(u => new { u.TenantId, u.Role });
 
         builder.HasOne(u => u.Tenant)

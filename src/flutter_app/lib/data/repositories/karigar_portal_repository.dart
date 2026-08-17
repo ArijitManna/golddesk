@@ -16,12 +16,19 @@ class KarigarPortalRepository {
     }
   }
 
-  Future<List<KarigarOrderItem>> getMyOrders({String? status}) async {
+  Future<List<KarigarOrderItem>> getMyOrders({
+    String? status,
+    String? assignmentStatus,
+  }) async {
     try {
-      final response = await _apiClient.dio.get('/karigar/orders', queryParameters: {
-        if (status != null) 'status': status,
-        'pageSize': 50,
-      });
+      final response = await _apiClient.dio.get(
+        '/karigar/orders',
+        queryParameters: {
+          if (status != null) 'status': status,
+          if (assignmentStatus != null) 'assignmentStatus': assignmentStatus,
+          'pageSize': 50,
+        },
+      );
       return (response.data['items'] as List)
           .map((e) => KarigarOrderItem.fromJson(e))
           .toList();
@@ -30,12 +37,24 @@ class KarigarPortalRepository {
     }
   }
 
-  Future<void> updateStatus(String orderId, String status, {String? notes}) async {
+  Future<void> updateStatus(
+    String orderId,
+    String status, {
+    String? notes,
+  }) async {
     try {
-      await _apiClient.dio.post('/orders/$orderId/karigar-update', data: {
-        'status': status,
-        if (notes != null) 'progressNotes': notes,
-      });
+      await _apiClient.dio.post(
+        '/orders/$orderId/karigar-update',
+        data: {'status': status, if (notes != null) 'progressNotes': notes},
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> acceptWork(String orderId) async {
+    try {
+      await _apiClient.dio.post('/orders/$orderId/assignment/accept');
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
@@ -44,6 +63,8 @@ class KarigarPortalRepository {
 
 class KarigarDashboardData {
   final int totalAssigned;
+  final int newWork;
+  final int workAccepted;
   final int inProgress;
   final int dueToday;
   final int dueSoon;
@@ -54,6 +75,8 @@ class KarigarDashboardData {
 
   KarigarDashboardData({
     required this.totalAssigned,
+    required this.newWork,
+    required this.workAccepted,
     required this.inProgress,
     required this.dueToday,
     required this.dueSoon,
@@ -66,16 +89,20 @@ class KarigarDashboardData {
   factory KarigarDashboardData.fromJson(Map<String, dynamic> json) =>
       KarigarDashboardData(
         totalAssigned: json['totalAssigned'] ?? 0,
+        newWork: json['newWork'] ?? 0,
+        workAccepted: json['workAccepted'] ?? 0,
         inProgress: json['inProgress'] ?? 0,
         dueToday: json['dueToday'] ?? 0,
         dueSoon: json['dueSoon'] ?? 0,
         overdue: json['overdue'] ?? 0,
         ready: json['ready'] ?? 0,
-        dueSoonOrders: (json['dueSoonOrders'] as List?)
+        dueSoonOrders:
+            (json['dueSoonOrders'] as List?)
                 ?.map((e) => KarigarOrderItem.fromJson(e))
                 .toList() ??
             [],
-        recentOrders: (json['recentOrders'] as List?)
+        recentOrders:
+            (json['recentOrders'] as List?)
                 ?.map((e) => KarigarOrderItem.fromJson(e))
                 .toList() ??
             [],
@@ -85,8 +112,10 @@ class KarigarDashboardData {
 class KarigarOrderItem {
   final String orderId;
   final String orderNo;
-  final String customerName;
+  final String orderFromBusinessName;
+  final String sourceShopName;
   final String status;
+  final String assignmentStatus;
   final String dueDate;
   final int daysLeft;
   final String? notes;
@@ -95,8 +124,10 @@ class KarigarOrderItem {
   KarigarOrderItem({
     required this.orderId,
     required this.orderNo,
-    required this.customerName,
+    required this.orderFromBusinessName,
+    required this.sourceShopName,
     required this.status,
+    required this.assignmentStatus,
     required this.dueDate,
     required this.daysLeft,
     this.notes,
@@ -107,8 +138,10 @@ class KarigarOrderItem {
       KarigarOrderItem(
         orderId: json['orderId'],
         orderNo: json['orderNo'],
-        customerName: json['customerName'],
+        orderFromBusinessName: json['orderFromBusinessName'],
+        sourceShopName: json['sourceShopName'] ?? '',
         status: json['status'],
+        assignmentStatus: json['assignmentStatus'] ?? 'Active',
         dueDate: json['dueDate'],
         daysLeft: json['daysLeft'] ?? 0,
         notes: json['notes'],

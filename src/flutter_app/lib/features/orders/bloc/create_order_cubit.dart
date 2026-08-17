@@ -31,12 +31,11 @@ class CreateOrderError extends CreateOrderState {
 }
 
 class CreateOrderDataLoaded extends CreateOrderState {
-  final List<CustomerItem> customers;
   final List<Map<String, dynamic>> items;
   final OrderDetail? existingOrder;
-  const CreateOrderDataLoaded(this.customers, this.items, {this.existingOrder});
+  const CreateOrderDataLoaded(this.items, {this.existingOrder});
   @override
-  List<Object?> get props => [customers.length, items.length, existingOrder?.id];
+  List<Object?> get props => [items.length, existingOrder?.id];
 }
 
 // Cubit
@@ -47,23 +46,29 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
 
   Future<void> loadFormData({String? editOrderId}) async {
     try {
-      final customers = await _repository.getCustomers();
       final itemsResponse = await _repository.getItems();
       OrderDetail? existing;
       if (editOrderId != null) {
         existing = await _repository.getOrderById(editOrderId);
       }
-      emit(CreateOrderDataLoaded(customers, itemsResponse, existingOrder: existing));
+      emit(CreateOrderDataLoaded(itemsResponse, existingOrder: existing));
     } catch (_) {
-      emit(const CreateOrderDataLoaded([], []));
+      emit(const CreateOrderDataLoaded([]));
     }
   }
 
-  Future<void> createOrder(CreateOrderRequest request, {List<String?> itemImages = const []}) async {
+  Future<void> createOrder(
+    CreateOrderRequest request, {
+    List<String?> itemImages = const [],
+  }) async {
     emit(CreateOrderLoading());
     try {
       final order = await _repository.createOrder(request);
-      await _uploadItemImages(order.id, itemImages, existingIds: request.items.map((e) => e.id).toList());
+      await _uploadItemImages(
+        order.id,
+        itemImages,
+        existingIds: request.items.map((e) => e.id).toList(),
+      );
       emit(CreateOrderSuccess(order));
     } on ApiException catch (e) {
       emit(CreateOrderError(e.message));
@@ -72,11 +77,19 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
     }
   }
 
-  Future<void> updateOrder(String orderId, CreateOrderRequest request, {List<String?> itemImages = const []}) async {
+  Future<void> updateOrder(
+    String orderId,
+    CreateOrderRequest request, {
+    List<String?> itemImages = const [],
+  }) async {
     emit(CreateOrderLoading());
     try {
       final order = await _repository.updateOrder(orderId, request);
-      await _uploadItemImages(order.id, itemImages, existingIds: request.items.map((e) => e.id).toList());
+      await _uploadItemImages(
+        order.id,
+        itemImages,
+        existingIds: request.items.map((e) => e.id).toList(),
+      );
       emit(CreateOrderSuccess(order));
     } on ApiException catch (e) {
       emit(CreateOrderError(e.message));
@@ -85,7 +98,11 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
     }
   }
 
-  Future<void> _uploadItemImages(String orderId, List<String?> itemImages, {List<String?> existingIds = const []}) async {
+  Future<void> _uploadItemImages(
+    String orderId,
+    List<String?> itemImages, {
+    List<String?> existingIds = const [],
+  }) async {
     if (itemImages.every((e) => e == null)) return;
     final detail = await _repository.getOrderById(orderId);
     final used = <String>{};

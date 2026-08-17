@@ -1,6 +1,7 @@
 using GoldDesk.Application.Common.Models;
 using GoldDesk.Application.Features.Auth.ChangePassword;
 using GoldDesk.Application.Features.Auth.Login;
+using GoldDesk.Application.Features.Auth.Profiles;
 using GoldDesk.Application.Features.Auth.RefreshToken;
 using GoldDesk.Application.Features.Auth.Register;
 using MediatR;
@@ -39,6 +40,33 @@ public static class AuthEndpoints
         .WithName("RefreshToken")
         .WithDescription("Refresh an expired access token using a valid refresh token")
         .AllowAnonymous();
+
+        group.MapGet("/profiles", async (IMediator mediator) =>
+        {
+            var result = await mediator.Send(new GetProfilesQuery());
+            return ToResponse(result);
+        })
+        .RequireAuthorization()
+        .WithName("GetProfiles")
+        .WithDescription("List business profiles linked to the current login");
+
+        group.MapPost("/switch-profile", async (SwitchProfileCommand command, IMediator mediator) =>
+        {
+            var result = await mediator.Send(command);
+            return ToResponse(result);
+        })
+        .RequireAuthorization()
+        .WithName("SwitchProfile")
+        .WithDescription("Switch the authenticated session to another linked business profile");
+
+        group.MapPost("/device-token", async (UpdateFcmTokenCommand command, IMediator mediator) =>
+        {
+            var result = await mediator.Send(command);
+            return ToResponse(result);
+        })
+        .RequireAuthorization()
+        .WithName("UpdateFcmToken")
+        .WithDescription("Register the current device's Firebase Cloud Messaging token");
 
         group.MapPost("/change-password", async (ChangePasswordCommand command, IMediator mediator) =>
         {

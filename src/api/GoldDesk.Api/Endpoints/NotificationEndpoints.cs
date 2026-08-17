@@ -2,6 +2,7 @@ using GoldDesk.Application.Common.Models;
 using GoldDesk.Application.Features.Notifications.GetNotifications;
 using GoldDesk.Application.Features.Notifications.GetUnreadCount;
 using GoldDesk.Application.Features.Notifications.MarkAsRead;
+using GoldDesk.Domain.Enums;
 using MediatR;
 
 namespace GoldDesk.Api.Endpoints;
@@ -27,13 +28,27 @@ public static class NotificationEndpoints
         .WithName("GetNotifications")
         .WithDescription("Get user's notifications with optional unread filter");
 
-        group.MapGet("/unread-count", async (IMediator mediator) =>
+        group.MapGet("/unread-count", async (
+            string? type,
+            Guid? orderId,
+            IMediator mediator) =>
         {
-            var result = await mediator.Send(new GetUnreadCountQuery());
+            NotificationType? parsedType = null;
+            if (!string.IsNullOrWhiteSpace(type) &&
+                Enum.TryParse<NotificationType>(type, true, out var value))
+            {
+                parsedType = value;
+            }
+
+            var result = await mediator.Send(new GetUnreadCountQuery
+            {
+                Type = parsedType,
+                OrderId = orderId
+            });
             return Results.Ok(new { count = result.Data });
         })
         .WithName("GetUnreadCount")
-        .WithDescription("Get count of unread notifications");
+        .WithDescription("Get count of unread notifications, optionally filtered by type/order");
 
         group.MapPost("/{id:guid}/read", async (Guid id, IMediator mediator) =>
         {
@@ -52,5 +67,13 @@ public static class NotificationEndpoints
         })
         .WithName("MarkAllRead")
         .WithDescription("Mark all notifications as read");
+
+        group.MapPost("/orders/{orderId:guid}/comments/read", async (Guid orderId, IMediator mediator) =>
+        {
+            var result = await mediator.Send(new MarkOrderCommentNotificationsReadCommand(orderId));
+            return Results.Ok(new { message = $"{result.Data} message notifications marked as read" });
+        })
+        .WithName("MarkOrderCommentNotificationsRead")
+        .WithDescription("Mark unread CommentAdded notifications for an order as read");
     }
 }

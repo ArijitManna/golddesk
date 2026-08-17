@@ -31,13 +31,21 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
 
         // Get all active assignments for this Karigar
         var activeAssignments = await _context.OrderAssignments
+            .IgnoreQueryFilters()
             .Include(a => a.Order)
-                .ThenInclude(o => o.Customer)
+                .ThenInclude(o => o.Tenant)
+            .Include(a => a.Order)
+                .ThenInclude(o => o.OrderFromBusiness)
+            .Include(a => a.Order)
+                .ThenInclude(o => o.OrderFromExternalBusiness)
             .Where(a => a.KarigarId == karigar.Id && a.IsActive)
             .ToListAsync(cancellationToken);
 
         // Calculate stats
         var totalAssigned = activeAssignments.Count;
+        var newWork = activeAssignments.Count(a => a.Status == AssignmentStatus.PendingAcceptance);
+        var workAccepted = activeAssignments.Count(a => a.Status == AssignmentStatus.Active &&
+                                                       a.Order.Status == OrderStatus.Assigned);
         var inProgress = activeAssignments.Count(a => a.Order.Status == OrderStatus.InProgress);
         var dueToday = activeAssignments.Count(a => a.DueDate == today && a.Order.Status != OrderStatus.Ready);
         var dueSoon = activeAssignments.Count(a =>
@@ -60,8 +68,10 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
             {
                 OrderId = a.OrderId,
                 OrderNo = a.Order.OrderNo,
-                CustomerName = a.Order.Customer.Name,
+                OrderFromBusinessName = a.Order.Tenant.ShopName,
+                SourceShopName = a.Order.Tenant.ShopName,
                 Status = a.Order.Status.ToString(),
+                AssignmentStatus = a.Status.ToString(),
                 DueDate = a.DueDate.ToString("yyyy-MM-dd"),
                 DaysLeft = a.DueDate.DayNumber - today.DayNumber,
                 Notes = a.Notes,
@@ -77,8 +87,10 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
             {
                 OrderId = a.OrderId,
                 OrderNo = a.Order.OrderNo,
-                CustomerName = a.Order.Customer.Name,
+                OrderFromBusinessName = a.Order.Tenant.ShopName,
+                SourceShopName = a.Order.Tenant.ShopName,
                 Status = a.Order.Status.ToString(),
+                AssignmentStatus = a.Status.ToString(),
                 DueDate = a.DueDate.ToString("yyyy-MM-dd"),
                 DaysLeft = a.DueDate.DayNumber - today.DayNumber,
                 Notes = a.Notes,
@@ -89,6 +101,8 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
         return Result<KarigarDashboardDto>.Success(new KarigarDashboardDto
         {
             TotalAssigned = totalAssigned,
+            NewWork = newWork,
+            WorkAccepted = workAccepted,
             InProgress = inProgress,
             DueToday = dueToday,
             DueSoon = dueSoon,

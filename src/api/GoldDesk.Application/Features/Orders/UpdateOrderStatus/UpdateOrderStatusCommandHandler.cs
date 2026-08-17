@@ -11,11 +11,16 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly INotificationService _notifications;
 
-    public UpdateOrderStatusCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser)
+    public UpdateOrderStatusCommandHandler(
+        IApplicationDbContext context,
+        ICurrentUserService currentUser,
+        INotificationService notifications)
     {
         _context = context;
         _currentUser = currentUser;
+        _notifications = notifications;
     }
 
     public async Task<Result<bool>> Handle(UpdateOrderStatusCommand request, CancellationToken cancellationToken)
@@ -24,10 +29,15 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
             return Result<bool>.Failure($"Invalid status: {request.Status}");
 
         var order = await _context.Orders
+            .Include(o => o.CreatedByBusiness)
+            .Include(o => o.Tenant)
             .FirstOrDefaultAsync(o => o.Id == request.OrderId, cancellationToken);
 
         if (order == null)
             return Result<bool>.NotFound("Order not found");
+
+        if (_currentUser.TenantId != order.TenantId)
+            return Result<bool>.Forbidden("Only the fulfilling Shop can update this order's status");
 
         // Validate status transitions
         var validTransition = IsValidTransition(order.Status, newStatus);
@@ -47,6 +57,29 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
         });
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        if (newStatus == OrderStatus.Delivered &&
+            order.CreatedByBusinessId != order.TenantId)
+        {
+            var recipientIds = await _context.Users
+                .IgnoreQueryFilters()
+                .Where(u => u.TenantId == order.CreatedByBusinessId &&
+                            u.Status == UserStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var recipientId in recipientIds)
+            {
+                await _notifications.CreateAndPushAsync(
+                    order.CreatedByBusinessId,
+                    recipientId,
+                    order.Id,
+                    NotificationType.OrderDelivered,
+                    "Order delivered",
+                    $"{order.Tenant.ShopName} marked order {order.OrderNo} as delivered.",
+                    cancellationToken);
+            }
+        }
 
         return Result<bool>.Success(true);
     }

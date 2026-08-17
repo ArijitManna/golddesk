@@ -27,6 +27,9 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Res
         if (order == null)
             return Result<bool>.NotFound("Order not found");
 
+        if (_currentUser.TenantId != order.TenantId)
+            return Result<bool>.Forbidden("Only the fulfilling Shop can cancel this order");
+
         if (order.Status == OrderStatus.Delivered || order.Status == OrderStatus.Closed)
             return Result<bool>.Failure("Cannot cancel a delivered or closed order");
 

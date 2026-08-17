@@ -16,6 +16,10 @@ public interface IApplicationDbContext
     DbSet<OrderStatusHistory> OrderStatusHistory { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<AuditLog> AuditLogs { get; }
+    DbSet<BusinessConnection> BusinessConnections { get; }
+    DbSet<ExternalBusiness> ExternalBusinesses { get; }
+    DbSet<OrderComment> OrderComments { get; }
+    DbSet<OrderEvent> OrderEvents { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

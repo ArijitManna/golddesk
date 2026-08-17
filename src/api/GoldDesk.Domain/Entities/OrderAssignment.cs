@@ -10,7 +10,8 @@ public class OrderAssignment : BaseEntity
     public Guid KarigarId { get; set; }
     public DateOnly GivenDate { get; set; }
     public DateOnly DueDate { get; set; }
-    public AssignmentStatus Status { get; set; } = AssignmentStatus.Active;
+    public AssignmentStatus Status { get; set; } = AssignmentStatus.PendingAcceptance;
+    public DateTime? AcceptedAt { get; set; }
     public string? Notes { get; set; }
     public Guid AssignedBy { get; set; }
     public bool IsActive { get; set; } = true;

@@ -6,7 +6,12 @@ namespace GoldDesk.Application.Features.Orders.CreateOrder;
 
 public record CreateOrderCommand : IRequest<Result<OrderDto>>
 {
-    public Guid CustomerId { get; init; }
+    /// <summary>GoldDesk business sending the order/request.</summary>
+    public Guid? OrderFromBusinessId { get; init; }
+    /// <summary>External business sending the order/request.</summary>
+    public Guid? OrderFromExternalBusinessId { get; init; }
+    /// <summary>Receiving/fulfilling Shop. Required for Showroom-created orders.</summary>
+    public Guid? OrderToBusinessId { get; init; }
     public string? OrderDate { get; init; }
     public string? DeliveryDate { get; init; }
     public string? Notes { get; init; }

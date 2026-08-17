@@ -1,4 +1,5 @@
 using FluentValidation;
+using GoldDesk.Domain.Enums;
 
 namespace GoldDesk.Application.Features.Auth.Register;
 
@@ -30,5 +31,8 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 
         RuleFor(x => x.Address)
             .MaximumLength(500);
+
+        RuleFor(x => x.BusinessType)
+            .IsInEnum().WithMessage("Choose Showroom, Shop, or Karigar.");
     }
 }

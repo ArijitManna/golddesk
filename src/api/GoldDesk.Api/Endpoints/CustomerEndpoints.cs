@@ -15,10 +15,11 @@ public static class CustomerEndpoints
             .WithTags("Customers")
             .RequireAuthorization();
 
-        group.MapGet("/", async (string? search, int? page, int? pageSize, IMediator mediator) =>
+        group.MapGet("/", async (Guid? businessId, string? search, int? page, int? pageSize, IMediator mediator) =>
         {
             var result = await mediator.Send(new GetCustomersQuery
             {
+                BusinessId = businessId,
                 Search = search,
                 Page = page ?? 1,
                 PageSize = pageSize ?? 20

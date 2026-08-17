@@ -35,15 +35,16 @@ public class ApproveShopCommandHandler : IRequestHandler<ApproveShopCommand, Res
         tenant.ApprovedBy = _currentUser.UserId;
         tenant.ApprovedAt = DateTime.UtcNow;
 
-        // Activate the shop owner user
-        var shopUser = await _context.Users
+        // Activate primary login users for this business (ShopOwner or Karigar owner)
+        var businessUsers = await _context.Users
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.TenantId == tenant.Id && u.Role == UserRole.ShopOwner, cancellationToken);
+            .Where(u => u.TenantId == tenant.Id &&
+                        (u.Role == UserRole.ShopOwner || u.Role == UserRole.Karigar) &&
+                        u.Status == UserStatus.Inactive)
+            .ToListAsync(cancellationToken);
 
-        if (shopUser != null)
-        {
-            shopUser.Status = UserStatus.Active;
-        }
+        foreach (var businessUser in businessUsers)
+            businessUser.Status = UserStatus.Active;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -51,7 +52,7 @@ public class ApproveShopCommandHandler : IRequestHandler<ApproveShopCommand, Res
         {
             TenantId = tenant.Id,
             ShopName = tenant.ShopName,
-            Message = $"Shop '{tenant.ShopName}' has been approved successfully"
+            Message = $"{tenant.BusinessType} '{tenant.ShopName}' has been approved successfully"
         });
     }
 }

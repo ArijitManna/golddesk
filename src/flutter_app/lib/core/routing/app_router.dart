@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../di/injection.dart';
+import '../utils/role_navigation.dart';
+import 'go_router_refresh_stream.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/bloc/auth_state.dart';
 import '../../features/auth/screens/login_screen.dart';
@@ -9,7 +11,8 @@ import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/pending_approval_screen.dart';
 import '../../features/admin/screens/admin_approval_screen.dart';
 import '../../features/admin/screens/platform_reports_screen.dart';
-import '../../features/masters/screens/customer_list_screen.dart';
+import '../../features/connections/screens/connections_screen.dart';
+import '../../features/masters/screens/external_business_list_screen.dart';
 import '../../features/masters/screens/karigar_list_screen.dart';
 import '../../features/masters/screens/item_list_screen.dart';
 import '../../features/dashboard/bloc/dashboard_cubit.dart';
@@ -23,6 +26,8 @@ import '../../features/orders/bloc/order_detail_cubit.dart';
 import '../../features/orders/screens/order_list_screen.dart';
 import '../../features/orders/screens/create_order_screen.dart';
 import '../../features/orders/screens/order_detail_screen.dart';
+import '../../features/orders/screens/order_comments_screen.dart';
+import '../../features/orders/screens/order_timeline_screen.dart';
 import '../../features/orders/screens/order_receipt_screen.dart';
 import '../../features/orders/screens/assign_karigar_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
@@ -37,6 +42,7 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: false,
+    refreshListenable: GoRouterRefreshStream(getIt<AuthBloc>().stream),
     routes: [
       GoRoute(
         path: '/',
@@ -78,9 +84,9 @@ class AppRouter {
         builder: (context, state) => const PlatformReportsScreen(),
       ),
       GoRoute(
-        path: '/customers',
-        name: 'customers',
-        builder: (context, state) => const CustomerListScreen(),
+        path: '/external-businesses',
+        name: 'external-businesses',
+        builder: (context, state) => const ExternalBusinessListScreen(),
       ),
       GoRoute(
         path: '/karigars',
@@ -91,6 +97,11 @@ class AppRouter {
         path: '/items',
         name: 'items',
         builder: (context, state) => const ItemListScreen(),
+      ),
+      GoRoute(
+        path: '/connections',
+        name: 'connections',
+        builder: (context, state) => const ConnectionsScreen(),
       ),
       GoRoute(
         path: '/orders',
@@ -143,7 +154,23 @@ class AppRouter {
       GoRoute(
         path: '/orders/:id/receipt',
         name: 'order-receipt',
-        builder: (context, state) => OrderReceiptScreen(orderId: state.pathParameters['id']!),
+        builder: (context, state) =>
+            OrderReceiptScreen(orderId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/orders/:id/comments/:channel',
+        name: 'order-comments',
+        builder: (context, state) => OrderCommentsScreen(
+          orderId: state.pathParameters['id']!,
+          channel: state.pathParameters['channel']!,
+          conversationTitle: state.uri.queryParameters['title'],
+        ),
+      ),
+      GoRoute(
+        path: '/orders/:id/timeline',
+        name: 'order-timeline',
+        builder: (context, state) =>
+            OrderTimelineScreen(orderId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/notifications',
@@ -189,33 +216,45 @@ class AppRouter {
       GoRoute(
         path: '/karigar/orders/:id/update',
         name: 'karigar-update-status',
-        builder: (context, state) => KarigarUpdateStatusScreen(
+        builder: (context, state) =>
+            KarigarUpdateStatusScreen(orderId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/karigar/orders/:id/comments',
+        name: 'karigar-order-comments',
+        builder: (context, state) => OrderCommentsScreen(
           orderId: state.pathParameters['id']!,
+          channel: 'ShopKarigar',
+          conversationTitle: state.uri.queryParameters['title'],
         ),
       ),
     ],
     redirect: (context, state) {
       final authBloc = getIt<AuthBloc>();
       final authState = authBloc.state;
-      final isOnAuthPage = state.matchedLocation == '/login' ||
+      final isOnAuthPage =
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
           state.matchedLocation == '/pending-approval' ||
           state.matchedLocation == '/';
 
+      if (authState is AuthUnauthenticated && !isOnAuthPage) {
+        return '/login';
+      }
+
       if (authState is AuthAuthenticated && isOnAuthPage) {
-        // Role-based redirect
-        if (authState.user.role == 'Karigar') {
-          return '/karigar/dashboard';
-        }
-        return '/dashboard';
+        return homePathForUser(authState.user);
+      }
+
+      if (authState is AuthAuthenticated &&
+          isKarigarUser(authState.user) &&
+          !isKarigarAllowedPath(state.matchedLocation)) {
+        return '/karigar/dashboard';
       }
 
       return null;
     },
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Page not found: ${state.uri}'),
-      ),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
   );
 }

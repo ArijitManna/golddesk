@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using GoldDesk.Api.Endpoints;
 using GoldDesk.Api.Services;
 using GoldDesk.Application;
@@ -27,6 +28,10 @@ builder.Host.UseSerilog();
 // Add services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // Add Application & Infrastructure layers
 builder.Services.AddApplication();
@@ -133,6 +138,8 @@ app.MapItemEndpoints();
 app.MapKarigarEndpoints();
 app.MapTeamUserEndpoints();
 app.MapOrderEndpoints();
+app.MapConnectionEndpoints();
+app.MapExternalBusinessEndpoints();
 app.MapDashboardEndpoints();
 app.MapNotificationEndpoints();
 app.MapFileEndpoints();

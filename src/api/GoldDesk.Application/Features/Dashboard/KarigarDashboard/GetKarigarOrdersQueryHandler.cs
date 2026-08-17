@@ -28,8 +28,9 @@ public class GetKarigarOrdersQueryHandler : IRequestHandler<GetKarigarOrdersQuer
         var today = DateOnly.FromDateTime(DateTime.Today);
 
         var query = _context.OrderAssignments
+            .IgnoreQueryFilters()
             .Include(a => a.Order)
-                .ThenInclude(o => o.Customer)
+                .ThenInclude(o => o.Tenant)
             .Where(a => a.KarigarId == karigar.Id && a.IsActive);
 
         // Filter by order status
@@ -37,6 +38,12 @@ public class GetKarigarOrdersQueryHandler : IRequestHandler<GetKarigarOrdersQuer
             Enum.TryParse<OrderStatus>(request.Status, true, out var status))
         {
             query = query.Where(a => a.Order.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.AssignmentStatus) &&
+            Enum.TryParse<AssignmentStatus>(request.AssignmentStatus, true, out var assignmentStatus))
+        {
+            query = query.Where(a => a.Status == assignmentStatus);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -49,8 +56,12 @@ public class GetKarigarOrdersQueryHandler : IRequestHandler<GetKarigarOrdersQuer
             {
                 OrderId = a.OrderId,
                 OrderNo = a.Order.OrderNo,
-                CustomerName = a.Order.Customer.Name,
+                // The Karigar's counterparty is always the fulfilling Shop.
+                // Do not expose a Showroom or external customer's identity.
+                OrderFromBusinessName = a.Order.Tenant.ShopName,
+                SourceShopName = a.Order.Tenant.ShopName,
                 Status = a.Order.Status.ToString(),
+                AssignmentStatus = a.Status.ToString(),
                 DueDate = a.DueDate.ToString("yyyy-MM-dd"),
                 DaysLeft = a.DueDate.DayNumber - today.DayNumber,
                 Notes = a.Notes,

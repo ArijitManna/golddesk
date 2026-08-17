@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/utils/order_status_labels.dart';
 import '../../../data/models/order_models.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../data/repositories/tenant_repository.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 
 class OrderReceiptScreen extends StatefulWidget {
   final String orderId;
@@ -64,13 +68,15 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.gold),
+            )
           : _order == null
-              ? const Center(child: Text('Order not found'))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: _buildReceipt(),
-                ),
+          ? const Center(child: Text('Order not found'))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: _buildReceipt(),
+            ),
     );
   }
 
@@ -86,7 +92,11 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.divider),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -118,38 +128,85 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
             Text(
               _shop!.address!,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
           if (_shop?.gstNumber != null && _shop!.gstNumber!.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(
               'GST: ${_shop!.gstNumber}',
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
           const SizedBox(height: 8),
-          const Text('ORDER RECEIPT', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, letterSpacing: 2)),
+          const Text(
+            'ORDER RECEIPT',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              letterSpacing: 2,
+            ),
+          ),
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 12),
           _receiptRow('Order No.', order.orderNo),
-          _receiptRow('Customer Name', order.customerName),
+          _receiptRow('Order From', order.orderFromBusinessName),
+          _receiptRow('Order To', order.createdForBusinessName),
           _receiptRow('Order Date', order.orderDate),
           _receiptRow('Delivery Date', order.deliveryDate ?? '-'),
-          if (order.karigarName != null)
+          if (_shop?.businessType == 'Shop' && order.karigarName != null)
             _receiptRow('Karigar Name', order.karigarName!),
-          _receiptRow('Status', order.status == 'Assigned' ? 'Send to Karigar' : order.status == 'InProgress' ? 'In Progress' : order.status),
+          _receiptRow('Status', _displayStatus(order)),
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 12),
           const Row(
             children: [
-              Expanded(flex: 1, child: Text('#', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
-              Expanded(flex: 4, child: Text('Item Name', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
-              Expanded(flex: 2, child: Text('Weight', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.right)),
-              Expanded(flex: 2, child: Text('Rate', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.right)),
-              Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11), textAlign: TextAlign.right)),
+              Expanded(
+                flex: 1,
+                child: Text(
+                  '#',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  'Item Name',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Weight',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Rate',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Amount',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                  textAlign: TextAlign.right,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -162,11 +219,44 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
-                  Expanded(flex: 1, child: Text('${i + 1}', style: const TextStyle(fontSize: 11))),
-                  Expanded(flex: 4, child: Text(item.itemName, style: const TextStyle(fontSize: 11))),
-                  Expanded(flex: 2, child: Text(item.weight.toStringAsFixed(3), style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
-                  Expanded(flex: 2, child: Text(item.rate.toStringAsFixed(0), style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
-                  Expanded(flex: 2, child: Text(item.amount.toStringAsFixed(0), style: const TextStyle(fontSize: 11), textAlign: TextAlign.right)),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      '${i + 1}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: Text(
+                      item.itemName,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      item.weight.toStringAsFixed(3),
+                      style: const TextStyle(fontSize: 11),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      item.rate.toStringAsFixed(0),
+                      style: const TextStyle(fontSize: 11),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      item.amount.toStringAsFixed(0),
+                      style: const TextStyle(fontSize: 11),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -174,9 +264,18 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
           const SizedBox(height: 8),
           const Divider(),
           const SizedBox(height: 12),
-          _receiptRow('Total Weight', '${order.totalWeight.toStringAsFixed(3)} gm'),
-          _receiptRow('Making Charges', '\u20B9${order.makingCharges.toStringAsFixed(0)}'),
-          _receiptRow('Advance Paid', '\u20B9${order.advancePaid.toStringAsFixed(0)}'),
+          _receiptRow(
+            'Total Weight',
+            '${order.totalWeight.toStringAsFixed(3)} gm',
+          ),
+          _receiptRow(
+            'Making Charges',
+            '\u20B9${order.makingCharges.toStringAsFixed(0)}',
+          ),
+          _receiptRow(
+            'Advance Paid',
+            '\u20B9${order.advancePaid.toStringAsFixed(0)}',
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -187,24 +286,71 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Balance Amount', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                Text('\u20B9${balance.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.gold)),
+                const Text(
+                  'Balance Amount',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                Text(
+                  '\u20B9${balance.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: AppColors.gold,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 12),
-          const Text('Thank you for your trust!', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+          const Text(
+            'Thank you for your trust!',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
           const SizedBox(height: 8),
           RichText(
-            text: const TextSpan(children: [
-              TextSpan(text: 'Gold', style: TextStyle(color: AppColors.primaryDark, fontSize: 12, fontWeight: FontWeight.w600)),
-              TextSpan(text: 'Desk', style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w600)),
-            ]),
+            text: const TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Gold',
+                  style: TextStyle(
+                    color: AppColors.primaryDark,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextSpan(
+                  text: 'Desk',
+                  style: TextStyle(
+                    color: AppColors.gold,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  String _displayStatus(OrderDetail order) {
+    final auth = context.read<AuthBloc>().state;
+    final businessType = auth is AuthAuthenticated
+        ? auth.user.businessType
+        : 'Shop';
+
+    return displayOrderStatus(
+      businessType: businessType,
+      status: order.status,
+      acceptanceStatus: order.acceptanceStatus,
+      assignmentStatus: order.assignmentStatus,
     );
   }
 
@@ -213,8 +359,22 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
         ],
       ),
     );

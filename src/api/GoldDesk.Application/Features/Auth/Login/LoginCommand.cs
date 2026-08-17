@@ -26,4 +26,6 @@ public record UserInfo
     public string FullName { get; init; } = string.Empty;
     public string Role { get; init; } = string.Empty;
     public string ShopName { get; init; } = string.Empty;
+    public string BusinessType { get; init; } = string.Empty;
+    public string GoldDeskId { get; init; } = string.Empty;
 }

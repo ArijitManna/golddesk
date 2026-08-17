@@ -11,7 +11,7 @@ class AppConstants {
   // Use 'http://localhost:5282' for iOS simulator or web
   // Use 'http://192.168.x.x:5282' for physical device
   // Production: 'http://162.35.185.106:8082'
-  static const String serverUrl = 'http://162.35.185.106:8082';
+  static const String serverUrl = 'http://localhost:5282';
   static const String baseUrl = '$serverUrl/api';
 
   // Storage Keys

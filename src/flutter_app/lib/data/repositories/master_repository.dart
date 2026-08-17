@@ -1,43 +1,58 @@
 import 'package:dio/dio.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exceptions.dart';
+import '../models/connection_models.dart';
 
 class MasterRepository {
   final ApiClient _apiClient;
 
   MasterRepository(this._apiClient);
 
-  // Customers
-  Future<List<CustomerData>> getCustomers({String? search}) async {
+  Future<List<ExternalBusiness>> getExternalBusinesses() async {
     try {
-      final response = await _apiClient.dio.get('/customers', queryParameters: {
-        if (search != null) 'search': search,
-        'pageSize': 50,
-      });
-      return (response.data['items'] as List)
-          .map((e) => CustomerData.fromJson(e))
+      final response = await _apiClient.dio.get('/external-businesses');
+      return (response.data as List)
+          .map((item) => ExternalBusiness.fromJson(item))
           .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
   }
 
-  Future<CustomerData> createCustomer({
+  Future<ExternalBusiness> createExternalBusiness({
     required String name,
+    required String businessType,
+    String? contactPerson,
     String? mobile,
     String? email,
-    String? address,
-    String? notes,
   }) async {
     try {
-      final response = await _apiClient.dio.post('/customers', data: {
-        'name': name,
-        if (mobile != null) 'mobile': mobile,
-        if (email != null) 'email': email,
-        if (address != null) 'address': address,
-        if (notes != null) 'notes': notes,
-      });
-      return CustomerData.fromJson(response.data);
+      final response = await _apiClient.dio.post(
+        '/external-businesses',
+        data: {
+          'name': name,
+          'businessType': businessType,
+          if (contactPerson != null && contactPerson.isNotEmpty)
+            'contactPerson': contactPerson,
+          if (mobile != null && mobile.isNotEmpty) 'mobile': mobile,
+          if (email != null && email.isNotEmpty) 'email': email,
+        },
+      );
+      return ExternalBusiness.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> linkExternalBusiness({
+    required String externalBusinessId,
+    required String goldDeskId,
+  }) async {
+    try {
+      await _apiClient.dio.post(
+        '/external-businesses/$externalBusinessId/link',
+        data: {'goldDeskId': goldDeskId},
+      );
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
@@ -46,10 +61,10 @@ class MasterRepository {
   // Karigars
   Future<List<KarigarData>> getKarigars() async {
     try {
-      final response = await _apiClient.dio.get('/karigars', queryParameters: {
-        'activeOnly': true,
-        'pageSize': 50,
-      });
+      final response = await _apiClient.dio.get(
+        '/karigars',
+        queryParameters: {'activeOnly': true, 'pageSize': 50},
+      );
       return (response.data['items'] as List)
           .map((e) => KarigarData.fromJson(e))
           .toList();
@@ -67,37 +82,22 @@ class MasterRepository {
     String? password,
   }) async {
     try {
-      final response = await _apiClient.dio.post('/karigars', data: {
-        'name': name,
-        'mobile': mobile,
-        if (email != null) 'email': email,
-        if (specialization != null) 'specialization': specialization,
-        'createLogin': createLogin,
-        if (password != null) 'password': password,
-      });
+      final response = await _apiClient.dio.post(
+        '/karigars',
+        data: {
+          'name': name,
+          'mobile': mobile,
+          if (email != null) 'email': email,
+          if (specialization != null) 'specialization': specialization,
+          'createLogin': createLogin,
+          if (password != null) 'password': password,
+        },
+      );
       return KarigarData.fromJson(response.data);
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }
   }
-}
-
-class CustomerData {
-  final String id;
-  final String name;
-  final String? mobile;
-  final String? email;
-  final String? address;
-
-  CustomerData({required this.id, required this.name, this.mobile, this.email, this.address});
-
-  factory CustomerData.fromJson(Map<String, dynamic> json) => CustomerData(
-        id: json['id'],
-        name: json['name'],
-        mobile: json['mobile'],
-        email: json['email'],
-        address: json['address'],
-      );
 }
 
 class KarigarData {
@@ -120,12 +120,12 @@ class KarigarData {
   });
 
   factory KarigarData.fromJson(Map<String, dynamic> json) => KarigarData(
-        id: json['id'],
-        name: json['name'],
-        mobile: json['mobile'],
-        email: json['email'],
-        specialization: json['specialization'],
-        status: json['status'],
-        hasLoginAccess: json['hasLoginAccess'] ?? false,
-      );
+    id: json['id'],
+    name: json['name'],
+    mobile: json['mobile'],
+    email: json['email'],
+    specialization: json['specialization'],
+    status: json['status'],
+    hasLoginAccess: json['hasLoginAccess'] ?? false,
+  );
 }

@@ -18,9 +18,16 @@ public class GetUnreadCountQueryHandler : IRequestHandler<GetUnreadCountQuery, R
 
     public async Task<Result<int>> Handle(GetUnreadCountQuery request, CancellationToken cancellationToken)
     {
-        var count = await _context.Notifications
-            .CountAsync(n => n.UserId == _currentUser.UserId && !n.IsRead, cancellationToken);
+        var query = _context.Notifications
+            .Where(n => n.UserId == _currentUser.UserId && !n.IsRead);
 
+        if (request.Type.HasValue)
+            query = query.Where(n => n.Type == request.Type.Value);
+
+        if (request.OrderId.HasValue)
+            query = query.Where(n => n.OrderId == request.OrderId.Value);
+
+        var count = await query.CountAsync(cancellationToken);
         return Result<int>.Success(count);
     }
 }

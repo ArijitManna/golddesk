@@ -3,7 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/utils/role_navigation.dart';
 import '../../../data/models/auth_models.dart';
+import '../../../data/repositories/auth_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
 import '../../auth/bloc/auth_state.dart';
@@ -18,6 +21,8 @@ class SideDrawer extends StatelessWidget {
         builder: (context, state) {
           final user = state is AuthAuthenticated ? state.user : null;
           final isSuperAdmin = user?.role == 'SuperAdmin';
+          final isKarigar = isKarigarUser(user);
+          final isShop = user?.businessType == 'Shop';
 
           return Column(
             children: [
@@ -26,13 +31,13 @@ class SideDrawer extends StatelessWidget {
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.dashboard_outlined,
-                      label: 'Dashboard',
-                      onTap: () => _navigate(context, '/dashboard'),
-                    ),
                     if (isSuperAdmin) ...[
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.dashboard_outlined,
+                        label: 'Dashboard',
+                        onTap: () => _navigate(context, '/dashboard'),
+                      ),
                       _buildMenuItem(
                         context,
                         icon: Icons.approval_outlined,
@@ -40,7 +45,44 @@ class SideDrawer extends StatelessWidget {
                         onTap: () => _navigate(context, '/admin/approvals'),
                         color: AppColors.gold,
                       ),
+                    ] else if (isKarigar) ...[
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.dashboard_outlined,
+                        label: 'My Work',
+                        onTap: () => _navigate(context, '/karigar/dashboard'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.assignment_outlined,
+                        label: 'My Orders',
+                        onTap: () => _navigate(context, '/karigar/orders'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.hub_outlined,
+                        label: 'Connections',
+                        onTap: () => _navigate(context, '/connections'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.notifications_outlined,
+                        label: 'Notifications',
+                        onTap: () => _navigate(context, '/notifications'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                        onTap: () => _navigate(context, '/settings'),
+                      ),
                     ] else ...[
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.dashboard_outlined,
+                        label: 'Dashboard',
+                        onTap: () => _navigate(context, '/dashboard'),
+                      ),
                       _buildMenuItem(
                         context,
                         icon: Icons.add_box_outlined,
@@ -54,23 +96,30 @@ class SideDrawer extends StatelessWidget {
                         onTap: () => _navigate(context, '/orders'),
                       ),
                       const Divider(),
-                      _buildMenuItem(
-                        context,
-                        icon: Icons.engineering_outlined,
-                        label: 'Karigar Master',
-                        onTap: () => _navigate(context, '/karigars'),
-                      ),
+                      if (isShop)
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.engineering_outlined,
+                          label: 'Karigar Master',
+                          onTap: () => _navigate(context, '/karigars'),
+                        ),
                       _buildMenuItem(
                         context,
                         icon: Icons.people_outlined,
-                        label: 'Customer Master',
-                        onTap: () => _navigate(context, '/customers'),
+                        label: 'External Businesses',
+                        onTap: () => _navigate(context, '/external-businesses'),
                       ),
                       _buildMenuItem(
                         context,
                         icon: Icons.diamond_outlined,
                         label: 'Item Master',
                         onTap: () => _navigate(context, '/items'),
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.hub_outlined,
+                        label: 'Connections',
+                        onTap: () => _navigate(context, '/connections'),
                       ),
                       const Divider(),
                       _buildMenuItem(
@@ -101,8 +150,10 @@ class SideDrawer extends StatelessWidget {
                 icon: Icons.logout,
                 label: 'Logout',
                 onTap: () {
+                  final authBloc = context.read<AuthBloc>();
                   Navigator.pop(context);
-                  context.read<AuthBloc>().add(AuthLogoutRequested());
+                  authBloc.add(AuthLogoutRequested());
+                  context.go('/login');
                 },
                 color: AppColors.error,
               ),
@@ -144,7 +195,78 @@ class SideDrawer extends StatelessWidget {
               fontSize: 13,
             ),
           ),
+          if (user?.goldDeskId.isNotEmpty ?? false) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${user!.businessType} • ${user.goldDeskId}',
+              style: const TextStyle(
+                color: AppColors.gold,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          if (user != null && user.role != 'SuperAdmin') ...[
+            const SizedBox(height: 10),
+            FutureBuilder<List<UserInfo>>(
+              future: getIt<AuthRepository>().getProfiles(),
+              builder: (context, snapshot) {
+                final profiles = snapshot.data ?? const <UserInfo>[];
+                if (profiles.length < 2) return const SizedBox.shrink();
+
+                return OutlinedButton.icon(
+                  onPressed: () => _showProfilePicker(context, user, profiles),
+                  icon: const Icon(Icons.switch_account, size: 18),
+                  label: const Text('Switch business'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.gold,
+                    side: const BorderSide(color: AppColors.gold),
+                    minimumSize: const Size(0, 36),
+                  ),
+                );
+              },
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _showProfilePicker(
+      BuildContext context, UserInfo activeUser, List<UserInfo> profiles) {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text('Switch business', style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+            ...profiles.map((profile) => ListTile(
+                  leading: Icon(
+                    profile.tenantId == activeUser.tenantId
+                        ? Icons.check_circle
+                        : Icons.storefront_outlined,
+                    color: profile.tenantId == activeUser.tenantId
+                        ? AppColors.gold
+                        : AppColors.primaryDark,
+                  ),
+                  title: Text(profile.shopName),
+                  subtitle: Text('${profile.businessType} • ${profile.goldDeskId}'),
+                  onTap: profile.tenantId == activeUser.tenantId
+                      ? () => Navigator.pop(sheetContext)
+                      : () {
+                          Navigator.pop(sheetContext);
+                          Navigator.pop(context);
+                          context
+                              .read<AuthBloc>()
+                              .add(AuthProfileSwitchRequested(profile.tenantId));
+                          context.go(homePathForUser(profile));
+                        },
+                )),
+          ],
+        ),
       ),
     );
   }

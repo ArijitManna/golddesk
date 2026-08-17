@@ -21,9 +21,15 @@ class NotificationRepository {
     }
   }
 
-  Future<int> getUnreadCount() async {
+  Future<int> getUnreadCount({String? type, String? orderId}) async {
     try {
-      final response = await _apiClient.dio.get('/notifications/unread-count');
+      final response = await _apiClient.dio.get(
+        '/notifications/unread-count',
+        queryParameters: {
+          if (type != null) 'type': type,
+          if (orderId != null) 'orderId': orderId,
+        },
+      );
       return response.data['count'] ?? 0;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -41,6 +47,14 @@ class NotificationRepository {
   Future<void> markAllAsRead() async {
     try {
       await _apiClient.dio.post('/notifications/read-all');
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> markOrderCommentNotificationsRead(String orderId) async {
+    try {
+      await _apiClient.dio.post('/notifications/orders/$orderId/comments/read');
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
     }

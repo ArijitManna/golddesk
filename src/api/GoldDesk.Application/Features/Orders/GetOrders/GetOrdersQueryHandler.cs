@@ -10,19 +10,41 @@ namespace GoldDesk.Application.Features.Orders.GetOrders;
 public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<PagedResult<OrderDto>>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetOrdersQueryHandler(IApplicationDbContext context)
+    public GetOrdersQueryHandler(IApplicationDbContext context, ICurrentUserService currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<PagedResult<OrderDto>>> Handle(GetOrdersQuery request, CancellationToken cancellationToken)
     {
+        if (!_currentUser.TenantId.HasValue)
+            return Result<PagedResult<OrderDto>>.Unauthorized();
+
+        var tenantId = _currentUser.TenantId.Value;
+        var viewer = await _context.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+        if (viewer == null)
+            return Result<PagedResult<OrderDto>>.NotFound("Business profile not found");
+
+        var isShowroomViewer = viewer.BusinessType == BusinessType.Showroom;
+
+        // Ignore related tenant filters so connected business orders remain visible.
         var query = _context.Orders
-            .Include(o => o.Customer)
-            .Include(o => o.Assignments.Where(a => a.IsActive))
+            .IgnoreQueryFilters()
+            .Include(o => o.CreatedByBusiness)
+            .Include(o => o.OrderFromBusiness)
+            .Include(o => o.OrderFromExternalBusiness)
+            .Include(o => o.Tenant)
+            .Include(o => o.Items)
+            .Include(o => o.Assignments)
                 .ThenInclude(a => a.Karigar)
-            .AsQueryable();
+            .Where(o => o.TenantId == tenantId ||
+                        o.CreatedByBusinessId == tenantId ||
+                        o.OrderFromBusinessId == tenantId);
 
         // Filter by status
         if (!string.IsNullOrWhiteSpace(request.Status) &&
@@ -56,13 +78,14 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
             };
         }
 
-        // Search by order number or customer name
+        // Search by order number or order-from business.
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.ToLower();
             query = query.Where(o =>
                 o.OrderNo.ToLower().Contains(search) ||
-                o.Customer.Name.ToLower().Contains(search));
+                (o.OrderFromBusiness != null && o.OrderFromBusiness.ShopName.ToLower().Contains(search)) ||
+                (o.OrderFromExternalBusiness != null && o.OrderFromExternalBusiness.Name.ToLower().Contains(search)));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -75,19 +98,54 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
             {
                 Id = o.Id,
                 OrderNo = o.OrderNo,
-                CustomerName = o.Customer.Name,
-                CustomerId = o.CustomerId,
+                OrderFromBusinessId = o.OrderFromBusinessId,
+                OrderFromExternalBusinessId = o.OrderFromExternalBusinessId,
+                OrderFromBusinessName = o.OrderFromBusiness != null
+                    ? o.OrderFromBusiness.ShopName
+                    : o.OrderFromExternalBusiness != null
+                        ? o.OrderFromExternalBusiness.Name
+                        : string.Empty,
                 OrderDate = o.OrderDate.ToString("yyyy-MM-dd"),
                 DeliveryDate = o.DeliveryDate != null ? o.DeliveryDate.Value.ToString("yyyy-MM-dd") : null,
                 Status = o.Status.ToString(),
+                AcceptanceStatus = o.AcceptanceStatus.ToString(),
+                AcceptanceNote = o.AcceptanceNote,
                 TotalWeight = o.TotalWeight,
                 MakingCharges = o.MakingCharges,
                 AdvancePaid = o.AdvancePaid,
                 EstimatedAmount = o.EstimatedAmount,
                 Notes = o.Notes,
-                KarigarName = o.Assignments.Where(a => a.IsActive).Select(a => a.Karigar.Name).FirstOrDefault(),
-                DueDate = o.Assignments.Where(a => a.IsActive).Select(a => a.DueDate.ToString("yyyy-MM-dd")).FirstOrDefault(),
+                // Showrooms only participate through the fulfilling Shop.
+                // Karigar identities and work-assignment details are Shop-private.
+                KarigarName = isShowroomViewer
+                    ? null
+                    : o.Assignments
+                        .OrderByDescending(a => a.IsActive)
+                        .ThenByDescending(a => a.CreatedAt)
+                        .Select(a => a.Karigar.Name)
+                        .FirstOrDefault(),
+                AssignmentStatus = isShowroomViewer
+                    ? null
+                    : o.Assignments
+                        .Where(a => a.IsActive)
+                        .Select(a => a.Status.ToString())
+                        .FirstOrDefault(),
+                DueDate = isShowroomViewer
+                    ? null
+                    : o.Assignments
+                        .Where(a => a.IsActive)
+                        .Select(a => a.DueDate.ToString("yyyy-MM-dd"))
+                        .FirstOrDefault()
+                        ?? o.Assignments
+                            .OrderByDescending(a => a.CreatedAt)
+                            .Select(a => a.DueDate.ToString("yyyy-MM-dd"))
+                            .FirstOrDefault(),
                 FirstItemImage = o.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+                Source = o.Source.ToString(),
+                CreatedByBusinessId = o.CreatedByBusinessId,
+                CreatedByBusinessName = o.CreatedByBusiness.ShopName,
+                CreatedForBusinessId = o.TenantId,
+                CreatedForBusinessName = o.Tenant.ShopName,
                 CreatedAt = o.CreatedAt
             })
             .ToListAsync(cancellationToken);

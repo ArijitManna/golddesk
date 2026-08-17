@@ -38,7 +38,14 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
         if (request.CurrentPassword == request.NewPassword)
             return Result<bool>.Failure("New password must be different from current password");
 
-        user.PasswordHash = _authProvider.HashPassword(request.NewPassword);
+        var passwordHash = _authProvider.HashPassword(request.NewPassword);
+        var linkedProfiles = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.Email == user.Email)
+            .ToListAsync(cancellationToken);
+        foreach (var profile in linkedProfiles)
+            profile.PasswordHash = passwordHash;
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<bool>.Success(true);

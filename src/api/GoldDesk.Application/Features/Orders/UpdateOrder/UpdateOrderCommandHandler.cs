@@ -11,30 +11,32 @@ namespace GoldDesk.Application.Features.Orders.UpdateOrder;
 public class UpdateOrderCommandHandler : IRequestHandler<UpdateOrderCommand, Result<OrderDto>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
 
-    public UpdateOrderCommandHandler(IApplicationDbContext context)
+    public UpdateOrderCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<OrderDto>> Handle(UpdateOrderCommand request, CancellationToken cancellationToken)
     {
         var order = await _context.Orders
-            .Include(o => o.Customer)
+            .Include(o => o.OrderFromBusiness)
+            .Include(o => o.OrderFromExternalBusiness)
+            .Include(o => o.CreatedByBusiness)
+            .Include(o => o.Tenant)
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == request.OrderId, cancellationToken);
 
         if (order == null)
             return Result<OrderDto>.NotFound("Order not found");
 
+        if (_currentUser.TenantId != order.TenantId)
+            return Result<OrderDto>.Forbidden("Only the fulfilling Shop can edit this order");
+
         if (order.Status != OrderStatus.Pending)
             return Result<OrderDto>.Failure("Only unassigned (pending) orders can be edited");
-
-        var customer = await _context.Customers
-            .FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
-
-        if (customer == null)
-            return Result<OrderDto>.NotFound("Customer not found");
 
         var orderDate = string.IsNullOrEmpty(request.OrderDate)
             ? order.OrderDate
@@ -44,7 +46,6 @@ public class UpdateOrderCommandHandler : IRequestHandler<UpdateOrderCommand, Res
             ? null
             : DateOnly.Parse(request.DeliveryDate);
 
-        order.CustomerId = request.CustomerId;
         order.OrderDate = orderDate;
         order.DeliveryDate = deliveryDate;
         order.Notes = request.Notes;
@@ -116,16 +117,26 @@ public class UpdateOrderCommandHandler : IRequestHandler<UpdateOrderCommand, Res
         {
             Id = order.Id,
             OrderNo = order.OrderNo,
-            CustomerName = customer.Name,
-            CustomerId = order.CustomerId,
+            OrderFromBusinessId = order.OrderFromBusinessId,
+            OrderFromExternalBusinessId = order.OrderFromExternalBusinessId,
+            OrderFromBusinessName = order.OrderFromBusiness?.ShopName ??
+                                    order.OrderFromExternalBusiness?.Name ??
+                                    string.Empty,
             OrderDate = order.OrderDate.ToString("yyyy-MM-dd"),
             DeliveryDate = order.DeliveryDate?.ToString("yyyy-MM-dd"),
             Status = order.Status.ToString(),
+            AcceptanceStatus = order.AcceptanceStatus.ToString(),
+            AcceptanceNote = order.AcceptanceNote,
             TotalWeight = order.TotalWeight,
             MakingCharges = order.MakingCharges,
             AdvancePaid = order.AdvancePaid,
             EstimatedAmount = order.EstimatedAmount,
             Notes = order.Notes,
+            Source = order.Source.ToString(),
+            CreatedByBusinessId = order.CreatedByBusinessId,
+            CreatedByBusinessName = order.CreatedByBusiness.ShopName,
+            CreatedForBusinessId = order.TenantId,
+            CreatedForBusinessName = order.Tenant.ShopName,
             CreatedAt = order.CreatedAt
         });
     }

@@ -10,6 +10,8 @@ public class TenantProfileDto
     public string? Address { get; init; }
     public string? GstNumber { get; init; }
     public string? LogoPath { get; init; }
+    public string BusinessType { get; init; } = "Shop";
+    public string GoldDeskId { get; init; } = string.Empty;
     public bool NotifyDueSoon3Days { get; init; }
     public bool NotifyDueSoon2Days { get; init; }
     public bool NotifyDueSoon1Day { get; init; }

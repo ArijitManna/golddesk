@@ -6,8 +6,9 @@ public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
 {
     public CreateOrderCommandValidator()
     {
-        RuleFor(x => x.CustomerId)
-            .NotEmpty().WithMessage("Customer is required");
+        RuleFor(x => x)
+            .Must(x => x.OrderFromBusinessId.HasValue != x.OrderFromExternalBusinessId.HasValue)
+            .WithMessage("Specify exactly one Order From business.");
 
         RuleFor(x => x.Items)
             .NotEmpty().WithMessage("At least one item is required");

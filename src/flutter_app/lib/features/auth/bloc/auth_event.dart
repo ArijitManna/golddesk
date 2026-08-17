@@ -27,6 +27,7 @@ class AuthRegisterRequested extends AuthEvent {
   final String email;
   final String password;
   final String? address;
+  final String businessType;
 
   const AuthRegisterRequested({
     required this.shopName,
@@ -35,13 +36,23 @@ class AuthRegisterRequested extends AuthEvent {
     required this.email,
     required this.password,
     this.address,
+    required this.businessType,
   });
 
   @override
-  List<Object?> get props => [shopName, ownerName, mobile, email, password, address];
+  List<Object?> get props => [shopName, ownerName, mobile, email, password, address, businessType];
 }
 
 class AuthLogoutRequested extends AuthEvent {}
+
+class AuthProfileSwitchRequested extends AuthEvent {
+  final String tenantId;
+
+  const AuthProfileSwitchRequested(this.tenantId);
+
+  @override
+  List<Object?> get props => [tenantId];
+}
 
 class AuthUserUpdated extends AuthEvent {
   final UserInfo user;

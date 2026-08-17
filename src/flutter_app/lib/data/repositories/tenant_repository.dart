@@ -81,6 +81,7 @@ class TenantProfile {
   final String? address;
   final String? gstNumber;
   final String? logoPath;
+  final String businessType;
   final bool notifyDueSoon3Days;
   final bool notifyDueSoon2Days;
   final bool notifyDueSoon1Day;
@@ -96,6 +97,7 @@ class TenantProfile {
     this.address,
     this.gstNumber,
     this.logoPath,
+    required this.businessType,
     required this.notifyDueSoon3Days,
     required this.notifyDueSoon2Days,
     required this.notifyDueSoon1Day,
@@ -112,6 +114,7 @@ class TenantProfile {
         address: json['address'],
         gstNumber: json['gstNumber'],
         logoPath: json['logoPath'],
+        businessType: json['businessType'] ?? 'Shop',
         notifyDueSoon3Days: json['notifyDueSoon3Days'] ?? true,
         notifyDueSoon2Days: json['notifyDueSoon2Days'] ?? true,
         notifyDueSoon1Day: json['notifyDueSoon1Day'] ?? true,

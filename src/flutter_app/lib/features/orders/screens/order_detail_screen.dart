@@ -3,8 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/order_status_labels.dart';
+import '../../../core/widgets/message_icon_button.dart';
 import '../../../data/models/order_models.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 import '../bloc/order_detail_cubit.dart';
+import 'order_messages_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final String orderId;
@@ -25,7 +30,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<OrderDetailCubit, OrderDetailState>(
       builder: (context, state) {
-        final canEdit = state is OrderDetailLoaded && state.order.status == 'Pending';
+        final canEdit =
+            state is OrderDetailLoaded && state.order.status == 'Pending';
         return Scaffold(
           appBar: AppBar(
             backgroundColor: AppColors.primaryDark,
@@ -43,14 +49,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               IconButton(
                 icon: const Icon(Icons.receipt_long_outlined),
-                onPressed: () => context.go('/orders/${widget.orderId}/receipt'),
+                onPressed: () =>
+                    context.go('/orders/${widget.orderId}/receipt'),
                 tooltip: 'View Receipt',
               ),
+              if (state is OrderDetailLoaded)
+                MessageIconButton(
+                  orderId: widget.orderId,
+                  onPressed: () {
+                    final auth = context.read<AuthBloc>().state;
+                    final businessType =
+                        auth is AuthAuthenticated ? auth.user.businessType : '';
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => OrderMessagesScreen(
+                          order: state.order,
+                          businessType: businessType,
+                        ),
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
           body: () {
             if (state is OrderDetailLoading) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.gold));
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.gold),
+              );
             }
             if (state is OrderDetailError) {
               return Center(child: Text(state.message));
@@ -77,6 +103,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           // Info card
           _buildInfoCard(order),
           const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/orders/${order.id}/timeline'),
+            icon: const Icon(Icons.history_outlined),
+            label: const Text('View order progress'),
+          ),
+          const SizedBox(height: 16),
+          if (_canRespond(order)) ...[
+            _buildResponseActions(order),
+            const SizedBox(height: 16),
+          ],
+          if (_isShop() && order.status == 'Ready') ...[
+            _buildMarkDeliveredButton(order),
+            const SizedBox(height: 16),
+          ],
           // Items
           _buildSectionTitle('Items'),
           const SizedBox(height: 8),
@@ -85,17 +125,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           // Summary
           _buildSummaryCard(order),
           const SizedBox(height: 16),
-          // Assignment
-          _buildSectionTitle('Karigar Assignment'),
-          const SizedBox(height: 8),
-          if (order.assignments.isNotEmpty)
-            ...order.assignments.map((a) => _buildAssignmentCard(a)),
-          if (order.status == 'Assigned' || order.status == 'InProgress' || order.status == 'Pending')
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: _buildAssignButton(order, label: order.assignments.isEmpty ? 'Send to Karigar' : 'Reassign'),
-            ),
-          if (order.status == 'Pending') ...[
+          // Assignment — Shop-only (Showroom orders go to a Shop first)
+          if (_isShop()) ...[
+            _buildSectionTitle('Karigar Assignment'),
+            const SizedBox(height: 8),
+            if (order.assignments.isNotEmpty)
+              ...order.assignments.map((a) => _buildAssignmentCard(a)),
+            if (_canAssignKarigar(order))
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _buildAssignButton(
+                  order,
+                  label: order.assignments.isEmpty
+                      ? 'Send to Karigar'
+                      : 'Reassign',
+                ),
+              ),
+          ],
+          if (_isShop() && order.status == 'Pending') ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -113,6 +160,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             const SizedBox(height: 12),
             _buildCancelButton(order),
           ],
+          if (_isShowroom() && order.status == 'Pending') ...[
+            const SizedBox(height: 12),
+            _buildCancelButton(order),
+          ],
         ],
       ),
     );
@@ -125,13 +176,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(order.orderNo, style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                order.orderNo,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 4),
-              Text(order.customerName, style: const TextStyle(color: AppColors.textSecondary)),
+              Text(
+                'From: ${order.orderFromBusinessName}',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             ],
           ),
         ),
-        _buildStatusChip(order.status),
+        _buildStatusChip(order.status, label: _displayOrderStatus(order)),
       ],
     );
   }
@@ -149,15 +206,123 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           _infoRow('Order Date', order.orderDate),
           if (order.deliveryDate != null)
             _infoRow('Delivery Date', order.deliveryDate!),
-          if (order.dueDate != null)
-            _infoRow('Due Date', order.dueDate!),
-          if (order.karigarName != null)
+          _infoRow('Order From', order.orderFromBusinessName),
+          _infoRow('Order To', order.createdForBusinessName),
+          _infoRow(
+            'Acceptance',
+            _displayAcceptanceStatus(order.acceptanceStatus),
+          ),
+          if (order.dueDate != null) _infoRow('Due Date', order.dueDate!),
+          if (_isShop() && order.karigarName != null)
             _infoRow('Karigar', order.karigarName!),
           if (order.notes != null && order.notes!.isNotEmpty)
             _infoRow('Notes', order.notes!),
         ],
       ),
     );
+  }
+
+  bool _canRespond(OrderDetail order) {
+    return _isShop() && order.acceptanceStatus == 'Pending';
+  }
+
+  bool _isShop() {
+    final state = context.read<AuthBloc>().state;
+    return state is AuthAuthenticated && state.user.businessType == 'Shop';
+  }
+
+  bool _isShowroom() {
+    final state = context.read<AuthBloc>().state;
+    return state is AuthAuthenticated && state.user.businessType == 'Showroom';
+  }
+
+  bool _canAssignKarigar(OrderDetail order) {
+    if (!_isShop()) return false;
+    if (order.acceptanceStatus != 'Accepted') return false;
+    return order.status == 'Assigned' ||
+        order.status == 'InProgress' ||
+        order.status == 'Pending';
+  }
+
+  Widget _buildResponseActions(OrderDetail order) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => context.read<OrderDetailCubit>().respondToOrder(
+              order.id,
+              accept: false,
+            ),
+            style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('REJECT'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => context.read<OrderDetailCubit>().respondToOrder(
+              order.id,
+              accept: true,
+            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold),
+            child: const Text('ACCEPT ORDER'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMarkDeliveredButton(OrderDetail order) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => _confirmMarkDelivered(order),
+        icon: const Icon(Icons.local_shipping_outlined, size: 18),
+        label: const Text('MARK DELIVERED'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.success,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmMarkDelivered(OrderDetail order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Mark order delivered?'),
+        content: Text(
+          'Mark ${order.orderNo} as delivered to complete this work.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('Mark Delivered'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final updated = await context.read<OrderDetailCubit>().updateOrderStatus(
+      order.id,
+      status: 'Delivered',
+    );
+    if (updated && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order marked as delivered'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 
   Widget _infoRow(String label, String value) {
@@ -168,9 +333,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         children: [
           SizedBox(
             width: 110,
-            child: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ),
         ],
       ),
     );
@@ -185,7 +361,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             // Item image - tap to view full size
             GestureDetector(
-              onTap: item.imagePath != null ? () => _showFullImage(item.imagePath!, item.itemName) : null,
+              onTap: item.imagePath != null
+                  ? () => _showFullImage(item.imagePath!, item.itemName)
+                  : null,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: item.imagePath != null
@@ -204,15 +382,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  Text(
+                    item.itemName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     [
                       '${item.weight.toStringAsFixed(3)} gm',
-                      if (item.size != null && item.size!.isNotEmpty) 'Size ${item.size}',
+                      if (item.size != null && item.size!.isNotEmpty)
+                        'Size ${item.size}',
                       '${item.quantity} pc',
                     ].join(' | '),
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -220,7 +408,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             if (item.amount > 0)
               Text(
                 '\u20B9${item.amount.toStringAsFixed(0)}',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
               ),
           ],
         ),
@@ -275,14 +466,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               right: 0,
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryDark.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     itemName,
-                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -302,7 +500,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.divider),
       ),
-      child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 22),
+      child: const Icon(
+        Icons.diamond_outlined,
+        color: AppColors.gold,
+        size: 22,
+      ),
     );
   }
 
@@ -316,14 +518,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ),
       child: Column(
         children: [
-          _summaryRow('Total Weight', '${order.totalWeight.toStringAsFixed(3)} gm'),
+          _summaryRow(
+            'Total Weight',
+            '${order.totalWeight.toStringAsFixed(3)} gm',
+          ),
           if (order.makingCharges > 0)
-            _summaryRow('Making Charges', '\u20B9${order.makingCharges.toStringAsFixed(0)}'),
+            _summaryRow(
+              'Making Charges',
+              '\u20B9${order.makingCharges.toStringAsFixed(0)}',
+            ),
           if (order.advancePaid > 0)
-            _summaryRow('Advance Paid', '\u20B9${order.advancePaid.toStringAsFixed(0)}'),
+            _summaryRow(
+              'Advance Paid',
+              '\u20B9${order.advancePaid.toStringAsFixed(0)}',
+            ),
           if (order.estimatedAmount > 0) ...[
             const Divider(),
-            _summaryRow('Estimated Amount', '\u20B9${order.estimatedAmount.toStringAsFixed(0)}', bold: true),
+            _summaryRow(
+              'Estimated Amount',
+              '\u20B9${order.estimatedAmount.toStringAsFixed(0)}',
+              bold: true,
+            ),
           ],
         ],
       ),
@@ -336,8 +551,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 13, fontWeight: bold ? FontWeight.w600 : FontWeight.normal)),
-          Text(value, style: TextStyle(fontSize: 13, fontWeight: bold ? FontWeight.w700 : FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -353,29 +580,54 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: assignment.isActive ? AppColors.gold.withValues(alpha: 0.15) : AppColors.divider,
-              child: Icon(Icons.engineering, size: 18,
-                  color: assignment.isActive ? AppColors.gold : AppColors.textLight),
+              backgroundColor: assignment.isActive
+                  ? AppColors.gold.withValues(alpha: 0.15)
+                  : AppColors.divider,
+              child: Icon(
+                Icons.engineering,
+                size: 18,
+                color: assignment.isActive
+                    ? AppColors.gold
+                    : AppColors.textLight,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(assignment.karigarName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  Text('Due: ${assignment.dueDate}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  Text(
+                    assignment.karigarName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    'Due: ${assignment.dueDate}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
-            _buildStatusChip(assignment.isActive ? 'Active' : assignment.status, small: true),
+            _buildStatusChip(
+              assignment.isActive ? 'Active' : assignment.status,
+              label: _displayAssignmentStatus(assignment),
+              small: true,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAssignButton(OrderDetail order, {String label = 'Send to Karigar'}) {
+  Widget _buildAssignButton(
+    OrderDetail order, {
+    String label = 'Send to Karigar',
+  }) {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
@@ -431,7 +683,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep Order')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Order'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
@@ -444,13 +699,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (confirmed != true || !mounted) return;
 
     final ok = await context.read<OrderDetailCubit>().cancelOrder(
-          order.id,
-          reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
-        );
+      order.id,
+      reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
+    );
     if (!mounted) return;
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order cancelled'), backgroundColor: AppColors.success),
+        const SnackBar(
+          content: Text('Order cancelled'),
+          backgroundColor: AppColors.success,
+        ),
       );
     }
   }
@@ -459,35 +717,69 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Text(title, style: Theme.of(context).textTheme.titleSmall);
   }
 
-  Widget _buildStatusChip(String status, {bool small = false}) {
+  Widget _buildStatusChip(String status, {String? label, bool small = false}) {
     final color = _getStatusColor(status);
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: small ? 8 : 12, vertical: small ? 3 : 5),
+      padding: EdgeInsets.symmetric(
+        horizontal: small ? 8 : 12,
+        vertical: small ? 3 : 5,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status == 'Assigned'
-            ? 'Send to Karigar'
-            : status == 'InProgress'
-                ? 'In Progress'
-                : status,
-        style: TextStyle(color: color, fontSize: small ? 10 : 12, fontWeight: FontWeight.w600),
+        label ?? status,
+        style: TextStyle(
+          color: color,
+          fontSize: small ? 10 : 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'pending': return AppColors.statusPending;
-      case 'assigned': return AppColors.statusAssigned;
-      case 'inprogress': return AppColors.statusInProgress;
-      case 'ready': return AppColors.statusReady;
-      case 'cancelled': return AppColors.statusCancelled;
-      case 'active': return AppColors.success;
-      case 'reassigned': return AppColors.textSecondary;
-      default: return AppColors.textSecondary;
+      case 'pending':
+        return AppColors.statusPending;
+      case 'assigned':
+        return AppColors.statusAssigned;
+      case 'inprogress':
+        return AppColors.statusInProgress;
+      case 'ready':
+        return AppColors.statusReady;
+      case 'cancelled':
+        return AppColors.statusCancelled;
+      case 'active':
+        return AppColors.success;
+      case 'reassigned':
+        return AppColors.textSecondary;
+      default:
+        return AppColors.textSecondary;
     }
   }
+
+  String _displayOrderStatus(OrderDetail order) {
+    final auth = context.read<AuthBloc>().state;
+    final businessType = auth is AuthAuthenticated
+        ? auth.user.businessType
+        : 'Shop';
+
+    return displayOrderStatus(
+      businessType: businessType,
+      status: order.status,
+      acceptanceStatus: order.acceptanceStatus,
+      assignmentStatus: order.assignmentStatus,
+    );
+  }
+
+  String _displayAcceptanceStatus(String status) =>
+      displayAcceptanceStatus(status);
+
+  String _displayAssignmentStatus(AssignmentDetail assignment) =>
+      displayAssignmentStatus(
+        status: assignment.status,
+        isActive: assignment.isActive,
+      );
 }

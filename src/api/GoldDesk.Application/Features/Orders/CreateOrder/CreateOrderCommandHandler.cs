@@ -21,15 +21,73 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Res
 
     public async Task<Result<OrderDto>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        // Verify customer exists
-        var customer = await _context.Customers
-            .FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
+        if (!_currentUser.TenantId.HasValue)
+            return Result<OrderDto>.Unauthorized();
 
-        if (customer == null)
-            return Result<OrderDto>.NotFound("Customer not found");
+        var creatorBusinessId = _currentUser.TenantId.Value;
+        var creator = await _context.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == creatorBusinessId, cancellationToken);
 
-        // Generate order number
-        var orderNo = await GenerateOrderNumber(cancellationToken);
+        if (creator == null)
+            return Result<OrderDto>.NotFound("Business profile not found");
+
+        if (request.OrderFromBusinessId.HasValue == request.OrderFromExternalBusinessId.HasValue)
+            return Result<OrderDto>.Failure("Specify exactly one Order From business.");
+
+        var orderToBusinessId = request.OrderToBusinessId ?? creatorBusinessId;
+        var orderTo = await _context.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == orderToBusinessId, cancellationToken);
+
+        if (orderTo?.BusinessType != BusinessType.Shop)
+            return Result<OrderDto>.Failure("Order To must be an active Shop.");
+
+        Tenant? orderFrom = null;
+        ExternalBusiness? orderFromExternal = null;
+        var isIncomingConnectedOrder = false;
+
+        if (request.OrderFromBusinessId.HasValue)
+        {
+            orderFrom = await _context.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == request.OrderFromBusinessId.Value, cancellationToken);
+            if (orderFrom == null)
+                return Result<OrderDto>.NotFound("Order From business not found.");
+
+            if (orderFrom.Id != orderToBusinessId)
+            {
+                var connected = await _context.BusinessConnections.AnyAsync(c =>
+                    c.ConnectionType == ConnectionType.ShowroomShop &&
+                    c.Status == ConnectionStatus.Accepted &&
+                    ((c.FromBusinessId == orderFrom.Id && c.ToBusinessId == orderToBusinessId) ||
+                     (c.FromBusinessId == orderToBusinessId && c.ToBusinessId == orderFrom.Id)),
+                    cancellationToken);
+
+                if (!connected)
+                    return Result<OrderDto>.Forbidden("Order From must be connected to the receiving Shop.");
+            }
+
+            isIncomingConnectedOrder = creatorBusinessId == orderFrom.Id && orderFrom.Id != orderToBusinessId;
+            if (creator.BusinessType == BusinessType.Showroom &&
+                (orderFrom.Id != creatorBusinessId || orderToBusinessId == creatorBusinessId))
+            {
+                return Result<OrderDto>.Forbidden("A Showroom can create orders only from itself to a connected Shop.");
+            }
+        }
+        else
+        {
+            if (creator.BusinessType != BusinessType.Shop || orderToBusinessId != creatorBusinessId)
+                return Result<OrderDto>.Forbidden("Only the receiving Shop can enter an external business order.");
+
+            orderFromExternal = await _context.ExternalBusinesses
+                .FirstOrDefaultAsync(b => b.Id == request.OrderFromExternalBusinessId.Value, cancellationToken);
+            if (orderFromExternal == null)
+                return Result<OrderDto>.NotFound("External business not found.");
+        }
+
+        // Order numbers are scoped to the receiving/fulfilling Shop.
+        var orderNo = await GenerateOrderNumber(orderToBusinessId, cancellationToken);
 
         // Parse dates
         var orderDate = string.IsNullOrEmpty(request.OrderDate)
@@ -44,7 +102,16 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Res
         var order = new Order
         {
             OrderNo = orderNo,
-            CustomerId = request.CustomerId,
+            TenantId = orderToBusinessId,
+            CreatedByBusinessId = creatorBusinessId,
+            OrderFromBusinessId = orderFrom?.Id,
+            OrderFromExternalBusinessId = orderFromExternal?.Id,
+            Source = orderFromExternal != null ? OrderSource.External :
+                orderFrom!.BusinessType == BusinessType.Showroom ? OrderSource.Showroom : OrderSource.Direct,
+            AcceptanceStatus = isIncomingConnectedOrder
+                ? OrderAcceptanceStatus.Pending
+                : OrderAcceptanceStatus.Accepted,
+            AcceptedAt = isIncomingConnectedOrder ? null : DateTime.UtcNow,
             OrderDate = orderDate,
             DeliveryDate = deliveryDate,
             Status = OrderStatus.Pending,
@@ -95,6 +162,14 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Res
             Remarks = "Order created"
         };
         _context.OrderStatusHistory.Add(history);
+        _context.OrderEvents.Add(new OrderEvent
+        {
+            OrderId = order.Id,
+            BusinessId = creatorBusinessId,
+            UserId = _currentUser.UserId,
+            EventType = "OrderCreated",
+            Description = $"Order created from {orderFrom?.ShopName ?? orderFromExternal?.Name} to {orderTo.ShopName}"
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -102,25 +177,33 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Res
         {
             Id = order.Id,
             OrderNo = order.OrderNo,
-            CustomerName = customer.Name,
-            CustomerId = order.CustomerId,
+            OrderFromBusinessName = orderFrom?.ShopName ?? orderFromExternal?.Name ?? string.Empty,
+            OrderFromBusinessId = order.OrderFromBusinessId,
+            OrderFromExternalBusinessId = order.OrderFromExternalBusinessId,
             OrderDate = order.OrderDate.ToString("yyyy-MM-dd"),
             DeliveryDate = order.DeliveryDate?.ToString("yyyy-MM-dd"),
             Status = order.Status.ToString(),
+            AcceptanceStatus = order.AcceptanceStatus.ToString(),
+            AcceptanceNote = order.AcceptanceNote,
             TotalWeight = order.TotalWeight,
             MakingCharges = order.MakingCharges,
             AdvancePaid = order.AdvancePaid,
             EstimatedAmount = order.EstimatedAmount,
             Notes = order.Notes,
+            Source = order.Source.ToString(),
+            CreatedByBusinessId = order.CreatedByBusinessId,
+            CreatedByBusinessName = creator.ShopName,
+            CreatedForBusinessId = order.TenantId,
+            CreatedForBusinessName = orderTo.ShopName,
             CreatedAt = order.CreatedAt
         });
     }
 
-    private async Task<string> GenerateOrderNumber(CancellationToken cancellationToken)
+    private async Task<string> GenerateOrderNumber(Guid businessId, CancellationToken cancellationToken)
     {
-        var tenantId = _currentUser.TenantId;
-
         var lastOrder = await _context.Orders
+            .IgnoreQueryFilters()
+            .Where(o => o.TenantId == businessId)
             .OrderByDescending(o => o.OrderNo)
             .Select(o => o.OrderNo)
             .FirstOrDefaultAsync(cancellationToken);

@@ -1,4 +1,5 @@
 using GoldDesk.Application.Common.Models;
+using GoldDesk.Domain.Enums;
 using MediatR;
 
 namespace GoldDesk.Application.Features.Auth.Register;
@@ -11,11 +12,13 @@ public record RegisterCommand : IRequest<Result<RegisterResponse>>
     public string Email { get; init; } = string.Empty;
     public string Password { get; init; } = string.Empty;
     public string? Address { get; init; }
+    public BusinessType BusinessType { get; init; } = BusinessType.Shop;
 }
 
 public record RegisterResponse
 {
     public Guid TenantId { get; init; }
     public Guid UserId { get; init; }
+    public string GoldDeskId { get; init; } = string.Empty;
     public string Message { get; init; } = string.Empty;
 }

@@ -19,6 +19,7 @@ class RegisterRequest {
   final String email;
   final String password;
   final String? address;
+  final String businessType;
 
   RegisterRequest({
     required this.shopName,
@@ -27,6 +28,7 @@ class RegisterRequest {
     required this.email,
     required this.password,
     this.address,
+    required this.businessType,
   });
 
   Map<String, dynamic> toJson() => {
@@ -36,6 +38,7 @@ class RegisterRequest {
         'email': email,
         'password': password,
         if (address != null) 'address': address,
+        'businessType': businessType,
       };
 }
 
@@ -67,6 +70,8 @@ class UserInfo {
   final String fullName;
   final String role;
   final String shopName;
+  final String businessType;
+  final String goldDeskId;
 
   UserInfo({
     required this.userId,
@@ -75,6 +80,8 @@ class UserInfo {
     required this.fullName,
     required this.role,
     required this.shopName,
+    required this.businessType,
+    required this.goldDeskId,
   });
 
   factory UserInfo.fromJson(Map<String, dynamic> json) => UserInfo(
@@ -84,6 +91,8 @@ class UserInfo {
         fullName: json['fullName'],
         role: json['role'],
         shopName: json['shopName'],
+        businessType: json['businessType'] ?? 'Shop',
+        goldDeskId: json['goldDeskId'] ?? '',
       );
 
   Map<String, dynamic> toJson() => {
@@ -93,6 +102,8 @@ class UserInfo {
         'fullName': fullName,
         'role': role,
         'shopName': shopName,
+        'businessType': businessType,
+        'goldDeskId': goldDeskId,
       };
 
   UserInfo copyWith({
@@ -102,6 +113,8 @@ class UserInfo {
     String? fullName,
     String? role,
     String? shopName,
+    String? businessType,
+    String? goldDeskId,
   }) {
     return UserInfo(
       userId: userId ?? this.userId,
@@ -110,6 +123,8 @@ class UserInfo {
       fullName: fullName ?? this.fullName,
       role: role ?? this.role,
       shopName: shopName ?? this.shopName,
+      businessType: businessType ?? this.businessType,
+      goldDeskId: goldDeskId ?? this.goldDeskId,
     );
   }
 }
@@ -117,11 +132,13 @@ class UserInfo {
 class RegisterResponse {
   final String tenantId;
   final String userId;
+  final String goldDeskId;
   final String message;
 
   RegisterResponse({
     required this.tenantId,
     required this.userId,
+    required this.goldDeskId,
     required this.message,
   });
 
@@ -129,6 +146,7 @@ class RegisterResponse {
       RegisterResponse(
         tenantId: json['tenantId'],
         userId: json['userId'],
+        goldDeskId: json['goldDeskId'] ?? '',
         message: json['message'],
       );
 }

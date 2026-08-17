@@ -10,6 +10,8 @@ public record CreateCustomerCommand : IRequest<Result<CustomerDto>>
     public string? Email { get; init; }
     public string? Address { get; init; }
     public string? Notes { get; init; }
+    /// <summary>When set by a Showroom, creates the customer under a connected Shop.</summary>
+    public Guid? BusinessId { get; init; }
 }
 
 public record CustomerDto

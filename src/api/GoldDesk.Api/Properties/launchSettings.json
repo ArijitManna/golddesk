@@ -7,7 +7,8 @@
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5282",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Firebase__ServiceAccountPath": "C:\\EXT\\GoldDesk\\secrets\\firebase-adminsdk.json"
       }
     },
     "https": {
@@ -16,7 +17,8 @@
       "launchBrowser": false,
       "applicationUrl": "https://localhost:7045;http://localhost:5282",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Firebase__ServiceAccountPath": "C:\\EXT\\GoldDesk\\secrets\\firebase-adminsdk.json"
       }
     }
   }

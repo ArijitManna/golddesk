@@ -1,6 +1,7 @@
 using GoldDesk.Application.Common.Interfaces;
 using GoldDesk.Application.Common.Models;
 using GoldDesk.Application.Features.Orders.Dtos;
+using GoldDesk.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,19 +10,40 @@ namespace GoldDesk.Application.Features.Assignments.GetAssignmentHistory;
 public class GetAssignmentHistoryQueryHandler : IRequestHandler<GetAssignmentHistoryQuery, Result<List<AssignmentDto>>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetAssignmentHistoryQueryHandler(IApplicationDbContext context)
+    public GetAssignmentHistoryQueryHandler(IApplicationDbContext context, ICurrentUserService currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<List<AssignmentDto>>> Handle(GetAssignmentHistoryQuery request, CancellationToken cancellationToken)
     {
-        var orderExists = await _context.Orders
-            .AnyAsync(o => o.Id == request.OrderId, cancellationToken);
+        if (!_currentUser.TenantId.HasValue)
+            return Result<List<AssignmentDto>>.Unauthorized();
 
-        if (!orderExists)
+        var tenantId = _currentUser.TenantId.Value;
+        var viewer = await _context.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+
+        if (viewer == null)
+            return Result<List<AssignmentDto>>.NotFound("Business profile not found");
+
+        if (viewer.BusinessType != BusinessType.Shop)
+            return Result<List<AssignmentDto>>.Forbidden("Only the fulfilling shop can view assignment history");
+
+        var order = await _context.Orders
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == request.OrderId, cancellationToken);
+
+        if (order == null)
             return Result<List<AssignmentDto>>.NotFound("Order not found");
+
+        if (order.TenantId != tenantId)
+            return Result<List<AssignmentDto>>.Forbidden("Only the fulfilling shop can view assignment history");
 
         var assignments = await _context.OrderAssignments
             .Include(a => a.Karigar)

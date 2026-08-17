@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/utils/role_navigation.dart';
 import '../../../data/repositories/notification_repository.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -44,18 +48,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       } catch (_) {}
     }
     if (item.orderId != null && mounted) {
-      context.go('/orders/${item.orderId}');
+      final authState = context.read<AuthBloc>().state;
+      final user = authState is AuthAuthenticated ? authState.user : null;
+      if (isKarigarUser(user)) {
+        context.go('/karigar/orders/${item.orderId}/update');
+      } else {
+        context.go('/orders/${item.orderId}');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primaryDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.go('/dashboard'),
+          onPressed: () => context.go(homePathForAuthState(authState)),
         ),
         title: const Text('Notifications'),
         actions: [
@@ -162,6 +173,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'Overdue': return Icons.warning_amber;
       case 'StatusChangedToReady': return Icons.check_circle;
       case 'OrderReassigned': return Icons.swap_horiz;
+      case 'CommentAdded': return Icons.chat_bubble_outline;
+      case 'ConnectionRequested': return Icons.person_add_alt_1;
+      case 'ConnectionAccepted': return Icons.handshake_outlined;
+      case 'OrderAccepted': return Icons.task_alt;
+      case 'OrderRejected': return Icons.cancel_outlined;
       default: return Icons.notifications;
     }
   }
@@ -176,6 +192,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'Overdue': return AppColors.statusOverdue;
       case 'StatusChangedToReady': return AppColors.statusReady;
       case 'OrderReassigned': return AppColors.statusInProgress;
+      case 'CommentAdded': return AppColors.gold;
+      case 'ConnectionRequested': return AppColors.statusPending;
+      case 'ConnectionAccepted': return AppColors.statusReady;
+      case 'OrderAccepted': return AppColors.statusReady;
+      case 'OrderRejected': return AppColors.error;
       default: return AppColors.gold;
     }
   }

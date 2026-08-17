@@ -24,6 +24,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _addressController = TextEditingController();
   bool _obscurePassword = true;
+  String _businessType = 'Shop';
+
+  String get _businessLabel => switch (_businessType) {
+        'Showroom' => 'Showroom',
+        'Karigar' => 'Karigar Business',
+        _ => 'Shop',
+      };
 
   @override
   void dispose() {
@@ -47,6 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             address: _addressController.text.trim().isEmpty
                 ? null
                 : _addressController.text.trim(),
+            businessType: _businessType,
           ));
     }
   }
@@ -86,35 +94,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   const SizedBox(height: 8),
                   Text(
-                    'Register Your Shop',
+                    'Create Your GoldDesk Account',
                     style: Theme.of(context).textTheme.headlineMedium,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Create your account to start managing orders',
+                    'Choose your business type to get started',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
                         ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
+                  Text(
+                    'How will you use GoldDesk?',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildBusinessTypePicker(),
+                  const SizedBox(height: 24),
                   GoldDeskTextField(
-                    label: 'Shop Name',
-                    hint: 'Enter your shop name',
+                    label: '$_businessLabel Name',
+                    hint: 'Enter your ${_businessLabel.toLowerCase()} name',
                     controller: _shopNameController,
-                    prefixIcon: const Icon(Icons.store_outlined, size: 20),
+                    prefixIcon: Icon(_businessIcon(_businessType), size: 20),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Shop name is required';
+                        return '$_businessLabel name is required';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   GoldDeskTextField(
-                    label: 'Owner Name',
-                    hint: 'Enter owner name',
+                    label: _businessType == 'Karigar' ? 'Your Name' : 'Owner Name',
+                    hint: _businessType == 'Karigar'
+                        ? 'Enter your name'
+                        : 'Enter owner name',
                     controller: _ownerNameController,
                     prefixIcon: const Icon(Icons.person_outlined, size: 20),
                     validator: (value) {
@@ -190,7 +209,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
                   GoldDeskTextField(
                     label: 'Address (Optional)',
-                    hint: 'Shop address',
+                    hint: 'Business address',
                     controller: _addressController,
                     prefixIcon:
                         const Icon(Icons.location_on_outlined, size: 20),
@@ -238,4 +257,76 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
+
+  Widget _buildBusinessTypePicker() {
+    return Row(
+      children: [
+        _businessTypeOption(
+          value: 'Showroom',
+          label: 'Showroom',
+          icon: Icons.storefront_outlined,
+        ),
+        const SizedBox(width: 8),
+        _businessTypeOption(
+          value: 'Shop',
+          label: 'Shop',
+          icon: Icons.store_outlined,
+        ),
+        const SizedBox(width: 8),
+        _businessTypeOption(
+          value: 'Karigar',
+          label: 'Karigar',
+          icon: Icons.handyman_outlined,
+        ),
+      ],
+    );
+  }
+
+  Widget _businessTypeOption({
+    required String value,
+    required String label,
+    required IconData icon,
+  }) {
+    final selected = _businessType == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _businessType = value),
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.gold.withValues(alpha: 0.12)
+                : AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? AppColors.gold : AppColors.divider,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: selected ? AppColors.gold : AppColors.textSecondary),
+              const SizedBox(height: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected ? AppColors.primaryDark : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _businessIcon(String type) => switch (type) {
+        'Showroom' => Icons.storefront_outlined,
+        'Karigar' => Icons.handyman_outlined,
+        _ => Icons.store_outlined,
+      };
 }

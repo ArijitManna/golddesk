@@ -56,7 +56,7 @@ public class OrderStatusReadyNotificationHandler : INotificationHandler<OrderSta
                 notification.OrderId,
                 NotificationType.StatusChangedToReady,
                 "Order Ready",
-                $"Order {notification.OrderNo} for {notification.CustomerName} is marked Ready by {notification.KarigarName}",
+                $"Order {notification.OrderNo} from {notification.OrderFromBusinessName} is marked work ready",
                 cancellationToken);
         }
     }

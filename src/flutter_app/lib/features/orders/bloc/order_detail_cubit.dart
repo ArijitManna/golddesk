@@ -12,6 +12,7 @@ abstract class OrderDetailState extends Equatable {
 }
 
 class OrderDetailInitial extends OrderDetailState {}
+
 class OrderDetailLoading extends OrderDetailState {}
 
 class OrderDetailLoaded extends OrderDetailState {
@@ -29,6 +30,7 @@ class OrderDetailError extends OrderDetailState {
 }
 
 class AssignKarigarLoading extends OrderDetailState {}
+
 class AssignKarigarSuccess extends OrderDetailState {}
 
 // Cubit
@@ -49,7 +51,10 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
     }
   }
 
-  Future<void> assignKarigar(String orderId, AssignKarigarRequest request) async {
+  Future<void> assignKarigar(
+    String orderId,
+    AssignKarigarRequest request,
+  ) async {
     emit(AssignKarigarLoading());
     try {
       await _repository.assignKarigar(orderId, request);
@@ -73,6 +78,46 @@ class OrderDetailCubit extends Cubit<OrderDetailState> {
       return false;
     } catch (_) {
       emit(const OrderDetailError('Failed to cancel order'));
+      return false;
+    }
+  }
+
+  Future<bool> respondToOrder(
+    String orderId, {
+    required bool accept,
+    String? note,
+  }) async {
+    try {
+      await _repository.respondToOrder(orderId, accept: accept, note: note);
+      await loadOrder(orderId);
+      return true;
+    } on ApiException catch (e) {
+      emit(OrderDetailError(e.message));
+      return false;
+    } catch (_) {
+      emit(const OrderDetailError('Failed to respond to order'));
+      return false;
+    }
+  }
+
+  Future<bool> updateOrderStatus(
+    String orderId, {
+    required String status,
+    String? remarks,
+  }) async {
+    try {
+      await _repository.updateOrderStatus(
+        orderId,
+        status: status,
+        remarks: remarks,
+      );
+      await loadOrder(orderId);
+      return true;
+    } on ApiException catch (e) {
+      emit(OrderDetailError(e.message));
+      return false;
+    } catch (_) {
+      emit(const OrderDetailError('Failed to update order status'));
       return false;
     }
   }

@@ -7,7 +7,6 @@ namespace GoldDesk.Application.Features.Orders.UpdateOrder;
 public record UpdateOrderCommand : IRequest<Result<OrderDto>>
 {
     public Guid OrderId { get; init; }
-    public Guid CustomerId { get; init; }
     public string? OrderDate { get; init; }
     public string? DeliveryDate { get; init; }
     public string? Notes { get; init; }

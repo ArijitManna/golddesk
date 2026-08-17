@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "667786767381",
+    "project_id": "golddesk-a5ed0",
+    "storage_bucket": "golddesk-a5ed0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667786767381:android:cb9f8600dd5ac0ade7721c",
+        "android_client_info": {
+          "package_name": "com.golddesk.golddesk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWPA1EzOJDwo8YMraOAVE49JwaEA_e8-w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

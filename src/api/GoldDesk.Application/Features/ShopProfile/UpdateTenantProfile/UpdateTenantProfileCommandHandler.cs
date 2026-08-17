@@ -21,20 +21,24 @@ public class UpdateTenantProfileCommandHandler : IRequestHandler<UpdateTenantPro
 
     public async Task<Result<TenantProfileDto>> Handle(UpdateTenantProfileCommand request, CancellationToken cancellationToken)
     {
-        if (_currentUser.Role != UserRole.ShopOwner || !_currentUser.TenantId.HasValue)
-            return Result<TenantProfileDto>.Forbidden("Only shop owners can update shop profile");
+        if ((_currentUser.Role != UserRole.ShopOwner &&
+             _currentUser.Role != UserRole.Karigar) ||
+            !_currentUser.TenantId.HasValue)
+        {
+            return Result<TenantProfileDto>.Forbidden("Only business owners can update their profile");
+        }
 
         var tenant = await _context.Tenants
             .FirstOrDefaultAsync(t => t.Id == _currentUser.TenantId.Value, cancellationToken);
 
         if (tenant == null)
-            return Result<TenantProfileDto>.NotFound("Shop profile not found");
+            return Result<TenantProfileDto>.NotFound("Business profile not found");
 
         var mobile = request.Mobile.Trim();
         var mobileTaken = await _context.Tenants
             .AnyAsync(t => t.Mobile == mobile && t.Id != tenant.Id, cancellationToken);
         if (mobileTaken)
-            return Result<TenantProfileDto>.Conflict("Another shop already uses this mobile number");
+            return Result<TenantProfileDto>.Conflict("Another business already uses this mobile number");
 
         tenant.ShopName = request.ShopName.Trim();
         tenant.OwnerName = request.OwnerName.Trim();

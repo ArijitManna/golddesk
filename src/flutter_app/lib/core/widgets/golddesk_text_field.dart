@@ -12,6 +12,7 @@ class GoldDeskTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final Widget? prefixIcon;
   final int maxLines;
+  final int? maxLength;
   final bool readOnly;
   final VoidCallback? onTap;
   final List<TextInputFormatter>? inputFormatters;
@@ -28,6 +29,7 @@ class GoldDeskTextField extends StatelessWidget {
     this.suffixIcon,
     this.prefixIcon,
     this.maxLines = 1,
+    this.maxLength,
     this.readOnly = false,
     this.onTap,
     this.inputFormatters,
@@ -52,6 +54,7 @@ class GoldDeskTextField extends StatelessWidget {
           keyboardType: keyboardType,
           obscureText: obscureText,
           maxLines: maxLines,
+          maxLength: maxLength,
           readOnly: readOnly,
           onTap: onTap,
           inputFormatters: inputFormatters,

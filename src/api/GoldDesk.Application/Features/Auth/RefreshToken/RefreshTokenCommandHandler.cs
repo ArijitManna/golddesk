@@ -65,7 +65,9 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
                 Email = user.Email,
                 FullName = user.FullName,
                 Role = user.Role.ToString(),
-                ShopName = user.Tenant.ShopName
+                ShopName = user.Tenant.ShopName,
+                BusinessType = user.Tenant.BusinessType.ToString(),
+                GoldDeskId = user.Tenant.GoldDeskId
             }
         });
     }

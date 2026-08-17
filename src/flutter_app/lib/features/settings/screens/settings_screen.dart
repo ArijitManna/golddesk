@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/widgets/app_bottom_navigation.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
@@ -17,12 +18,9 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primaryDark,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.go('/dashboard'),
-        ),
         title: const Text('Settings'),
       ),
+      bottomNavigationBar: const AppBottomNavigation(selectedPath: '/settings'),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final user = state is AuthAuthenticated ? state.user : null;
@@ -44,24 +42,56 @@ class SettingsScreen extends StatelessWidget {
                       backgroundColor: AppColors.gold.withValues(alpha: 0.15),
                       child: Text(
                         (user?.fullName ?? 'U')[0].toUpperCase(),
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.gold),
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.gold,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(user?.fullName ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                    Text(
+                      user?.fullName ?? '',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(user?.email ?? '', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                    Text(
+                      user?.email ?? '',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.gold.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(user?.role ?? '', style: const TextStyle(fontSize: 11, color: AppColors.gold, fontWeight: FontWeight.w600)),
+                      child: Text(
+                        user?.role ?? '',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.gold,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Text(user?.shopName ?? '', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                    Text(
+                      user?.shopName ?? '',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -80,7 +110,7 @@ class SettingsScreen extends StatelessWidget {
                 subtitle: 'Update your login password',
                 onTap: () => _showChangePasswordDialog(context),
               ),
-              if (user?.role == 'ShopOwner')
+              if (user?.businessType == 'Shop' || user?.businessType == 'Showroom')
                 _settingsTile(
                   icon: Icons.group_outlined,
                   title: 'Team Users',
@@ -117,7 +147,10 @@ class SettingsScreen extends StatelessWidget {
                   context.go('/login');
                 },
                 icon: const Icon(Icons.logout, color: AppColors.error),
-                label: const Text('Logout', style: TextStyle(color: AppColors.error)),
+                label: const Text(
+                  'Logout',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.error),
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -128,9 +161,20 @@ class SettingsScreen extends StatelessWidget {
               Center(
                 child: Column(
                   children: [
-                    Image.asset('assets/images/logo.png', width: 80, height: 40, fit: BoxFit.contain),
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: 80,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
                     const SizedBox(height: 4),
-                    Text('Version ${AppConstants.appVersion}', style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
+                    Text(
+                      'Version ${AppConstants.appVersion}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -144,7 +188,12 @@ class SettingsScreen extends StatelessWidget {
   Widget _sectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: AppColors.textSecondary)),
+      child: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.titleSmall?.copyWith(color: AppColors.textSecondary),
+      ),
     );
   }
 
@@ -158,9 +207,19 @@ class SettingsScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 6),
       child: ListTile(
         leading: Icon(icon, color: AppColors.primaryDark, size: 22),
-        title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.textLight, size: 20),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: AppColors.textLight,
+          size: 20,
+        ),
         onTap: onTap,
         dense: true,
       ),
@@ -184,37 +243,57 @@ class SettingsScreen extends StatelessWidget {
               TextField(
                 controller: currentCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Current Password', isDense: true),
+                decoration: const InputDecoration(
+                  labelText: 'Current Password',
+                  isDense: true,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: newCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'New Password', isDense: true),
+                decoration: const InputDecoration(
+                  labelText: 'New Password',
+                  isDense: true,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: confirmCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Confirm New Password', isDense: true),
+                decoration: const InputDecoration(
+                  labelText: 'Confirm New Password',
+                  isDense: true,
+                ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: saving ? null : () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               onPressed: saving
                   ? null
                   : () async {
                       if (newCtrl.text != confirmCtrl.text) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Passwords do not match'), backgroundColor: AppColors.error),
+                          const SnackBar(
+                            content: Text('Passwords do not match'),
+                            backgroundColor: AppColors.error,
+                          ),
                         );
                         return;
                       }
                       if (newCtrl.text.length < 6) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: AppColors.error),
+                          const SnackBar(
+                            content: Text(
+                              'Password must be at least 6 characters',
+                            ),
+                            backgroundColor: AppColors.error,
+                          ),
                         );
                         return;
                       }
@@ -227,14 +306,20 @@ class SettingsScreen extends StatelessWidget {
                         if (ctx.mounted) Navigator.pop(ctx);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Password changed'), backgroundColor: AppColors.success),
+                            const SnackBar(
+                              content: Text('Password changed'),
+                              backgroundColor: AppColors.success,
+                            ),
                           );
                         }
                       } catch (e) {
                         setDialogState(() => saving = false);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
+                            SnackBar(
+                              content: Text('$e'),
+                              backgroundColor: AppColors.error,
+                            ),
                           );
                         }
                       }
@@ -254,23 +339,40 @@ class SettingsScreen extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/images/logo.png', width: 120, height: 60, fit: BoxFit.contain),
-            const SizedBox(height: 16),
-            const Text(AppConstants.appName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            const Text(AppConstants.appTagline, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            const SizedBox(height: 8),
-            Text('Version ${AppConstants.appVersion}', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+            Image.asset(
+              'assets/images/logo.png',
+              width: 120,
+              height: 60,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(height: 16),
             const Text(
-              'A lightweight SaaS application for gold and jewellery shops to manage customer orders, assign work to Karigars, and track order completion.',
+              AppConstants.appName,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              AppConstants.appTagline,
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Version ${AppConstants.appVersion}',
+              style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'A lightweight business network for Showrooms, Shops, and Karigars to manage work orders and track completion.',
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );

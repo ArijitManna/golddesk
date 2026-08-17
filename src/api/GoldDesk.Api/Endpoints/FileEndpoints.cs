@@ -17,6 +17,7 @@ public static class FileEndpoints
             Guid orderItemId,
             IFormFile file,
             IApplicationDbContext context,
+            ICurrentUserService currentUser,
             IWebHostEnvironment env) =>
         {
             if (file.Length == 0)
@@ -33,10 +34,14 @@ public static class FileEndpoints
             // Find the order item
             var orderItem = await context.OrderItems
                 .IgnoreQueryFilters()
+                .Include(oi => oi.Order)
                 .FirstOrDefaultAsync(oi => oi.Id == orderItemId);
 
             if (orderItem == null)
                 return Results.NotFound(new { error = "Order item not found" });
+
+            if (currentUser.TenantId != orderItem.Order.TenantId)
+                return Results.Json(new { error = "Only the fulfilling Shop can upload this order image" }, statusCode: 403);
 
             // Create uploads directory
             var uploadsFolder = Path.Combine(env.ContentRootPath, "uploads", "order-items");

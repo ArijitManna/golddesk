@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/order_status_labels.dart';
 import '../../../core/widgets/order_image.dart';
+import '../../../core/widgets/app_bottom_navigation.dart';
 import '../../../data/models/dashboard_models.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/bloc/auth_state.dart';
 import '../bloc/order_list_cubit.dart';
 
 class OrderListScreen extends StatefulWidget {
   final String? initialStatus;
   final String? initialDue;
 
-  const OrderListScreen({
-    super.key,
-    this.initialStatus,
-    this.initialDue,
-  });
+  const OrderListScreen({super.key, this.initialStatus, this.initialDue});
 
   @override
   State<OrderListScreen> createState() => _OrderListScreenState();
@@ -26,17 +26,7 @@ class _OrderListScreenState extends State<OrderListScreen>
   final _searchController = TextEditingController();
 
   /// Parallel arrays: tab label, status filter, due filter
-  static const _tabs = [
-    Tab(text: 'All'),
-    Tab(text: 'Pending'),
-    Tab(text: 'Send to Karigar'),
-    Tab(text: 'In Progress'),
-    Tab(text: 'Ready'),
-    Tab(text: 'Due Today'),
-    Tab(text: 'Overdue'),
-    Tab(text: 'Due 3 Days'),
-    Tab(text: 'Cancel'),
-  ];
+  late final List<Tab> _tabs;
 
   static const _statusFilters = <String?>[
     null,
@@ -65,6 +55,7 @@ class _OrderListScreenState extends State<OrderListScreen>
   @override
   void initState() {
     super.initState();
+    _tabs = _buildTabs();
     final initialIndex = _resolveInitialTabIndex();
     _tabController = TabController(
       length: _tabs.length,
@@ -73,9 +64,35 @@ class _OrderListScreenState extends State<OrderListScreen>
     );
     _tabController.addListener(_onTabChanged);
     context.read<OrderListCubit>().loadOrders(
-          status: _statusFilters[initialIndex],
-          due: _dueFilters[initialIndex],
-        );
+      status: _statusFilters[initialIndex],
+      due: _dueFilters[initialIndex],
+    );
+  }
+
+  List<Tab> _buildTabs() {
+    final auth = context.read<AuthBloc>().state;
+    final businessType = auth is AuthAuthenticated
+        ? auth.user.businessType
+        : 'Shop';
+
+    final statusTabs = switch (businessType) {
+      'Showroom' => const ['All', 'New', 'With Shop', 'Making', 'Work Ready'],
+      _ => const [
+        'All',
+        'New / To Give Work',
+        'Work Given / Accepted',
+        'Making',
+        'Work Ready',
+      ],
+    };
+
+    return [
+      ...statusTabs.map((text) => Tab(text: text)),
+      const Tab(text: 'Due Today'),
+      const Tab(text: 'Overdue'),
+      const Tab(text: 'Due 3 Days'),
+      const Tab(text: 'Cancelled'),
+    ];
   }
 
   int _resolveInitialTabIndex() {
@@ -100,19 +117,19 @@ class _OrderListScreenState extends State<OrderListScreen>
     if (_tabController.indexIsChanging) return;
     final index = _tabController.index;
     context.read<OrderListCubit>().loadOrders(
-          status: _statusFilters[index],
-          due: _dueFilters[index],
-          search: _searchController.text.isEmpty ? null : _searchController.text,
-        );
+      status: _statusFilters[index],
+      due: _dueFilters[index],
+      search: _searchController.text.isEmpty ? null : _searchController.text,
+    );
   }
 
   void _reloadCurrent() {
     final index = _tabController.index;
     context.read<OrderListCubit>().loadOrders(
-          status: _statusFilters[index],
-          due: _dueFilters[index],
-          search: _searchController.text.isEmpty ? null : _searchController.text,
-        );
+      status: _statusFilters[index],
+      due: _dueFilters[index],
+      search: _searchController.text.isEmpty ? null : _searchController.text,
+    );
   }
 
   @override
@@ -127,10 +144,6 @@ class _OrderListScreenState extends State<OrderListScreen>
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primaryDark,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.go('/dashboard'),
-        ),
         title: const Text('Order List'),
         bottom: TabBar(
           controller: _tabController,
@@ -146,10 +159,11 @@ class _OrderListScreenState extends State<OrderListScreen>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/orders/new'),
         icon: const Icon(Icons.add),
-        label: const Text('NEW ORDER'),
+        label: const Text('New Order'),
         backgroundColor: AppColors.gold,
         foregroundColor: AppColors.textOnGold,
       ),
+      bottomNavigationBar: const AppBottomNavigation(selectedPath: '/orders'),
       body: Column(
         children: [
           Padding(
@@ -157,7 +171,7 @@ class _OrderListScreenState extends State<OrderListScreen>
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search order/customer',
+                hintText: 'Search order or business',
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -179,7 +193,8 @@ class _OrderListScreenState extends State<OrderListScreen>
               builder: (context, state) {
                 if (state is OrderListLoading) {
                   return const Center(
-                      child: CircularProgressIndicator(color: AppColors.gold));
+                    child: CircularProgressIndicator(color: AppColors.gold),
+                  );
                 }
                 if (state is OrderListError) {
                   return Center(
@@ -202,11 +217,16 @@ class _OrderListScreenState extends State<OrderListScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.receipt_long_outlined,
-                              size: 64, color: AppColors.textLight),
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 64,
+                            color: AppColors.textLight,
+                          ),
                           SizedBox(height: 16),
-                          Text('No orders found',
-                              style: TextStyle(color: AppColors.textSecondary)),
+                          Text(
+                            'No orders found',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
                         ],
                       ),
                     );
@@ -231,6 +251,11 @@ class _OrderListScreenState extends State<OrderListScreen>
   }
 
   Widget _buildOrderCard(OrderSummary order) {
+    final auth = context.read<AuthBloc>().state;
+    final businessType = auth is AuthAuthenticated
+        ? auth.user.businessType
+        : 'Shop';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -241,7 +266,11 @@ class _OrderListScreenState extends State<OrderListScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              OrderImage(imagePath: order.firstItemImage, size: 50, label: order.orderNo),
+              OrderImage(
+                imagePath: order.firstItemImage,
+                size: 50,
+                label: order.orderNo,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -249,33 +278,97 @@ class _OrderListScreenState extends State<OrderListScreen>
                   children: [
                     Row(
                       children: [
-                        Text(order.orderNo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                        Text(
+                          order.orderNo,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
                         const Spacer(),
-                        _buildStatusChip(order.status),
+                        _buildStatusChip(order),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.person_outline, size: 14, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.person_outline,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
-                          child: Text(order.customerName, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            order.orderFromBusinessName,
+                            style: const TextStyle(fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        Text('${order.totalWeight.toStringAsFixed(3)} gm', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        Text(
+                          '${order.totalWeight.toStringAsFixed(3)} gm',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
+                    if (order.source == 'Showroom') ...[
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.storefront_outlined,
+                            size: 12,
+                            color: AppColors.gold,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'From ${order.createdByBusinessName}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                    ],
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 12,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 4),
-                        Text(order.orderDate, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                        if (order.karigarName != null) ...[
+                        Text(
+                          order.orderDate,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        if (businessType == 'Shop' &&
+                            order.karigarName != null) ...[
                           const SizedBox(width: 12),
-                          const Icon(Icons.engineering_outlined, size: 12, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.engineering_outlined,
+                            size: 12,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 4),
-                          Text(order.karigarName!, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          Text(
+                            order.karigarName!,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -289,8 +382,8 @@ class _OrderListScreenState extends State<OrderListScreen>
     );
   }
 
-  Widget _buildStatusChip(String status) {
-    final color = _getStatusColor(status);
+  Widget _buildStatusChip(OrderSummary order) {
+    final color = _getStatusColor(order.status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -298,22 +391,28 @@ class _OrderListScreenState extends State<OrderListScreen>
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        _formatStatus(status),
-        style:
-            TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+        _displayStatus(order),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 
-  String _formatStatus(String status) {
-    switch (status) {
-      case 'Assigned':
-        return 'Send to Karigar';
-      case 'InProgress':
-        return 'In Progress';
-      default:
-        return status;
-    }
+  String _displayStatus(OrderSummary order) {
+    final auth = context.read<AuthBloc>().state;
+    final businessType = auth is AuthAuthenticated
+        ? auth.user.businessType
+        : 'Shop';
+
+    return displayOrderStatus(
+      businessType: businessType,
+      status: order.status,
+      acceptanceStatus: order.acceptanceStatus,
+      assignmentStatus: order.assignmentStatus,
+    );
   }
 
   Color _getStatusColor(String status) {

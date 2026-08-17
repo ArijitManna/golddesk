@@ -28,6 +28,10 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<OrderStatusHistory> OrderStatusHistory => Set<OrderStatusHistory>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<BusinessConnection> BusinessConnections => Set<BusinessConnection>();
+    public DbSet<ExternalBusiness> ExternalBusinesses => Set<ExternalBusiness>();
+    public DbSet<OrderComment> OrderComments => Set<OrderComment>();
+    public DbSet<OrderEvent> OrderEvents => Set<OrderEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,7 +46,11 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<Customer>().HasQueryFilter(e => e.TenantId == _currentUserService.TenantId);
         modelBuilder.Entity<Karigar>().HasQueryFilter(e => e.TenantId == _currentUserService.TenantId);
         modelBuilder.Entity<ItemMaster>().HasQueryFilter(e => e.TenantId == _currentUserService.TenantId);
-        modelBuilder.Entity<Order>().HasQueryFilter(e => e.TenantId == _currentUserService.TenantId);
+        modelBuilder.Entity<Order>().HasQueryFilter(e =>
+            e.TenantId == _currentUserService.TenantId ||
+            e.CreatedByBusinessId == _currentUserService.TenantId ||
+            e.OrderFromBusinessId == _currentUserService.TenantId);
+        modelBuilder.Entity<ExternalBusiness>().HasQueryFilter(e => e.TenantId == _currentUserService.TenantId);
         modelBuilder.Entity<Notification>().HasQueryFilter(e => e.TenantId == _currentUserService.TenantId);
         modelBuilder.Entity<AuditLog>().HasQueryFilter(e => e.TenantId == _currentUserService.TenantId);
     }

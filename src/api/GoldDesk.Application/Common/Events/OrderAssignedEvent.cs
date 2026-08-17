@@ -17,7 +17,7 @@ public record OrderStatusReadyEvent : INotification
     public Guid TenantId { get; init; }
     public Guid OrderId { get; init; }
     public string OrderNo { get; init; } = string.Empty;
-    public string CustomerName { get; init; } = string.Empty;
+    public string OrderFromBusinessName { get; init; } = string.Empty;
     public string KarigarName { get; init; } = string.Empty;
 }
 

@@ -29,7 +29,11 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         var user = await _context.Users
             .IgnoreQueryFilters()
             .Include(u => u.Tenant)
-            .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+            .Where(u => u.Email == request.Email)
+            .OrderByDescending(u => u.Status == UserStatus.Active &&
+                                  u.Tenant.Status == TenantStatus.Active)
+            .ThenByDescending(u => u.LastLoginAt)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (user == null)
             return Result<LoginResponse>.Unauthorized("Invalid email or password");
@@ -89,7 +93,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
                 Email = user.Email,
                 FullName = user.FullName,
                 Role = user.Role.ToString(),
-                ShopName = user.Tenant.ShopName
+                ShopName = user.Tenant.ShopName,
+                BusinessType = user.Tenant.BusinessType.ToString(),
+                GoldDeskId = user.Tenant.GoldDeskId
             }
         });
     }
