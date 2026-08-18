@@ -3,6 +3,7 @@ using FirebaseAdmin;
 using FirebaseAdmin.Messaging;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace GoldDesk.Infrastructure.Services;
@@ -17,23 +18,25 @@ public class FcmNotificationSender : INotificationSender
 
     public FcmNotificationSender(
         ILogger<FcmNotificationSender> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         _logger = logger;
-        var serviceAccountPath = configuration["Firebase:ServiceAccountPath"];
-
-        if (string.IsNullOrWhiteSpace(serviceAccountPath) || !File.Exists(serviceAccountPath))
-        {
-            _logger.LogWarning(
-                "Firebase push delivery is disabled. Set Firebase__ServiceAccountPath to a valid service-account JSON file.");
-            return;
-        }
 
         try
         {
+            var credential = ResolveCredential(configuration, environment);
+            if (credential == null)
+            {
+                _logger.LogWarning(
+                    "Firebase push delivery is disabled. Place firebase-adminsdk.json under secrets/ " +
+                    "or set Firebase__ServiceAccountPath / Firebase__ServiceAccountJson on the server.");
+                return;
+            }
+
             var app = FirebaseApp.DefaultInstance ?? FirebaseApp.Create(new AppOptions
             {
-                Credential = GoogleCredential.FromFile(serviceAccountPath)
+                Credential = credential
             });
             _messaging = FirebaseMessaging.GetMessaging(app);
             _logger.LogInformation("Firebase Admin SDK initialized for push delivery.");
@@ -92,5 +95,51 @@ public class FcmNotificationSender : INotificationSender
 
         await Task.WhenAll(tokens.Select(token =>
             SendPushNotificationAsync(token, title, body, data, cancellationToken)));
+    }
+
+    private GoogleCredential? ResolveCredential(
+        IConfiguration configuration,
+        IHostEnvironment environment)
+    {
+        var json = configuration["Firebase:ServiceAccountJson"];
+        if (!string.IsNullOrWhiteSpace(json))
+            return GoogleCredential.FromJson(json);
+
+        foreach (var candidate in CredentialFileCandidates(configuration, environment))
+        {
+            if (File.Exists(candidate))
+            {
+                _logger.LogInformation("Using Firebase service account at {Path}", candidate);
+                return GoogleCredential.FromFile(candidate);
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> CredentialFileCandidates(
+        IConfiguration configuration,
+        IHostEnvironment environment)
+    {
+        var configured = configuration["Firebase:ServiceAccountPath"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            yield return configured;
+            if (!Path.IsPathRooted(configured))
+            {
+                yield return Path.GetFullPath(Path.Combine(environment.ContentRootPath, configured));
+                yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, configured));
+                yield return Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), configured));
+            }
+        }
+
+        var googleAppCreds = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+        if (!string.IsNullOrWhiteSpace(googleAppCreds))
+            yield return googleAppCreds;
+
+        yield return Path.Combine(environment.ContentRootPath, "secrets", "firebase-adminsdk.json");
+        yield return Path.Combine(AppContext.BaseDirectory, "secrets", "firebase-adminsdk.json");
+        yield return Path.Combine(Directory.GetCurrentDirectory(), "secrets", "firebase-adminsdk.json");
+        yield return "/app/secrets/firebase-adminsdk.json";
     }
 }

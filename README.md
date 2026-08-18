@@ -27,8 +27,11 @@ GoldDesk/
 │           ├── core/           # Theme, DI, routing, network
 │           └── features/       # Feature modules (auth, orders, etc.)
 │
+├── docker-compose.yml          # Production compose (clone and run)
+├── deploy/                     # Production Dockerfile
+├── secrets/                    # Firebase Admin SDK for FCM
 ├── database/seeds/             # Seed data
-├── docker/                     # Docker configurations
+├── docker/                     # Local development Docker
 └── docs/                       # Documentation
 ```
 
@@ -41,14 +44,22 @@ GoldDesk/
 - Docker & Docker Compose
 - PostgreSQL 16 (or use Docker)
 
-### Run with Docker
+### Run with Docker (server)
+
+From the repo root:
 
 ```bash
-cd docker
-docker-compose up -d
+git clone https://github.com/ArijitManna/golddesk.git
+cd golddesk
+# Copy Firebase Admin JSON onto the server (required for push notifications):
+#   secrets/firebase-adminsdk.json
+docker compose up -d --build
 ```
 
-This starts PostgreSQL and the API at `http://localhost:5000`.
+API: `http://SERVER_IP:8082`  
+Health: `GET http://SERVER_IP:8082/api/health`
+
+The compose file mounts `./secrets` into the API container. GitHub blocks committing the Firebase private key, so that JSON must be copied onto the server once.
 
 ### Run API Locally
 
@@ -73,7 +84,7 @@ flutter run
 Copy `.env.example` to `.env` and configure:
 - PostgreSQL credentials
 - JWT secret key
-- Firebase configuration (Phase 1 later)
+- JWT secret key (change `Jwt__Key` in `docker-compose.yml` for production)
 
 ## API Health Check
 

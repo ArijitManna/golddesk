@@ -1,0 +1,13 @@
+.git
+**/.vs
+**/.idea
+**/bin
+**/obj
+**/logs
+**/uploads
+**/.dart_tool
+**/build
+src/flutter_app
+docs
+*.user
+*.suo

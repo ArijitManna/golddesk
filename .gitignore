@@ -130,7 +130,10 @@ app.*.map.json
 .env.*
 !.env.example
 **/appsettings.Production.json
-**/secrets/
+**/secrets/*
+!**/secrets/
+!**/secrets/README.md
+!**/secrets/.gitkeep
 
 # ==============================
 # OS
