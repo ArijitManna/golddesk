@@ -100,18 +100,26 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
                   'New\nWork',
                   data.newWork,
                   AppColors.primaryDark,
+                  onTap: () => _openOrders(
+                    assignmentStatus: 'PendingAcceptance',
+                  ),
                 ),
                 const SizedBox(width: 10),
                 _buildStatCard(
                   'Work\nAccepted',
                   data.workAccepted,
                   AppColors.statusAssigned,
+                  onTap: () => _openOrders(
+                    status: 'Assigned',
+                    assignmentStatus: 'Active',
+                  ),
                 ),
                 const SizedBox(width: 10),
                 _buildStatCard(
                   'Making',
                   data.inProgress,
                   AppColors.statusInProgress,
+                  onTap: () => _openOrders(status: 'InProgress'),
                 ),
               ],
             ),
@@ -122,14 +130,21 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
                   'Work\nReady',
                   data.ready,
                   AppColors.statusReady,
+                  onTap: () => _openOrders(status: 'Ready'),
                 ),
                 const SizedBox(width: 10),
-                _buildStatCard('Due\nToday', data.dueToday, AppColors.due1Day),
+                _buildStatCard(
+                  'Due\nToday',
+                  data.dueToday,
+                  AppColors.due1Day,
+                  onTap: () => _openOrders(due: 'today'),
+                ),
                 const SizedBox(width: 10),
                 _buildStatCard(
                   'Overdue',
                   data.overdue,
                   AppColors.statusOverdue,
+                  onTap: () => _openOrders(due: 'overdue'),
                 ),
               ],
             ),
@@ -174,35 +189,64 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, int count, Color color) {
+  void _openOrders({
+    String? status,
+    String? assignmentStatus,
+    String? due,
+  }) {
+    context.go(
+      Uri(
+        path: '/karigar/orders',
+        queryParameters: {
+          if (status != null) 'status': status,
+          if (assignmentStatus != null) 'assignmentStatus': assignmentStatus,
+          if (due != null) 'due': due,
+        },
+      ).toString(),
+    );
+  }
+
+  Widget _buildStatCard(
+    String label,
+    int count,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              '$count',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
+            child: Column(
+              children: [
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

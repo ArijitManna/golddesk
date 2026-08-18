@@ -19,6 +19,7 @@ class KarigarPortalRepository {
   Future<List<KarigarOrderItem>> getMyOrders({
     String? status,
     String? assignmentStatus,
+    String? due,
   }) async {
     try {
       final response = await _apiClient.dio.get(
@@ -26,6 +27,7 @@ class KarigarPortalRepository {
         queryParameters: {
           if (status != null) 'status': status,
           if (assignmentStatus != null) 'assignmentStatus': assignmentStatus,
+          if (due != null) 'due': due,
           'pageSize': 50,
         },
       );

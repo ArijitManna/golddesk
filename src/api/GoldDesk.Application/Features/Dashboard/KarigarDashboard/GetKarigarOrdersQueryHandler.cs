@@ -46,6 +46,23 @@ public class GetKarigarOrdersQueryHandler : IRequestHandler<GetKarigarOrdersQuer
             query = query.Where(a => a.Status == assignmentStatus);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Due))
+        {
+            var dueKey = request.Due.Trim().ToLowerInvariant();
+            query = query.Where(a =>
+                a.Order.Status != OrderStatus.Ready &&
+                a.Order.Status != OrderStatus.Delivered &&
+                a.Order.Status != OrderStatus.Closed);
+
+            query = dueKey switch
+            {
+                "today" => query.Where(a => a.DueDate == today),
+                "overdue" => query.Where(a => a.DueDate < today),
+                "next3" => query.Where(a => a.DueDate > today && a.DueDate <= today.AddDays(3)),
+                _ => query
+            };
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query

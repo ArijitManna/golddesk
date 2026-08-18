@@ -109,12 +109,18 @@ class AppRouter {
         builder: (context, state) {
           final status = state.uri.queryParameters['status'];
           final due = state.uri.queryParameters['due'];
+          final source = state.uri.queryParameters['source'];
+          final shopId = state.uri.queryParameters['shopId'];
+          final shopName = state.uri.queryParameters['shopName'];
           return BlocProvider(
             create: (_) => getIt<OrderListCubit>(),
             child: OrderListScreen(
-              key: ValueKey('orders_${status}_$due'),
+              key: ValueKey('orders_${status}_${due}_${source}_$shopId'),
               initialStatus: status,
               initialDue: due,
+              initialSource: source,
+              initialShopId: shopId,
+              initialShopName: shopName,
             ),
           );
         },
@@ -211,7 +217,20 @@ class AppRouter {
       GoRoute(
         path: '/karigar/orders',
         name: 'karigar-orders',
-        builder: (context, state) => const KarigarOrdersScreen(),
+        builder: (context, state) {
+          final status = state.uri.queryParameters['status'];
+          final assignmentStatus =
+              state.uri.queryParameters['assignmentStatus'];
+          final due = state.uri.queryParameters['due'];
+          return KarigarOrdersScreen(
+            key: ValueKey(
+              'karigar_orders_${status}_${assignmentStatus}_$due',
+            ),
+            initialStatus: status,
+            initialAssignmentStatus: assignmentStatus,
+            initialDue: due,
+          );
+        },
       ),
       GoRoute(
         path: '/karigar/orders/:id/update',

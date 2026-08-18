@@ -13,8 +13,18 @@ import '../bloc/order_list_cubit.dart';
 class OrderListScreen extends StatefulWidget {
   final String? initialStatus;
   final String? initialDue;
+  final String? initialSource;
+  final String? initialShopId;
+  final String? initialShopName;
 
-  const OrderListScreen({super.key, this.initialStatus, this.initialDue});
+  const OrderListScreen({
+    super.key,
+    this.initialStatus,
+    this.initialDue,
+    this.initialSource,
+    this.initialShopId,
+    this.initialShopName,
+  });
 
   @override
   State<OrderListScreen> createState() => _OrderListScreenState();
@@ -66,6 +76,8 @@ class _OrderListScreenState extends State<OrderListScreen>
     context.read<OrderListCubit>().loadOrders(
       status: _statusFilters[initialIndex],
       due: _dueFilters[initialIndex],
+      source: widget.initialSource,
+      shopId: widget.initialShopId,
     );
   }
 
@@ -95,6 +107,23 @@ class _OrderListScreenState extends State<OrderListScreen>
     ];
   }
 
+  String? get _filterBanner {
+    final source = widget.initialSource;
+    if (source != null && source.isNotEmpty) {
+      return source.toLowerCase() == 'showroom'
+          ? 'From Showrooms'
+          : source.toLowerCase() == 'direct'
+          ? 'Direct orders'
+          : source;
+    }
+    final shopName = widget.initialShopName;
+    if (shopName != null && shopName.isNotEmpty) return shopName;
+    if (widget.initialShopId != null && widget.initialShopId!.isNotEmpty) {
+      return 'Selected shop';
+    }
+    return null;
+  }
+
   int _resolveInitialTabIndex() {
     final due = widget.initialDue?.toLowerCase();
     if (due != null && due.isNotEmpty) {
@@ -120,6 +149,8 @@ class _OrderListScreenState extends State<OrderListScreen>
       status: _statusFilters[index],
       due: _dueFilters[index],
       search: _searchController.text.isEmpty ? null : _searchController.text,
+      source: widget.initialSource,
+      shopId: widget.initialShopId,
     );
   }
 
@@ -129,6 +160,8 @@ class _OrderListScreenState extends State<OrderListScreen>
       status: _statusFilters[index],
       due: _dueFilters[index],
       search: _searchController.text.isEmpty ? null : _searchController.text,
+      source: widget.initialSource,
+      shopId: widget.initialShopId,
     );
   }
 
@@ -166,6 +199,18 @@ class _OrderListScreenState extends State<OrderListScreen>
       bottomNavigationBar: const AppBottomNavigation(selectedPath: '/orders'),
       body: Column(
         children: [
+          if (_filterBanner != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Chip(
+                  avatar: const Icon(Icons.filter_list, size: 16),
+                  label: Text(_filterBanner!),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(

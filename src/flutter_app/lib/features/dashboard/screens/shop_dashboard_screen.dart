@@ -191,6 +191,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
                     'Total Shops',
                     report.totalShops,
                     AppColors.primaryDark,
+                    onTap: () => context.go('/admin/reports'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -199,6 +200,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
                     'Active',
                     report.activeShops,
                     AppColors.success,
+                    onTap: () => context.go('/admin/reports'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -207,6 +209,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
                     'Karigars',
                     report.totalKarigars,
                     AppColors.gold,
+                    onTap: () => context.go('/admin/reports'),
                   ),
                 ),
               ],
@@ -232,33 +235,40 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
     );
   }
 
-  Widget _platformStat(String label, int count, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+  Widget _platformStat(String label, int count, Color color, {VoidCallback? onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-            ),
+          child: Column(
+            children: [
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -439,13 +449,13 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
           'From Showrooms',
           data.fromShowrooms,
           AppColors.gold,
-          onTap: () => context.go('/orders'),
+          onTap: () => context.go('/orders?source=Showroom'),
         ),
         _buildStatCard(
           'Direct',
           data.directOrders,
           AppColors.primaryDark,
-          onTap: () => context.go('/orders'),
+          onTap: () => context.go('/orders?source=Direct'),
         ),
         _buildStatCard(
           'To Give Work',
@@ -506,13 +516,29 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: const Text('Orders created for this Shop'),
-        trailing: Text(
-          '${shop.orderCount}',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryDark,
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${shop.orderCount}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryDark,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, color: AppColors.textLight),
+          ],
+        ),
+        onTap: () => context.go(
+          Uri(
+            path: '/orders',
+            queryParameters: {
+              'shopId': shop.businessId,
+              'shopName': shop.businessName,
+            },
+          ).toString(),
         ),
       ),
     );
@@ -531,6 +557,8 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
+          width: double.infinity,
+          height: double.infinity,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),

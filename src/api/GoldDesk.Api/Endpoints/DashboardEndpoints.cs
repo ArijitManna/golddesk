@@ -35,12 +35,13 @@ public static class DashboardEndpoints
         .WithName("GetKarigarDashboard")
         .WithDescription("Get Karigar dashboard with assignment stats and due-date alerts");
 
-        karigarGroup.MapGet("/orders", async (string? status, string? assignmentStatus, int? page, int? pageSize, IMediator mediator) =>
+        karigarGroup.MapGet("/orders", async (string? status, string? assignmentStatus, string? due, int? page, int? pageSize, IMediator mediator) =>
         {
             var result = await mediator.Send(new GetKarigarOrdersQuery
             {
                 Status = status,
                 AssignmentStatus = assignmentStatus,
+                Due = due,
                 Page = page ?? 1,
                 PageSize = pageSize ?? 20
             });

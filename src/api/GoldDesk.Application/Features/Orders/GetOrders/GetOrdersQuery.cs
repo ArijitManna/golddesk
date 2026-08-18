@@ -10,6 +10,8 @@ public record GetOrdersQuery : IRequest<Result<PagedResult<OrderDto>>>
     /// <summary>Due filter: today | overdue | next3</summary>
     public string? Due { get; init; }
     public string? Search { get; init; }
+    public string? Source { get; init; }
+    public Guid? ShopId { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }

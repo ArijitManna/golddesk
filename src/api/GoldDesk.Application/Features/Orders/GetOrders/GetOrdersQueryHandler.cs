@@ -78,6 +78,17 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
             };
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Source) &&
+            Enum.TryParse<OrderSource>(request.Source, true, out var source))
+        {
+            query = query.Where(o => o.Source == source);
+        }
+
+        if (request.ShopId.HasValue)
+        {
+            query = query.Where(o => o.TenantId == request.ShopId.Value);
+        }
+
         // Search by order number or order-from business.
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

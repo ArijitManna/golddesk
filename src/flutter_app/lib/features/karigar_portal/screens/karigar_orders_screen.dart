@@ -8,10 +8,33 @@ import '../../../data/repositories/karigar_portal_repository.dart';
 import '../../dashboard/widgets/side_drawer.dart';
 
 class KarigarOrdersScreen extends StatefulWidget {
-  const KarigarOrdersScreen({super.key});
+  final String? initialStatus;
+  final String? initialAssignmentStatus;
+  final String? initialDue;
+
+  const KarigarOrdersScreen({
+    super.key,
+    this.initialStatus,
+    this.initialAssignmentStatus,
+    this.initialDue,
+  });
 
   @override
   State<KarigarOrdersScreen> createState() => _KarigarOrdersScreenState();
+}
+
+class _KarigarOrderTab {
+  final String label;
+  final String? status;
+  final String? assignmentStatus;
+  final String? due;
+
+  const _KarigarOrderTab(
+    this.label, {
+    this.status,
+    this.assignmentStatus,
+    this.due,
+  });
 }
 
 class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
@@ -20,34 +43,78 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
   List<KarigarOrderItem> _orders = [];
   bool _isLoading = true;
 
-  final _tabs = const [
-    Tab(text: 'All'),
-    Tab(text: 'New Work'),
-    Tab(text: 'Making'),
-    Tab(text: 'Work Ready'),
+  static const _tabs = [
+    _KarigarOrderTab('All'),
+    _KarigarOrderTab('New Work', assignmentStatus: 'PendingAcceptance'),
+    _KarigarOrderTab(
+      'Work Accepted',
+      status: 'Assigned',
+      assignmentStatus: 'Active',
+    ),
+    _KarigarOrderTab('Making', status: 'InProgress'),
+    _KarigarOrderTab('Work Ready', status: 'Ready'),
+    _KarigarOrderTab('Due Today', due: 'today'),
+    _KarigarOrderTab('Overdue', due: 'overdue'),
   ];
-  final _statusFilters = [null, null, 'InProgress', 'Ready'];
-  final _assignmentStatusFilters = [null, 'PendingAcceptance', null, null];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    final initialIndex = _resolveInitialTab();
+    _tabController = TabController(
+      length: _tabs.length,
+      vsync: this,
+      initialIndex: initialIndex,
+    );
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) _load();
     });
     _load();
   }
 
+  int _resolveInitialTab() {
+    final due = widget.initialDue?.toLowerCase();
+    if (due != null && due.isNotEmpty) {
+      final dueIndex = _tabs.indexWhere((tab) => tab.due?.toLowerCase() == due);
+      if (dueIndex >= 0) return dueIndex;
+    }
+
+    final status = widget.initialStatus;
+    final assignment = widget.initialAssignmentStatus;
+    final exactIndex = _tabs.indexWhere(
+      (tab) =>
+          tab.status == status &&
+          tab.assignmentStatus == assignment &&
+          tab.due == null,
+    );
+    if (exactIndex >= 0) return exactIndex;
+
+    if (assignment != null && assignment.isNotEmpty) {
+      final assignmentIndex = _tabs.indexWhere(
+        (tab) => tab.assignmentStatus == assignment,
+      );
+      if (assignmentIndex >= 0) return assignmentIndex;
+    }
+
+    if (status != null && status.isNotEmpty) {
+      final statusIndex = _tabs.indexWhere((tab) => tab.status == status);
+      if (statusIndex >= 0) return statusIndex;
+    }
+
+    return 0;
+  }
+
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final tab = _tabs[_tabController.index];
       _orders = await getIt<KarigarPortalRepository>().getMyOrders(
-        status: _statusFilters[_tabController.index],
-        assignmentStatus: _assignmentStatusFilters[_tabController.index],
+        status: tab.status,
+        assignmentStatus: tab.assignmentStatus,
+        due: tab.due,
       );
     } catch (_) {}
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -65,11 +132,13 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
         title: const Text('My Orders'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: _tabs,
+          tabs: [for (final tab in _tabs) Tab(text: tab.label)],
+          isScrollable: true,
           indicatorColor: AppColors.gold,
           labelColor: AppColors.gold,
           unselectedLabelColor: AppColors.textLight,
           indicatorWeight: 3,
+          tabAlignment: TabAlignment.start,
         ),
       ),
       bottomNavigationBar: const AppBottomNavigation(

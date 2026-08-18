@@ -22,6 +22,8 @@ class OrderListLoaded extends OrderListState {
   final bool hasMore;
   final String? activeFilter;
   final String? activeDueFilter;
+  final String? activeSource;
+  final String? activeShopId;
 
   const OrderListLoaded({
     required this.orders,
@@ -30,11 +32,20 @@ class OrderListLoaded extends OrderListState {
     required this.hasMore,
     this.activeFilter,
     this.activeDueFilter,
+    this.activeSource,
+    this.activeShopId,
   });
 
   @override
-  List<Object?> get props =>
-      [orders.length, totalCount, page, activeFilter, activeDueFilter];
+  List<Object?> get props => [
+    orders.length,
+    totalCount,
+    page,
+    activeFilter,
+    activeDueFilter,
+    activeSource,
+    activeShopId,
+  ];
 }
 
 class OrderListError extends OrderListState {
@@ -50,13 +61,21 @@ class OrderListCubit extends Cubit<OrderListState> {
 
   OrderListCubit(this._repository) : super(OrderListInitial());
 
-  Future<void> loadOrders({String? status, String? due, String? search}) async {
+  Future<void> loadOrders({
+    String? status,
+    String? due,
+    String? search,
+    String? source,
+    String? shopId,
+  }) async {
     emit(OrderListLoading());
     try {
       final response = await _repository.getOrders(
         status: status,
         due: due,
         search: search,
+        source: source,
+        shopId: shopId,
         page: 1,
         pageSize: 20,
       );
@@ -67,6 +86,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         hasMore: response.page < response.totalPages,
         activeFilter: status,
         activeDueFilter: due,
+        activeSource: source,
+        activeShopId: shopId,
       ));
     } on ApiException catch (e) {
       emit(OrderListError(e.message));
@@ -83,6 +104,8 @@ class OrderListCubit extends Cubit<OrderListState> {
       final response = await _repository.getOrders(
         status: currentState.activeFilter,
         due: currentState.activeDueFilter,
+        source: currentState.activeSource,
+        shopId: currentState.activeShopId,
         page: currentState.page + 1,
         pageSize: 20,
       );
@@ -93,6 +116,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         hasMore: response.page < response.totalPages,
         activeFilter: currentState.activeFilter,
         activeDueFilter: currentState.activeDueFilter,
+        activeSource: currentState.activeSource,
+        activeShopId: currentState.activeShopId,
       ));
     } catch (_) {
       // Silently fail on load more

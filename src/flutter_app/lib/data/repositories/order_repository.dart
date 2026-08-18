@@ -13,6 +13,8 @@ class OrderRepository {
     String? status,
     String? due,
     String? search,
+    String? source,
+    String? shopId,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -23,6 +25,8 @@ class OrderRepository {
           if (status != null) 'status': status,
           if (due != null) 'due': due,
           if (search != null) 'search': search,
+          if (source != null) 'source': source,
+          if (shopId != null) 'shopId': shopId,
           'page': page,
           'pageSize': pageSize,
         },
