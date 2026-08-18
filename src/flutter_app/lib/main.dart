@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/bloc/auth_event.dart';
+import 'core/services/version_check_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,14 +38,33 @@ void main() async {
   runApp(const GoldDeskApp());
 }
 
-class GoldDeskApp extends StatelessWidget {
+class GoldDeskApp extends StatefulWidget {
   const GoldDeskApp({super.key});
+
+  @override
+  State<GoldDeskApp> createState() => _GoldDeskAppState();
+}
+
+class _GoldDeskAppState extends State<GoldDeskApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _navigatorKey.currentContext;
+      if (ctx != null) {
+        VersionCheckService.checkForUpdate(ctx);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [BlocProvider<AuthBloc>.value(value: getIt<AuthBloc>())],
       child: MaterialApp.router(
+        key: _navigatorKey,
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,

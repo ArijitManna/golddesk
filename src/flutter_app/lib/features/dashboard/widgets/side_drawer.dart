@@ -106,7 +106,7 @@ class SideDrawer extends StatelessWidget {
                       _buildMenuItem(
                         context,
                         icon: Icons.people_outlined,
-                        label: 'External Businesses',
+                        label: 'External Customers',
                         onTap: () => _navigate(context, '/external-businesses'),
                       ),
                       _buildMenuItem(

@@ -143,6 +143,7 @@ app.MapExternalBusinessEndpoints();
 app.MapDashboardEndpoints();
 app.MapNotificationEndpoints();
 app.MapFileEndpoints();
+app.MapAppVersionEndpoints();
 
 // Serve uploaded files as static files
 var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
@@ -151,6 +152,15 @@ app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadsPath),
     RequestPath = "/uploads"
+});
+
+// Serve public folder (APK downloads)
+var publicPath = Path.Combine(app.Environment.ContentRootPath, "public");
+Directory.CreateDirectory(publicPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(publicPath),
+    RequestPath = "/public"
 });
 
 // Root endpoint

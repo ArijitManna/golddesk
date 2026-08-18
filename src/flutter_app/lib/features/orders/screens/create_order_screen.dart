@@ -199,7 +199,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               controller: controller,
               focusNode: focusNode,
               decoration: InputDecoration(
-                hintText: 'Search Showroom ID / External Shop name',
+                hintText: 'Search Showroom ID / External Customer name',
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: selected == null && controller.text.isEmpty
                     ? null
@@ -241,7 +241,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                   child: options.isEmpty
                       ? const ListTile(
                           dense: true,
-                          title: Text('No matching Showroom or External Shop'),
+                          title: Text('No matching Showroom or External Customer'),
                         )
                       : ListView.builder(
                           padding: EdgeInsets.zero,
@@ -864,7 +864,7 @@ class _OrderFromOption {
 
   String get subtitle => isShowroom
       ? '${showroom!.counterpartyGoldDeskId} • Showroom'
-      : 'External ${externalBusiness!.businessType}';
+      : 'External Customer';
 
   String get label => '$title • $subtitle';
 

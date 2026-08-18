@@ -53,12 +53,12 @@ class _ExternalBusinessListScreenState
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Add External Business',
+              'Add External Customer',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
             GoldDeskTextField(
-              label: 'Business Name *',
+              label: 'Customer Name *',
               hint: 'e.g. Shop X',
               controller: name,
             ),
@@ -76,7 +76,7 @@ class _ExternalBusinessListScreenState
             ),
             const SizedBox(height: 20),
             GoldDeskButton(
-              text: 'SAVE BUSINESS',
+              text: 'SAVE CUSTOMER',
               onPressed: () async {
                 if (name.text.trim().isEmpty) return;
                 await getIt<MasterRepository>().createExternalBusiness(
@@ -117,7 +117,7 @@ class _ExternalBusinessListScreenState
             ),
             const SizedBox(height: 8),
             const Text(
-              'Enter the business’s GoldDesk ID to replace this external record with its GoldDesk profile.',
+              'Enter the customer’s GoldDesk ID to replace this external record with its GoldDesk profile.',
               style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
@@ -128,7 +128,7 @@ class _ExternalBusinessListScreenState
             ),
             const SizedBox(height: 20),
             GoldDeskButton(
-              text: 'LINK BUSINESS',
+              text: 'LINK CUSTOMER',
               onPressed: () async {
                 final id = goldDeskId.text.trim().toUpperCase();
                 if (id.isEmpty) return;
@@ -155,7 +155,7 @@ class _ExternalBusinessListScreenState
       await _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Business linked to GoldDesk')),
+          const SnackBar(content: Text('Customer linked to GoldDesk')),
         );
       }
     }
@@ -164,7 +164,7 @@ class _ExternalBusinessListScreenState
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('External Businesses'),
+      title: const Text('External Customers'),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios),
         onPressed: () => context.go('/dashboard'),
@@ -178,7 +178,7 @@ class _ExternalBusinessListScreenState
     body: _loading
         ? const Center(child: CircularProgressIndicator())
         : _businesses.isEmpty
-        ? const Center(child: Text('No external businesses. Tap + to add one.'))
+        ? const Center(child: Text('No external customers. Tap + to add one.'))
         : RefreshIndicator(
             onRefresh: _load,
             child: ListView.builder(
@@ -196,7 +196,7 @@ class _ExternalBusinessListScreenState
                   title: Text(business.name),
                   subtitle: Text(
                     [
-                      business.businessType,
+                      'External Customer',
                       if (business.contactPerson != null)
                         business.contactPerson!,
                       if (business.mobile != null) business.mobile!,
