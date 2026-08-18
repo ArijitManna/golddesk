@@ -64,9 +64,6 @@ public static class GoldDeskIdGenerator
         var letter = LetterFor(type);
         var legacyPrefix = LegacyPrefixFor(type);
         var existing = await context.Tenants
-            .Where(t =>
-                t.GoldDeskId.StartsWith(letter, StringComparison.OrdinalIgnoreCase) ||
-                t.GoldDeskId.StartsWith(legacyPrefix, StringComparison.OrdinalIgnoreCase))
             .Select(t => t.GoldDeskId)
             .ToListAsync(cancellationToken);
 

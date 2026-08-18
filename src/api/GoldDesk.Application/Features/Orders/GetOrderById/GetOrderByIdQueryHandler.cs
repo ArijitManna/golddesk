@@ -73,7 +73,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
             AdvancePaid = order.AdvancePaid,
             EstimatedAmount = order.EstimatedAmount,
             Notes = order.Notes,
-            KarigarName = isShowroomViewer ? null : activeAssignment?.Karigar.Name,
+            KarigarName = isShowroomViewer ? null : activeAssignment?.Karigar?.Name,
             AssignmentStatus = isShowroomViewer ? null : activeAssignment?.Status.ToString(),
             DueDate = isShowroomViewer ? null : activeAssignment?.DueDate.ToString("yyyy-MM-dd"),
             Source = order.Source.ToString(),
@@ -105,7 +105,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
                     .Select(a => new AssignmentDto
                     {
                         Id = a.Id,
-                        KarigarName = a.Karigar.Name,
+                        KarigarName = a.Karigar?.Name ?? string.Empty,
                         KarigarId = a.KarigarId,
                         GivenDate = a.GivenDate.ToString("yyyy-MM-dd"),
                         DueDate = a.DueDate.ToString("yyyy-MM-dd"),

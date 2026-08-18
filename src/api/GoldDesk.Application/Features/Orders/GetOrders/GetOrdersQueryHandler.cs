@@ -122,7 +122,7 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
                     : o.Assignments
                         .OrderByDescending(a => a.IsActive)
                         .ThenByDescending(a => a.CreatedAt)
-                        .Select(a => a.Karigar.Name)
+                        .Select(a => a.Karigar != null ? a.Karigar.Name : null)
                         .FirstOrDefault(),
                 AssignmentStatus = isShowroomViewer
                     ? null

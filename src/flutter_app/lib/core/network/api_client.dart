@@ -36,18 +36,27 @@ class _AuthInterceptor extends Interceptor {
 
   _AuthInterceptor(this._storage, this._dio);
 
+  bool _isAnonymousAuth(RequestOptions options) {
+    final path = options.path;
+    return path.contains('/auth/login') ||
+        path.contains('/auth/register') ||
+        path.contains('/auth/refresh');
+  }
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    final token = await _storage.read(key: AppConstants.accessTokenKey);
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    if (!_isAnonymousAuth(options)) {
+      final token = await _storage.read(key: AppConstants.accessTokenKey);
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
     handler.next(options);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
+    if (err.response?.statusCode == 401 && !_isAnonymousAuth(err.requestOptions)) {
       // Try to refresh token
       final refreshToken = await _storage.read(key: AppConstants.refreshTokenKey);
       if (refreshToken != null) {

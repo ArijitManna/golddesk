@@ -160,7 +160,7 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
             AdvancePaid = o.AdvancePaid,
             EstimatedAmount = o.EstimatedAmount,
             Notes = o.Notes,
-            KarigarName = isShowroomViewer ? null : activeAssignment?.Karigar.Name,
+            KarigarName = isShowroomViewer ? null : activeAssignment?.Karigar?.Name,
             DueDate = isShowroomViewer ? null : activeAssignment?.DueDate.ToString("yyyy-MM-dd"),
             FirstItemImage = o.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
             Source = o.Source.ToString(),

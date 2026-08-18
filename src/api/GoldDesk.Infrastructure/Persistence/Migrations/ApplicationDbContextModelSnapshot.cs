@@ -252,6 +252,13 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CustomerCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("");
+
                     b.Property<string>("Email")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -280,6 +287,8 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LinkedBusinessId");
+
+                    b.HasIndex("TenantId", "CustomerCode");
 
                     b.HasIndex("TenantId", "Name");
 
