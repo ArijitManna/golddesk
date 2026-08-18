@@ -25,7 +25,7 @@ public static class OrderEndpoints
             .WithTags("Orders")
             .RequireAuthorization();
 
-        group.MapGet("/", async (string? status, string? due, string? search, string? source, Guid? shopId, int? page, int? pageSize, IMediator mediator) =>
+        group.MapGet("/", async (string? status, string? due, string? search, string? source, Guid? shopId, Guid? showroomId, Guid? externalCustomerId, int? page, int? pageSize, IMediator mediator) =>
         {
             var result = await mediator.Send(new GetOrdersQuery
             {
@@ -34,6 +34,8 @@ public static class OrderEndpoints
                 Search = search,
                 Source = source,
                 ShopId = shopId,
+                ShowroomId = showroomId,
+                ExternalCustomerId = externalCustomerId,
                 Page = page ?? 1,
                 PageSize = pageSize ?? 20
             });

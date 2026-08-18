@@ -15,6 +15,8 @@ class OrderRepository {
     String? search,
     String? source,
     String? shopId,
+    String? showroomId,
+    String? externalCustomerId,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -27,6 +29,9 @@ class OrderRepository {
           if (search != null) 'search': search,
           if (source != null) 'source': source,
           if (shopId != null) 'shopId': shopId,
+          if (showroomId != null) 'showroomId': showroomId,
+          if (externalCustomerId != null)
+            'externalCustomerId': externalCustomerId,
           'page': page,
           'pageSize': pageSize,
         },

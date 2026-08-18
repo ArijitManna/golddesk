@@ -89,6 +89,16 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
             query = query.Where(o => o.TenantId == request.ShopId.Value);
         }
 
+        if (request.ShowroomId.HasValue)
+        {
+            query = query.Where(o => o.CreatedByBusinessId == request.ShowroomId.Value);
+        }
+
+        if (request.ExternalCustomerId.HasValue)
+        {
+            query = query.Where(o => o.OrderFromExternalBusinessId == request.ExternalCustomerId.Value);
+        }
+
         // Search by order number or order-from business.
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

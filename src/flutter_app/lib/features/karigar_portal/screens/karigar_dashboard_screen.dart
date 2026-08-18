@@ -9,6 +9,7 @@ import '../../../data/repositories/karigar_portal_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../../dashboard/widgets/side_drawer.dart';
+import '../../dashboard/widgets/party_count_section.dart';
 
 class KarigarDashboardScreen extends StatefulWidget {
   const KarigarDashboardScreen({super.key});
@@ -149,6 +150,18 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
               ],
             ),
             const SizedBox(height: 24),
+            PartyCountSection(
+              title: 'Shops',
+              searchHint: 'Search shop name / code',
+              emptyMessage: 'No shop work yet.',
+              icon: Icons.store_outlined,
+              parties: data.shops,
+              onTap: (shop) => _openOrders(
+                shopId: shop.businessId,
+                shopName: shop.businessName,
+              ),
+            ),
+            const SizedBox(height: 24),
             // Due Soon section
             if (data.dueSoonOrders.isNotEmpty) ...[
               _sectionTitle('Due Soon (Next 3 Days)'),
@@ -193,6 +206,8 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
     String? status,
     String? assignmentStatus,
     String? due,
+    String? shopId,
+    String? shopName,
   }) {
     context.go(
       Uri(
@@ -201,6 +216,8 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
           if (status != null) 'status': status,
           if (assignmentStatus != null) 'assignmentStatus': assignmentStatus,
           if (due != null) 'due': due,
+          if (shopId != null) 'shopId': shopId,
+          if (shopName != null) 'shopName': shopName,
         },
       ).toString(),
     );

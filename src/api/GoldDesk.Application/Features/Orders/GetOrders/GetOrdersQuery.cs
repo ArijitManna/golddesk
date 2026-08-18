@@ -12,6 +12,8 @@ public record GetOrdersQuery : IRequest<Result<PagedResult<OrderDto>>>
     public string? Search { get; init; }
     public string? Source { get; init; }
     public Guid? ShopId { get; init; }
+    public Guid? ShowroomId { get; init; }
+    public Guid? ExternalCustomerId { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }

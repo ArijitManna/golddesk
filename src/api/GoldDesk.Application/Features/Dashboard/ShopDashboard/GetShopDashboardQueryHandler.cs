@@ -1,6 +1,7 @@
 using GoldDesk.Application.Common.Interfaces;
 using GoldDesk.Application.Common.Models;
 using GoldDesk.Application.Features.Orders.Dtos;
+using GoldDesk.Domain.Entities;
 using GoldDesk.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -86,19 +87,56 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
                 .CountAsync(k => k.TenantId == business.Id && k.Status == KarigarStatus.Active, cancellationToken)
             : 0;
 
-        var connectedShops = business.BusinessType == BusinessType.Showroom
-            ? orders
-                .Where(o => o.TenantId != business.Id)
-                .GroupBy(o => new { o.TenantId, o.Tenant.ShopName })
-                .OrderByDescending(g => g.Count())
-                .Select(g => new BusinessOrderCountDto
+        var connectedShops = new List<BusinessOrderCountDto>();
+        var connectedShowrooms = new List<BusinessOrderCountDto>();
+        var externalCustomers = new List<BusinessOrderCountDto>();
+
+        var acceptedConnections = await _context.BusinessConnections
+            .AsNoTracking()
+            .Include(c => c.FromBusiness)
+            .Include(c => c.ToBusiness)
+            .Where(c => c.Status == ConnectionStatus.Accepted &&
+                        (c.FromBusinessId == business.Id || c.ToBusinessId == business.Id))
+            .ToListAsync(cancellationToken);
+
+        Tenant Counterpart(BusinessConnection connection) =>
+            connection.FromBusinessId == business.Id ? connection.ToBusiness : connection.FromBusiness;
+
+        if (business.BusinessType == BusinessType.Showroom)
+        {
+            var shops = acceptedConnections
+                .Where(c => c.ConnectionType == ConnectionType.ShowroomShop)
+                .Select(Counterpart)
+                .Where(t => t.BusinessType == BusinessType.Shop);
+            connectedShops = ToPartyCounts(shops, shopId => orders.Count(o => o.TenantId == shopId));
+        }
+        else if (business.BusinessType == BusinessType.Shop)
+        {
+            var showrooms = acceptedConnections
+                .Where(c => c.ConnectionType == ConnectionType.ShowroomShop)
+                .Select(Counterpart)
+                .Where(t => t.BusinessType == BusinessType.Showroom);
+            connectedShowrooms = ToPartyCounts(
+                showrooms,
+                showroomId => orders.Count(o =>
+                    o.TenantId == business.Id && o.CreatedByBusinessId == showroomId));
+
+            var externals = await _context.ExternalBusinesses
+                .AsNoTracking()
+                .Where(e => e.TenantId == business.Id)
+                .ToListAsync(cancellationToken);
+            externalCustomers = externals
+                .Select(e => new BusinessOrderCountDto
                 {
-                    BusinessId = g.Key.TenantId,
-                    BusinessName = g.Key.ShopName,
-                    OrderCount = g.Count()
+                    BusinessId = e.Id,
+                    BusinessName = e.Name,
+                    Code = e.CustomerCode,
+                    OrderCount = orders.Count(o => o.OrderFromExternalBusinessId == e.Id)
                 })
-                .ToList()
-            : new List<BusinessOrderCountDto>();
+                .OrderByDescending(p => p.OrderCount)
+                .ThenBy(p => p.BusinessName)
+                .ToList();
+        }
 
         var isShowroomViewer = business.BusinessType == BusinessType.Showroom;
 
@@ -133,6 +171,8 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
             ActiveKarigars = activeKarigars,
             BusinessType = business.BusinessType.ToString(),
             ConnectedShops = connectedShops,
+            ConnectedShowrooms = connectedShowrooms,
+            ExternalCustomers = externalCustomers,
             RecentOrders = recentOrders,
             OverdueOrders = overdueOrders
         });
@@ -171,4 +211,21 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
             CreatedAt = o.CreatedAt
         };
     }
+
+    private static List<BusinessOrderCountDto> ToPartyCounts(
+        IEnumerable<Domain.Entities.Tenant> parties,
+        Func<Guid, int> countOf) =>
+        parties
+            .GroupBy(party => party.Id)
+            .Select(group => group.First())
+            .Select(party => new BusinessOrderCountDto
+            {
+                BusinessId = party.Id,
+                BusinessName = party.ShopName,
+                Code = party.GoldDeskId,
+                OrderCount = countOf(party.Id)
+            })
+            .OrderByDescending(party => party.OrderCount)
+            .ThenBy(party => party.BusinessName)
+            .ToList();
 }

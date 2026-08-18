@@ -13,6 +13,8 @@ class ShopDashboardData {
   final int activeKarigars;
   final String businessType;
   final List<BusinessOrderCount> connectedShops;
+  final List<BusinessOrderCount> connectedShowrooms;
+  final List<BusinessOrderCount> externalCustomers;
   final List<OrderSummary> recentOrders;
   final List<OrderSummary> overdueOrders;
 
@@ -31,6 +33,8 @@ class ShopDashboardData {
     required this.activeKarigars,
     required this.businessType,
     required this.connectedShops,
+    required this.connectedShowrooms,
+    required this.externalCustomers,
     required this.recentOrders,
     required this.overdueOrders,
   });
@@ -55,6 +59,16 @@ class ShopDashboardData {
               ?.map((e) => BusinessOrderCount.fromJson(e))
               .toList() ??
           [],
+      connectedShowrooms:
+          (json['connectedShowrooms'] as List?)
+              ?.map((e) => BusinessOrderCount.fromJson(e))
+              .toList() ??
+          [],
+      externalCustomers:
+          (json['externalCustomers'] as List?)
+              ?.map((e) => BusinessOrderCount.fromJson(e))
+              .toList() ??
+          [],
       recentOrders:
           (json['recentOrders'] as List?)
               ?.map((e) => OrderSummary.fromJson(e))
@@ -72,11 +86,13 @@ class ShopDashboardData {
 class BusinessOrderCount {
   final String businessId;
   final String businessName;
+  final String? code;
   final int orderCount;
 
   const BusinessOrderCount({
     required this.businessId,
     required this.businessName,
+    this.code,
     required this.orderCount,
   });
 
@@ -84,6 +100,7 @@ class BusinessOrderCount {
       BusinessOrderCount(
         businessId: json['businessId'],
         businessName: json['businessName'],
+        code: json['code'],
         orderCount: json['orderCount'] ?? 0,
       );
 }

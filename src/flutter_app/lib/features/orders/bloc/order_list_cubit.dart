@@ -24,6 +24,8 @@ class OrderListLoaded extends OrderListState {
   final String? activeDueFilter;
   final String? activeSource;
   final String? activeShopId;
+  final String? activeShowroomId;
+  final String? activeExternalCustomerId;
 
   const OrderListLoaded({
     required this.orders,
@@ -34,6 +36,8 @@ class OrderListLoaded extends OrderListState {
     this.activeDueFilter,
     this.activeSource,
     this.activeShopId,
+    this.activeShowroomId,
+    this.activeExternalCustomerId,
   });
 
   @override
@@ -45,6 +49,8 @@ class OrderListLoaded extends OrderListState {
     activeDueFilter,
     activeSource,
     activeShopId,
+    activeShowroomId,
+    activeExternalCustomerId,
   ];
 }
 
@@ -67,6 +73,8 @@ class OrderListCubit extends Cubit<OrderListState> {
     String? search,
     String? source,
     String? shopId,
+    String? showroomId,
+    String? externalCustomerId,
   }) async {
     emit(OrderListLoading());
     try {
@@ -76,6 +84,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         search: search,
         source: source,
         shopId: shopId,
+        showroomId: showroomId,
+        externalCustomerId: externalCustomerId,
         page: 1,
         pageSize: 20,
       );
@@ -88,6 +98,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         activeDueFilter: due,
         activeSource: source,
         activeShopId: shopId,
+        activeShowroomId: showroomId,
+        activeExternalCustomerId: externalCustomerId,
       ));
     } on ApiException catch (e) {
       emit(OrderListError(e.message));
@@ -106,6 +118,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         due: currentState.activeDueFilter,
         source: currentState.activeSource,
         shopId: currentState.activeShopId,
+        showroomId: currentState.activeShowroomId,
+        externalCustomerId: currentState.activeExternalCustomerId,
         page: currentState.page + 1,
         pageSize: 20,
       );
@@ -118,6 +132,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         activeDueFilter: currentState.activeDueFilter,
         activeSource: currentState.activeSource,
         activeShopId: currentState.activeShopId,
+        activeShowroomId: currentState.activeShowroomId,
+        activeExternalCustomerId: currentState.activeExternalCustomerId,
       ));
     } catch (_) {
       // Silently fail on load more

@@ -22,6 +22,8 @@ public record ShopDashboardDto
     public int ActiveKarigars { get; init; }
     public string BusinessType { get; init; } = "Shop";
     public List<BusinessOrderCountDto> ConnectedShops { get; init; } = new();
+    public List<BusinessOrderCountDto> ConnectedShowrooms { get; init; } = new();
+    public List<BusinessOrderCountDto> ExternalCustomers { get; init; } = new();
     public List<OrderDto> RecentOrders { get; init; } = new();
     public List<OrderDto> OverdueOrders { get; init; } = new();
 }
@@ -30,5 +32,6 @@ public record BusinessOrderCountDto
 {
     public Guid BusinessId { get; init; }
     public string BusinessName { get; init; } = string.Empty;
+    public string? Code { get; init; }
     public int OrderCount { get; init; }
 }

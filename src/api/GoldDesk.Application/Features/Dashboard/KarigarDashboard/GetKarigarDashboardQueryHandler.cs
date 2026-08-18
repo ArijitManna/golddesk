@@ -21,6 +21,7 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
     {
         // Find Karigar by current user
         var karigar = await _context.Karigars
+            .Include(k => k.Tenant)
             .FirstOrDefaultAsync(k => k.UserId == _currentUser.UserId, cancellationToken);
 
         if (karigar == null)
@@ -98,6 +99,40 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
             })
             .ToList();
 
+        var shopCounts = activeAssignments
+            .GroupBy(a => a.Order.TenantId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var shopIds = new HashSet<Guid>(shopCounts.Keys);
+        if (karigar.Tenant?.BusinessType == BusinessType.Shop)
+            shopIds.Add(karigar.TenantId);
+
+        var connectedShopIds = await _context.BusinessConnections
+            .AsNoTracking()
+            .Where(c => c.Status == ConnectionStatus.Accepted &&
+                        c.ConnectionType == ConnectionType.ShopKarigar &&
+                        (c.FromBusinessId == karigar.TenantId || c.ToBusinessId == karigar.TenantId))
+            .Select(c => c.FromBusinessId == karigar.TenantId ? c.ToBusinessId : c.FromBusinessId)
+            .ToListAsync(cancellationToken);
+        foreach (var shopId in connectedShopIds)
+            shopIds.Add(shopId);
+
+        var shopRecords = shopIds.Count == 0
+            ? new List<KarigarShopCountDto>()
+            : (await _context.Tenants
+                .AsNoTracking()
+                .Where(t => shopIds.Contains(t.Id) && t.BusinessType == BusinessType.Shop)
+                .ToListAsync(cancellationToken))
+                .Select(t => new KarigarShopCountDto
+                {
+                    BusinessId = t.Id,
+                    BusinessName = t.ShopName,
+                    Code = t.GoldDeskId,
+                    OrderCount = shopCounts.GetValueOrDefault(t.Id)
+                })
+                .OrderByDescending(s => s.OrderCount)
+                .ThenBy(s => s.BusinessName)
+                .ToList();
+
         return Result<KarigarDashboardDto>.Success(new KarigarDashboardDto
         {
             TotalAssigned = totalAssigned,
@@ -109,7 +144,8 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
             Overdue = overdue,
             Ready = ready,
             DueSoonOrders = dueSoonOrders,
-            RecentOrders = recentOrders
+            RecentOrders = recentOrders,
+            Shops = shopRecords
         });
     }
 }

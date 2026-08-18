@@ -11,12 +11,16 @@ class KarigarOrdersScreen extends StatefulWidget {
   final String? initialStatus;
   final String? initialAssignmentStatus;
   final String? initialDue;
+  final String? initialShopId;
+  final String? initialShopName;
 
   const KarigarOrdersScreen({
     super.key,
     this.initialStatus,
     this.initialAssignmentStatus,
     this.initialDue,
+    this.initialShopId,
+    this.initialShopName,
   });
 
   @override
@@ -112,6 +116,7 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
         status: tab.status,
         assignmentStatus: tab.assignmentStatus,
         due: tab.due,
+        shopId: widget.initialShopId,
       );
     } catch (_) {}
     if (mounted) setState(() => _isLoading = false);
@@ -129,7 +134,11 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
       drawer: const SideDrawer(),
       appBar: AppBar(
         backgroundColor: AppColors.primaryDark,
-        title: const Text('My Orders'),
+        title: Text(
+          widget.initialShopName?.isNotEmpty == true
+              ? widget.initialShopName!
+              : 'My Orders',
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: [for (final tab in _tabs) Tab(text: tab.label)],

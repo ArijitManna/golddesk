@@ -17,6 +17,15 @@ public record KarigarDashboardDto
     public int Ready { get; init; }
     public List<KarigarOrderDto> DueSoonOrders { get; init; } = new();
     public List<KarigarOrderDto> RecentOrders { get; init; } = new();
+    public List<KarigarShopCountDto> Shops { get; init; } = new();
+}
+
+public record KarigarShopCountDto
+{
+    public Guid BusinessId { get; init; }
+    public string BusinessName { get; init; } = string.Empty;
+    public string? Code { get; init; }
+    public int OrderCount { get; init; }
 }
 
 public record KarigarOrderDto

@@ -16,6 +16,8 @@ class OrderListScreen extends StatefulWidget {
   final String? initialSource;
   final String? initialShopId;
   final String? initialShopName;
+  final String? initialShowroomId;
+  final String? initialExternalCustomerId;
 
   const OrderListScreen({
     super.key,
@@ -24,6 +26,8 @@ class OrderListScreen extends StatefulWidget {
     this.initialSource,
     this.initialShopId,
     this.initialShopName,
+    this.initialShowroomId,
+    this.initialExternalCustomerId,
   });
 
   @override
@@ -78,6 +82,8 @@ class _OrderListScreenState extends State<OrderListScreen>
       due: _dueFilters[initialIndex],
       source: widget.initialSource,
       shopId: widget.initialShopId,
+      showroomId: widget.initialShowroomId,
+      externalCustomerId: widget.initialExternalCustomerId,
     );
   }
 
@@ -121,6 +127,14 @@ class _OrderListScreenState extends State<OrderListScreen>
     if (widget.initialShopId != null && widget.initialShopId!.isNotEmpty) {
       return 'Selected shop';
     }
+    if (widget.initialShowroomId != null &&
+        widget.initialShowroomId!.isNotEmpty) {
+      return 'Selected showroom';
+    }
+    if (widget.initialExternalCustomerId != null &&
+        widget.initialExternalCustomerId!.isNotEmpty) {
+      return 'Selected customer';
+    }
     return null;
   }
 
@@ -151,6 +165,8 @@ class _OrderListScreenState extends State<OrderListScreen>
       search: _searchController.text.isEmpty ? null : _searchController.text,
       source: widget.initialSource,
       shopId: widget.initialShopId,
+      showroomId: widget.initialShowroomId,
+      externalCustomerId: widget.initialExternalCustomerId,
     );
   }
 
@@ -162,6 +178,8 @@ class _OrderListScreenState extends State<OrderListScreen>
       search: _searchController.text.isEmpty ? null : _searchController.text,
       source: widget.initialSource,
       shopId: widget.initialShopId,
+      showroomId: widget.initialShowroomId,
+      externalCustomerId: widget.initialExternalCustomerId,
     );
   }
 

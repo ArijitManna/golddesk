@@ -13,6 +13,7 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../bloc/dashboard_cubit.dart';
 import '../widgets/side_drawer.dart';
+import '../widgets/party_count_section.dart';
 
 class ShopDashboardScreen extends StatefulWidget {
   const ShopDashboardScreen({super.key});
@@ -348,15 +349,60 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
               const SizedBox(height: 16),
             ],
             if (data.businessType == 'Showroom') ...[
-              const SizedBox(height: 24),
-              _buildSectionHeader('My Shops'),
-              const SizedBox(height: 8),
-              if (data.connectedShops.isEmpty)
-                _buildEmptyState(
-                  'No orders created for connected Shops yet. Connect a shop to start creating orders.',
-                )
-              else
-                ...data.connectedShops.map(_buildConnectedShopCard),
+              PartyCountSection(
+                title: 'My Shops',
+                searchHint: 'Search shop name / code',
+                emptyMessage:
+                    'No shops connected yet. Connect a shop to start creating orders.',
+                icon: Icons.store_outlined,
+                parties: data.connectedShops,
+                onTap: (shop) => context.go(
+                  Uri(
+                    path: '/orders',
+                    queryParameters: {
+                      'shopId': shop.businessId,
+                      'shopName': shop.businessName,
+                    },
+                  ).toString(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (data.businessType == 'Shop') ...[
+              PartyCountSection(
+                title: 'Showrooms',
+                searchHint: 'Search showroom name / code',
+                emptyMessage: 'No showrooms connected yet.',
+                icon: Icons.business_outlined,
+                parties: data.connectedShowrooms,
+                onTap: (showroom) => context.go(
+                  Uri(
+                    path: '/orders',
+                    queryParameters: {
+                      'showroomId': showroom.businessId,
+                      'shopName': showroom.businessName,
+                    },
+                  ).toString(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              PartyCountSection(
+                title: 'External Customers',
+                searchHint: 'Search customer name / code',
+                emptyMessage: 'No external customers yet.',
+                icon: Icons.people_outlined,
+                parties: data.externalCustomers,
+                onTap: (customer) => context.go(
+                  Uri(
+                    path: '/orders',
+                    queryParameters: {
+                      'externalCustomerId': customer.businessId,
+                      'shopName': customer.businessName,
+                    },
+                  ).toString(),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
             // Recent Orders
             _buildSectionHeader(
@@ -500,47 +546,6 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
           onTap: () => context.go('/orders?due=next3'),
         ),
       ],
-    );
-  }
-
-  Widget _buildConnectedShopCard(BusinessOrderCount shop) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.gold.withValues(alpha: 0.12),
-          child: const Icon(Icons.store_outlined, color: AppColors.gold),
-        ),
-        title: Text(
-          shop.businessName,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: const Text('Orders created for this Shop'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${shop.orderCount}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryDark,
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, color: AppColors.textLight),
-          ],
-        ),
-        onTap: () => context.go(
-          Uri(
-            path: '/orders',
-            queryParameters: {
-              'shopId': shop.businessId,
-              'shopName': shop.businessName,
-            },
-          ).toString(),
-        ),
-      ),
     );
   }
 

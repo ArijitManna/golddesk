@@ -63,6 +63,11 @@ public class GetKarigarOrdersQueryHandler : IRequestHandler<GetKarigarOrdersQuer
             };
         }
 
+        if (request.ShopId.HasValue)
+        {
+            query = query.Where(a => a.Order.TenantId == request.ShopId.Value);
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query

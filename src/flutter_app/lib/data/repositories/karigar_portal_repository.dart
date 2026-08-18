@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exceptions.dart';
+import '../models/dashboard_models.dart';
 
 class KarigarPortalRepository {
   final ApiClient _apiClient;
@@ -20,6 +21,7 @@ class KarigarPortalRepository {
     String? status,
     String? assignmentStatus,
     String? due,
+    String? shopId,
   }) async {
     try {
       final response = await _apiClient.dio.get(
@@ -28,6 +30,7 @@ class KarigarPortalRepository {
           if (status != null) 'status': status,
           if (assignmentStatus != null) 'assignmentStatus': assignmentStatus,
           if (due != null) 'due': due,
+          if (shopId != null) 'shopId': shopId,
           'pageSize': 50,
         },
       );
@@ -74,6 +77,7 @@ class KarigarDashboardData {
   final int ready;
   final List<KarigarOrderItem> dueSoonOrders;
   final List<KarigarOrderItem> recentOrders;
+  final List<BusinessOrderCount> shops;
 
   KarigarDashboardData({
     required this.totalAssigned,
@@ -86,6 +90,7 @@ class KarigarDashboardData {
     required this.ready,
     required this.dueSoonOrders,
     required this.recentOrders,
+    required this.shops,
   });
 
   factory KarigarDashboardData.fromJson(Map<String, dynamic> json) =>
@@ -106,6 +111,11 @@ class KarigarDashboardData {
         recentOrders:
             (json['recentOrders'] as List?)
                 ?.map((e) => KarigarOrderItem.fromJson(e))
+                .toList() ??
+            [],
+        shops:
+            (json['shops'] as List?)
+                ?.map((e) => BusinessOrderCount.fromJson(e))
                 .toList() ??
             [],
       );

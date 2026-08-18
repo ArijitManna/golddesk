@@ -112,15 +112,22 @@ class AppRouter {
           final source = state.uri.queryParameters['source'];
           final shopId = state.uri.queryParameters['shopId'];
           final shopName = state.uri.queryParameters['shopName'];
+          final showroomId = state.uri.queryParameters['showroomId'];
+          final externalCustomerId =
+              state.uri.queryParameters['externalCustomerId'];
           return BlocProvider(
             create: (_) => getIt<OrderListCubit>(),
             child: OrderListScreen(
-              key: ValueKey('orders_${status}_${due}_${source}_$shopId'),
+              key: ValueKey(
+                'orders_${status}_${due}_${source}_${shopId}_${showroomId}_$externalCustomerId',
+              ),
               initialStatus: status,
               initialDue: due,
               initialSource: source,
               initialShopId: shopId,
               initialShopName: shopName,
+              initialShowroomId: showroomId,
+              initialExternalCustomerId: externalCustomerId,
             ),
           );
         },
@@ -222,13 +229,17 @@ class AppRouter {
           final assignmentStatus =
               state.uri.queryParameters['assignmentStatus'];
           final due = state.uri.queryParameters['due'];
+          final shopId = state.uri.queryParameters['shopId'];
+          final shopName = state.uri.queryParameters['shopName'];
           return KarigarOrdersScreen(
             key: ValueKey(
-              'karigar_orders_${status}_${assignmentStatus}_$due',
+              'karigar_orders_${status}_${assignmentStatus}_${due}_$shopId',
             ),
             initialStatus: status,
             initialAssignmentStatus: assignmentStatus,
             initialDue: due,
+            initialShopId: shopId,
+            initialShopName: shopName,
           );
         },
       ),
