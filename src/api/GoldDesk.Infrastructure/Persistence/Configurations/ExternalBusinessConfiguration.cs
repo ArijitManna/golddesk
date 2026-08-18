@@ -11,6 +11,7 @@ public class ExternalBusinessConfiguration : IEntityTypeConfiguration<ExternalBu
         builder.ToTable("external_businesses");
         builder.HasKey(b => b.Id);
 
+        builder.Property(b => b.CustomerCode).HasMaxLength(50).IsRequired();
         builder.Property(b => b.Name).HasMaxLength(200).IsRequired();
         builder.Property(b => b.BusinessType).HasConversion<string>().HasMaxLength(50);
         builder.Property(b => b.ContactPerson).HasMaxLength(150);
@@ -19,6 +20,7 @@ public class ExternalBusinessConfiguration : IEntityTypeConfiguration<ExternalBu
         builder.Property(b => b.Address).HasMaxLength(1000);
 
         builder.HasIndex(b => new { b.TenantId, b.Name });
+        builder.HasIndex(b => new { b.TenantId, b.CustomerCode });
         builder.HasIndex(b => b.LinkedBusinessId);
 
         builder.HasOne(b => b.LinkedBusiness)

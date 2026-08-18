@@ -36,6 +36,7 @@ class _ExternalBusinessListScreenState
   }
 
   Future<void> _add() async {
+    final code = TextEditingController();
     final name = TextEditingController();
     final contact = TextEditingController();
     final mobile = TextEditingController();
@@ -58,6 +59,12 @@ class _ExternalBusinessListScreenState
             ),
             const SizedBox(height: 16),
             GoldDeskTextField(
+              label: 'Customer Code *',
+              hint: 'e.g. S00001',
+              controller: code,
+            ),
+            const SizedBox(height: 12),
+            GoldDeskTextField(
               label: 'Customer Name *',
               hint: 'e.g. Shop X',
               controller: name,
@@ -78,8 +85,10 @@ class _ExternalBusinessListScreenState
             GoldDeskButton(
               text: 'SAVE CUSTOMER',
               onPressed: () async {
+                if (code.text.trim().isEmpty) return;
                 if (name.text.trim().isEmpty) return;
                 await getIt<MasterRepository>().createExternalBusiness(
+                  customerCode: code.text.trim(),
                   name: name.text.trim(),
                   businessType: 'Shop',
                   contactPerson: contact.text.trim(),
@@ -123,7 +132,7 @@ class _ExternalBusinessListScreenState
             const SizedBox(height: 16),
             GoldDeskTextField(
               label: 'GoldDesk ID',
-              hint: 'e.g. GD-S-001',
+              hint: 'e.g. S00001 / P00001 / K00001',
               controller: goldDeskId,
             ),
             const SizedBox(height: 20),
@@ -197,6 +206,7 @@ class _ExternalBusinessListScreenState
                   subtitle: Text(
                     [
                       'External Customer',
+                      business.customerCode,
                       if (business.contactPerson != null)
                         business.contactPerson!,
                       if (business.mobile != null) business.mobile!,

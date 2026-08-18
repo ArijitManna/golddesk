@@ -9,6 +9,9 @@ namespace GoldDesk.Domain.Entities;
 /// </summary>
 public class ExternalBusiness : BaseTenantEntity
 {
+    // Human-friendly external customer code (e.g. C00001 or P00001 style).
+    // Used for order creation search (code + name).
+    public string CustomerCode { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public BusinessType BusinessType { get; set; } = BusinessType.Shop;
     public string? ContactPerson { get; set; }

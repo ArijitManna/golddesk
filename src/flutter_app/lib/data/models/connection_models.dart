@@ -70,6 +70,7 @@ class BusinessConnection {
 
 class ExternalBusiness {
   final String id;
+  final String customerCode;
   final String name;
   final String businessType;
   final String? contactPerson;
@@ -79,6 +80,7 @@ class ExternalBusiness {
 
   const ExternalBusiness({
     required this.id,
+    required this.customerCode,
     required this.name,
     required this.businessType,
     this.contactPerson,
@@ -90,6 +92,7 @@ class ExternalBusiness {
   factory ExternalBusiness.fromJson(Map<String, dynamic> json) =>
       ExternalBusiness(
         id: json['id'],
+        customerCode: json['customerCode'] ?? '',
         name: json['name'],
         businessType: json['businessType'],
         contactPerson: json['contactPerson'],

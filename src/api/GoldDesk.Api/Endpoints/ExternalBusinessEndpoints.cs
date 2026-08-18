@@ -23,6 +23,8 @@ public static class ExternalBusinessEndpoints
         {
             if (string.IsNullOrWhiteSpace(command.Name))
                 return Results.BadRequest(new { error = "Business name is required." });
+            if (string.IsNullOrWhiteSpace(command.CustomerCode))
+                return Results.BadRequest(new { error = "Customer code is required." });
 
             var result = await mediator.Send(command);
             return result.IsSuccess

@@ -163,6 +163,100 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     });
   }
 
+  Widget _buildOrderForPicker() {
+    final selected = _selectedShop;
+    return Autocomplete<BusinessConnection>(
+      displayStringForOption: (option) =>
+          '${option.counterpartyName} • ${option.counterpartyGoldDeskId}',
+      optionsBuilder: (TextEditingValue value) {
+        final query = value.text.trim().toLowerCase();
+        if (query.isEmpty) return _connectedShops;
+        return _connectedShops.where(
+          (shop) =>
+              shop.counterpartyName.toLowerCase().contains(query) ||
+              shop.counterpartyGoldDeskId.toLowerCase().contains(query),
+        );
+      },
+      onSelected: (shop) => _selectShop(shop),
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        if (selected != null &&
+            controller.text.isEmpty &&
+            !focusNode.hasFocus) {
+          controller.text =
+              '${selected.counterpartyName} • ${selected.counterpartyGoldDeskId}';
+        }
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            hintText: 'Search shop name / code',
+            prefixIcon: const Icon(Icons.storefront_outlined, size: 20),
+            suffixIcon: selected == null && controller.text.isEmpty
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () {
+                      controller.clear();
+                      setState(() => _selectedShop = null);
+                    },
+                  ),
+          ),
+          onChanged: (value) {
+            final selectedLabel = selected == null
+                ? ''
+                : '${selected.counterpartyName} • ${selected.counterpartyGoldDeskId}';
+            if (selected != null && value.trim() != selectedLabel) {
+              setState(() => _selectedShop = null);
+            }
+          },
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        final maxWidth = MediaQuery.of(context).size.width - 32;
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: 260, maxWidth: maxWidth),
+              child: options.isEmpty
+                  ? const ListTile(
+                      dense: true,
+                      title: Text('No matching connected Shop'),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final shop = options.elementAt(index);
+                        return ListTile(
+                          dense: true,
+                          leading: const Icon(
+                            Icons.storefront_outlined,
+                            color: AppColors.gold,
+                            size: 20,
+                          ),
+                          title: Text(
+                            shop.counterpartyName,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            shop.counterpartyGoldDeskId,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => onSelected(shop),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   List<_OrderFromOption> get _orderFromOptions => [
         ..._connectedShowrooms.map(_OrderFromOption.showroom),
         ..._externalBusinesses.map(_OrderFromOption.external),
@@ -199,7 +293,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               controller: controller,
               focusNode: focusNode,
               decoration: InputDecoration(
-                hintText: 'Search Showroom ID / External Customer name',
+                hintText: 'Search Showroom ID / External Customer code or name',
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: selected == null && controller.text.isEmpty
                     ? null
@@ -337,6 +431,16 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   void _onSave() {
+    if (_isShowroom && !_isEdit && _selectedShop == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Select the Shop that will fulfil this order'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       final user = (context.read<AuthBloc>().state as AuthAuthenticated).user;
       final request = CreateOrderRequest(
@@ -445,33 +549,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                               ?.copyWith(fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 6),
-                        DropdownButtonFormField<BusinessConnection?>(
-                          isExpanded: true,
-                          initialValue: _selectedShop,
-                          decoration: const InputDecoration(
-                            hintText: 'Select connected Shop',
-                            prefixIcon: Icon(
-                              Icons.storefront_outlined,
-                              size: 20,
-                            ),
-                          ),
-                          items: [
-                            ..._connectedShops.map(
-                              (shop) => DropdownMenuItem<BusinessConnection?>(
-                                value: shop,
-                                child: Text(
-                                  '${shop.counterpartyName} • ${shop.counterpartyGoldDeskId}',
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ),
-                          ],
-                          onChanged: _selectShop,
-                          validator: (value) => value == null
-                              ? 'Select the Shop that will fulfil this order'
-                              : null,
-                        ),
+                        _buildOrderForPicker(),
                         const SizedBox(height: 16),
                       ],
                       if (_isShop && !_isEdit) ...[
@@ -864,7 +942,7 @@ class _OrderFromOption {
 
   String get subtitle => isShowroom
       ? '${showroom!.counterpartyGoldDeskId} • Showroom'
-      : 'External Customer';
+      : '${externalBusiness!.customerCode} • External Customer';
 
   String get label => '$title • $subtitle';
 
@@ -873,8 +951,8 @@ class _OrderFromOption {
       return showroom!.counterpartyName.toLowerCase().contains(query) ||
           showroom!.counterpartyGoldDeskId.toLowerCase().contains(query);
     }
-    return externalBusiness!.name.toLowerCase().contains(query) ||
-        externalBusiness!.businessType.toLowerCase().contains(query) ||
+    return externalBusiness!.customerCode.toLowerCase().contains(query) ||
+        externalBusiness!.name.toLowerCase().contains(query) ||
         (externalBusiness!.mobile?.toLowerCase().contains(query) ?? false);
   }
 

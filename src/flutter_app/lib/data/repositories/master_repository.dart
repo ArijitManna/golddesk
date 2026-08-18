@@ -20,6 +20,7 @@ class MasterRepository {
   }
 
   Future<ExternalBusiness> createExternalBusiness({
+    required String customerCode,
     required String name,
     required String businessType,
     String? contactPerson,
@@ -30,6 +31,7 @@ class MasterRepository {
       final response = await _apiClient.dio.post(
         '/external-businesses',
         data: {
+          'customerCode': customerCode,
           'name': name,
           'businessType': businessType,
           if (contactPerson != null && contactPerson.isNotEmpty)

@@ -9,6 +9,7 @@ namespace GoldDesk.Application.Features.ExternalBusinesses;
 
 public record CreateExternalBusinessCommand : IRequest<Result<ExternalBusinessDto>>
 {
+    public string CustomerCode { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public BusinessType BusinessType { get; init; } = BusinessType.Shop;
     public string? ContactPerson { get; init; }
@@ -22,6 +23,7 @@ public record GetExternalBusinessesQuery : IRequest<Result<List<ExternalBusiness
 public record ExternalBusinessDto
 {
     public Guid Id { get; init; }
+    public string CustomerCode { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string BusinessType { get; init; } = string.Empty;
     public string? ContactPerson { get; init; }
@@ -51,6 +53,7 @@ public class CreateExternalBusinessCommandHandler
         var business = new ExternalBusiness
         {
             TenantId = _currentUser.TenantId.Value,
+            CustomerCode = request.CustomerCode.Trim(),
             Name = request.Name.Trim(),
             BusinessType = request.BusinessType,
             ContactPerson = request.ContactPerson?.Trim(),
@@ -67,6 +70,7 @@ public class CreateExternalBusinessCommandHandler
     internal static ExternalBusinessDto ToDto(ExternalBusiness business) => new()
     {
         Id = business.Id,
+        CustomerCode = business.CustomerCode,
         Name = business.Name,
         BusinessType = business.BusinessType.ToString(),
         ContactPerson = business.ContactPerson,
@@ -92,6 +96,7 @@ public class GetExternalBusinessesQueryHandler
             .Select(b => new ExternalBusinessDto
             {
                 Id = b.Id,
+                CustomerCode = b.CustomerCode,
                 Name = b.Name,
                 BusinessType = b.BusinessType.ToString(),
                 ContactPerson = b.ContactPerson,
