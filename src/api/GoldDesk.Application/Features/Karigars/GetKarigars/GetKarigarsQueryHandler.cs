@@ -32,11 +32,7 @@ public class GetKarigarsQueryHandler : IRequestHandler<GetKarigarsQuery, Result<
             return Result<PagedResult<KarigarDto>>.NotFound("Business profile not found");
 
         if (viewer.BusinessType != BusinessType.Shop)
-            return Result<PagedResult<KarigarDto>>.Forbidden("Karigar master is available to shops only");
-        var ownKarigars = await _context.Karigars
-            .IgnoreQueryFilters()
-            .Where(k => k.TenantId == shopId)
-            .ToListAsync(cancellationToken);
+            return Result<PagedResult<KarigarDto>>.Forbidden("Connected Karigars are available to shops only");
 
         var connectedKarigarBusinessIds = await _context.BusinessConnections
             .Where(c => c.ConnectionType == ConnectionType.ShopKarigar &&
@@ -45,18 +41,13 @@ public class GetKarigarsQueryHandler : IRequestHandler<GetKarigarsQuery, Result<
             .Select(c => c.FromBusinessId == shopId ? c.ToBusinessId : c.FromBusinessId)
             .ToListAsync(cancellationToken);
 
-        var connectedKarigars = connectedKarigarBusinessIds.Count == 0
-            ? new List<Domain.Entities.Karigar>()
-            : await _context.Karigars
+        var karigars = connectedKarigarBusinessIds.Count == 0
+            ? Enumerable.Empty<Domain.Entities.Karigar>()
+            : (await _context.Karigars
                 .IgnoreQueryFilters()
                 .Where(k => connectedKarigarBusinessIds.Contains(k.TenantId))
-                .ToListAsync(cancellationToken);
-
-        var karigars = ownKarigars
-            .Concat(connectedKarigars)
-            .GroupBy(k => k.Id)
-            .Select(g => g.First())
-            .AsEnumerable();
+                .ToListAsync(cancellationToken))
+                .AsEnumerable();
 
         if (request.ActiveOnly == true)
         {

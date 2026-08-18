@@ -40,8 +40,7 @@ public class AssignKarigarCommandHandler : IRequestHandler<AssignKarigarCommand,
         if (order.Status == OrderStatus.Delivered || order.Status == OrderStatus.Closed || order.Status == OrderStatus.Cancelled)
             return Result<AssignmentDto>.Failure($"Cannot assign Karigar to an order with status '{order.Status}'");
 
-        // A legacy, shop-owned Karigar remains supported. An independent Karigar
-        // must have an accepted Shop↔Karigar connection with this fulfilling Shop.
+        // Only an independent Karigar with an accepted Shop↔Karigar connection can receive work.
         var karigar = await _context.Karigars
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(k => k.Id == request.KarigarId && k.Status == KarigarStatus.Active, cancellationToken);
@@ -49,18 +48,15 @@ public class AssignKarigarCommandHandler : IRequestHandler<AssignKarigarCommand,
         if (karigar == null)
             return Result<AssignmentDto>.NotFound("Karigar not found or inactive");
 
-        if (karigar.TenantId != order.TenantId)
-        {
-            var connected = await _context.BusinessConnections.AnyAsync(c =>
-                c.ConnectionType == ConnectionType.ShopKarigar &&
-                c.Status == ConnectionStatus.Accepted &&
-                ((c.FromBusinessId == order.TenantId && c.ToBusinessId == karigar.TenantId) ||
-                 (c.FromBusinessId == karigar.TenantId && c.ToBusinessId == order.TenantId)),
-                cancellationToken);
+        var connected = await _context.BusinessConnections.AnyAsync(c =>
+            c.ConnectionType == ConnectionType.ShopKarigar &&
+            c.Status == ConnectionStatus.Accepted &&
+            ((c.FromBusinessId == order.TenantId && c.ToBusinessId == karigar.TenantId) ||
+             (c.FromBusinessId == karigar.TenantId && c.ToBusinessId == order.TenantId)),
+            cancellationToken);
 
-            if (!connected)
-                return Result<AssignmentDto>.Forbidden("Assign only a Karigar with an accepted connection");
-        }
+        if (!connected)
+            return Result<AssignmentDto>.Forbidden("Assign only a Karigar with an accepted connection");
 
         // Parse dates — karigar due date is one day before the order delivery date
         var givenDate = DateOnly.Parse(request.GivenDate);

@@ -13,7 +13,6 @@ import '../../features/admin/screens/admin_approval_screen.dart';
 import '../../features/admin/screens/platform_reports_screen.dart';
 import '../../features/connections/screens/connections_screen.dart';
 import '../../features/masters/screens/external_business_list_screen.dart';
-import '../../features/masters/screens/karigar_list_screen.dart';
 import '../../features/masters/screens/item_list_screen.dart';
 import '../../features/dashboard/bloc/dashboard_cubit.dart';
 import '../../features/dashboard/screens/shop_dashboard_screen.dart';
@@ -90,8 +89,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/karigars',
-        name: 'karigars',
-        builder: (context, state) => const KarigarListScreen(),
+        redirect: (context, state) => '/connections',
       ),
       GoRoute(
         path: '/items',

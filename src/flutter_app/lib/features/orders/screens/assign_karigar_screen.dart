@@ -169,16 +169,40 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
                       const SizedBox(height: 24),
                       Text('Karigar', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
                       const SizedBox(height: 6),
-                      DropdownButtonFormField<KarigarItem>(
-                        value: _selectedKarigar,
-                        items: _karigars.map((k) => DropdownMenuItem(
-                          value: k,
-                          child: Text('${k.name}${k.specialization != null ? ' (${k.specialization})' : ''}'),
-                        )).toList(),
-                        onChanged: (val) => setState(() => _selectedKarigar = val),
-                        decoration: const InputDecoration(hintText: 'Select Karigar'),
-                        validator: (val) => val == null ? 'Karigar is required' : null,
-                      ),
+                      if (_karigars.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.gold.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'No connected Karigar yet. Connect a Karigar business first.',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                              TextButton(
+                                onPressed: () => context.go('/connections'),
+                                child: const Text('Open Connections'),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        DropdownButtonFormField<KarigarItem>(
+                          value: _selectedKarigar,
+                          items: _karigars.map((k) => DropdownMenuItem(
+                            value: k,
+                            child: Text('${k.name}${k.specialization != null ? ' (${k.specialization})' : ''}'),
+                          )).toList(),
+                          onChanged: (val) => setState(() => _selectedKarigar = val),
+                          decoration: const InputDecoration(hintText: 'Select Karigar'),
+                          validator: (val) => val == null ? 'Karigar is required' : null,
+                        ),
                       const SizedBox(height: 20),
                       GoldDeskTextField(
                         label: 'Assign Date',
@@ -217,7 +241,7 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
                         builder: (context, state) {
                           return GoldDeskButton(
                             text: 'ASSIGN ORDER',
-                            onPressed: _onAssign,
+                            onPressed: _karigars.isEmpty ? null : _onAssign,
                             isLoading: state is AssignKarigarLoading,
                           );
                         },

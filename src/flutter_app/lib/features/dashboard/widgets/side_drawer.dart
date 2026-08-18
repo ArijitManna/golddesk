@@ -99,13 +99,6 @@ class SideDrawer extends StatelessWidget {
                       if (isShop)
                         _buildMenuItem(
                           context,
-                          icon: Icons.engineering_outlined,
-                          label: 'Karigar Master',
-                          onTap: () => _navigate(context, '/karigars'),
-                        ),
-                      if (isShop)
-                        _buildMenuItem(
-                          context,
                           icon: Icons.people_outlined,
                           label: 'External Customers',
                           onTap: () => _navigate(context, '/external-businesses'),
