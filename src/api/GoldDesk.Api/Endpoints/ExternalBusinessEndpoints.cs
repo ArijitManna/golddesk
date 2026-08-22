@@ -29,9 +29,37 @@ public static class ExternalBusinessEndpoints
             var result = await mediator.Send(command);
             return result.IsSuccess
                 ? Results.Created($"/api/external-businesses/{result.Data!.Id}", result.Data)
-                : ToResponse(result);
+                : result.StatusCode == 409
+                    ? Results.Conflict(new { error = result.Error })
+                    : ToResponse(result);
         })
         .WithName("CreateExternalBusiness");
+
+        group.MapPut("/{id:guid}", async (
+            Guid id,
+            UpdateExternalBusinessRequest request,
+            IMediator mediator) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return Results.BadRequest(new { error = "Business name is required." });
+            if (string.IsNullOrWhiteSpace(request.CustomerCode))
+                return Results.BadRequest(new { error = "Customer code is required." });
+
+            var result = await mediator.Send(new UpdateExternalBusinessCommand
+            {
+                Id = id,
+                CustomerCode = request.CustomerCode,
+                Name = request.Name,
+                ContactPerson = request.ContactPerson,
+                Mobile = request.Mobile,
+                Email = request.Email,
+                Address = request.Address
+            });
+            return result.StatusCode == 409
+                ? Results.Conflict(new { error = result.Error })
+                : ToResponse(result);
+        })
+        .WithName("UpdateExternalBusiness");
 
         group.MapPost("/{id:guid}/link", async (
             Guid id,
@@ -52,8 +80,19 @@ public static class ExternalBusinessEndpoints
     {
         200 when result.IsSuccess => Results.Ok(result.Data),
         401 => Results.Unauthorized(),
+        404 => Results.NotFound(new { error = result.Error }),
         _ => Results.BadRequest(new { error = result.Error })
     };
+}
+
+public record UpdateExternalBusinessRequest
+{
+    public string CustomerCode { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string? ContactPerson { get; init; }
+    public string? Mobile { get; init; }
+    public string? Email { get; init; }
+    public string? Address { get; init; }
 }
 
 public record LinkExternalBusinessRequest

@@ -25,8 +25,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
 
-    final isLoggedIn = await _authRepository.isLoggedIn();
-    if (!isLoggedIn) {
+    final hasSession = await _authRepository.ensureValidSession();
+    if (!hasSession) {
       emit(AuthUnauthenticated());
       return;
     }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
 import '../../../data/models/order_models.dart';
 import '../../../data/repositories/notification_repository.dart';
@@ -133,7 +135,8 @@ class _OrderCommentsScreenState extends State<OrderCommentsScreen> {
                                       Text(comment.message),
                                       const SizedBox(height: 6),
                                       Text(
-                                        '${comment.createdAt.toLocal()}',
+                                        DateFormat(AppConstants.displayDateTimeFormat)
+                                            .format(comment.createdAt.toLocal()),
                                         style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                                       ),
                                     ],

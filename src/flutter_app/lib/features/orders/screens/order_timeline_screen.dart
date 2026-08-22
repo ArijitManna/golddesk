@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
 import '../../../data/models/order_models.dart';
 import '../../../data/repositories/order_repository.dart';
@@ -78,7 +80,7 @@ class _OrderTimelineScreenState extends State<OrderTimelineScreen> {
                                         style: const TextStyle(fontWeight: FontWeight.w600)),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${event.businessName} · ${event.occurredAt.toLocal()}',
+                                      '${event.businessName} · ${DateFormat(AppConstants.displayDateTimeFormat).format(event.occurredAt.toLocal())}',
                                       style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                                     ),
                                   ],

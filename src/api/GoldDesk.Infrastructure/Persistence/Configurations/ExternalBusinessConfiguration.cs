@@ -23,7 +23,7 @@ public class ExternalBusinessConfiguration : IEntityTypeConfiguration<ExternalBu
         builder.Property(b => b.Address).HasMaxLength(1000);
 
         builder.HasIndex(b => new { b.TenantId, b.Name });
-        builder.HasIndex(b => new { b.TenantId, b.CustomerCode });
+        builder.HasIndex(b => new { b.TenantId, b.CustomerCode }).IsUnique();
         builder.HasIndex(b => b.LinkedBusinessId);
 
         builder.HasOne(b => b.LinkedBusiness)

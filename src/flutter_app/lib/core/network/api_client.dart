@@ -72,6 +72,12 @@ class _AuthInterceptor extends Interceptor {
 
           await _storage.write(key: AppConstants.accessTokenKey, value: newAccessToken);
           await _storage.write(key: AppConstants.refreshTokenKey, value: newRefreshToken);
+          if (response.data['expiresAt'] != null) {
+            await _storage.write(
+              key: AppConstants.tokenExpiresAtKey,
+              value: DateTime.parse(response.data['expiresAt']).toUtc().toIso8601String(),
+            );
+          }
 
           // Retry the original request
           final opts = err.requestOptions;
@@ -83,6 +89,7 @@ class _AuthInterceptor extends Interceptor {
           // Refresh failed, clear tokens
           await _storage.delete(key: AppConstants.accessTokenKey);
           await _storage.delete(key: AppConstants.refreshTokenKey);
+          await _storage.delete(key: AppConstants.tokenExpiresAtKey);
         }
       }
     }

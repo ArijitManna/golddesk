@@ -12,6 +12,25 @@ class AuthRepository {
 
   AuthRepository(this._apiClient);
 
+  Future<void> _saveSession(LoginResponse loginResponse) async {
+    await _storage.write(
+      key: AppConstants.accessTokenKey,
+      value: loginResponse.accessToken,
+    );
+    await _storage.write(
+      key: AppConstants.refreshTokenKey,
+      value: loginResponse.refreshToken,
+    );
+    await _storage.write(
+      key: AppConstants.tokenExpiresAtKey,
+      value: loginResponse.expiresAt.toUtc().toIso8601String(),
+    );
+    await _storage.write(
+      key: AppConstants.userDataKey,
+      value: jsonEncode(loginResponse.user.toJson()),
+    );
+  }
+
   Future<LoginResponse> login(LoginRequest request) async {
     try {
       final response = await _apiClient.dio.post(
@@ -20,19 +39,7 @@ class AuthRepository {
       );
       final loginResponse = LoginResponse.fromJson(response.data);
 
-      // Store tokens
-      await _storage.write(
-        key: AppConstants.accessTokenKey,
-        value: loginResponse.accessToken,
-      );
-      await _storage.write(
-        key: AppConstants.refreshTokenKey,
-        value: loginResponse.refreshToken,
-      );
-      await _storage.write(
-        key: AppConstants.userDataKey,
-        value: jsonEncode(loginResponse.user.toJson()),
-      );
+      await _saveSession(loginResponse);
 
       return loginResponse;
     } on DioException catch (e) {
@@ -65,18 +72,7 @@ class AuthRepository {
       );
       final loginResponse = LoginResponse.fromJson(response.data);
 
-      await _storage.write(
-        key: AppConstants.accessTokenKey,
-        value: loginResponse.accessToken,
-      );
-      await _storage.write(
-        key: AppConstants.refreshTokenKey,
-        value: loginResponse.refreshToken,
-      );
-      await _storage.write(
-        key: AppConstants.userDataKey,
-        value: jsonEncode(loginResponse.user.toJson()),
-      );
+      await _saveSession(loginResponse);
 
       return loginResponse;
     } on DioException catch (e) {
@@ -109,18 +105,7 @@ class AuthRepository {
         data: data,
       );
       final loginResponse = LoginResponse.fromJson(response.data);
-      await _storage.write(
-        key: AppConstants.accessTokenKey,
-        value: loginResponse.accessToken,
-      );
-      await _storage.write(
-        key: AppConstants.refreshTokenKey,
-        value: loginResponse.refreshToken,
-      );
-      await _storage.write(
-        key: AppConstants.userDataKey,
-        value: jsonEncode(loginResponse.user.toJson()),
-      );
+      await _saveSession(loginResponse);
       return loginResponse;
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -170,13 +155,35 @@ class AuthRepository {
   }
 
   Future<bool> isLoggedIn() async {
-    final token = await _storage.read(key: AppConstants.accessTokenKey);
-    return token != null;
+    final refreshToken = await _storage.read(key: AppConstants.refreshTokenKey);
+    return refreshToken != null;
+  }
+
+  Future<bool> ensureValidSession() async {
+    final refreshToken = await _storage.read(key: AppConstants.refreshTokenKey);
+    if (refreshToken == null) return false;
+
+    final expiresAtRaw = await _storage.read(key: AppConstants.tokenExpiresAtKey);
+    if (expiresAtRaw != null) {
+      final expiresAt = DateTime.parse(expiresAtRaw);
+      if (DateTime.now().toUtc().isBefore(expiresAt.subtract(const Duration(minutes: 1)))) {
+        return true;
+      }
+    }
+
+    try {
+      await this.refreshToken();
+      return true;
+    } catch (_) {
+      await logout();
+      return false;
+    }
   }
 
   Future<void> logout() async {
     await _storage.delete(key: AppConstants.accessTokenKey);
     await _storage.delete(key: AppConstants.refreshTokenKey);
+    await _storage.delete(key: AppConstants.tokenExpiresAtKey);
     await _storage.delete(key: AppConstants.userDataKey);
   }
 }

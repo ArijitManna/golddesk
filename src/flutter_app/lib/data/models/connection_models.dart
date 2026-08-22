@@ -76,6 +76,7 @@ class ExternalBusiness {
   final String? contactPerson;
   final String? mobile;
   final String? email;
+  final String? address;
   final String? linkedBusinessId;
 
   const ExternalBusiness({
@@ -86,6 +87,7 @@ class ExternalBusiness {
     this.contactPerson,
     this.mobile,
     this.email,
+    this.address,
     this.linkedBusinessId,
   });
 
@@ -98,6 +100,7 @@ class ExternalBusiness {
         contactPerson: json['contactPerson'],
         mobile: json['mobile'],
         email: json['email'],
+        address: json['address'],
         linkedBusinessId: json['linkedBusinessId'],
       );
 }

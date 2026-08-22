@@ -288,7 +288,8 @@ namespace GoldDesk.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("LinkedBusinessId");
 
-                    b.HasIndex("TenantId", "CustomerCode");
+                    b.HasIndex("TenantId", "CustomerCode")
+                        .IsUnique();
 
                     b.HasIndex("TenantId", "Name");
 

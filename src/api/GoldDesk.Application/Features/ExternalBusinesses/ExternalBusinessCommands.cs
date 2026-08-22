@@ -18,6 +18,17 @@ public record CreateExternalBusinessCommand : IRequest<Result<ExternalBusinessDt
     public string? Address { get; init; }
 }
 
+public record UpdateExternalBusinessCommand : IRequest<Result<ExternalBusinessDto>>
+{
+    public Guid Id { get; init; }
+    public string CustomerCode { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string? ContactPerson { get; init; }
+    public string? Mobile { get; init; }
+    public string? Email { get; init; }
+    public string? Address { get; init; }
+}
+
 public record GetExternalBusinessesQuery : IRequest<Result<List<ExternalBusinessDto>>>;
 
 public record ExternalBusinessDto
@@ -50,10 +61,16 @@ public class CreateExternalBusinessCommandHandler
         if (!_currentUser.TenantId.HasValue)
             return Result<ExternalBusinessDto>.Unauthorized();
 
+        var customerCode = request.CustomerCode.Trim();
+        var codeExists = await _context.ExternalBusinesses
+            .AnyAsync(b => b.CustomerCode == customerCode, cancellationToken);
+        if (codeExists)
+            return Result<ExternalBusinessDto>.Conflict($"Customer code '{customerCode}' already exists");
+
         var business = new ExternalBusiness
         {
             TenantId = _currentUser.TenantId.Value,
-            CustomerCode = request.CustomerCode.Trim(),
+            CustomerCode = customerCode,
             Name = request.Name.Trim(),
             BusinessType = request.BusinessType,
             ContactPerson = request.ContactPerson?.Trim(),
@@ -108,5 +125,45 @@ public class GetExternalBusinessesQueryHandler
             .ToListAsync(cancellationToken);
 
         return Result<List<ExternalBusinessDto>>.Success(businesses);
+    }
+}
+
+public class UpdateExternalBusinessCommandHandler
+    : IRequestHandler<UpdateExternalBusinessCommand, Result<ExternalBusinessDto>>
+{
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+
+    public UpdateExternalBusinessCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser)
+    {
+        _context = context;
+        _currentUser = currentUser;
+    }
+
+    public async Task<Result<ExternalBusinessDto>> Handle(UpdateExternalBusinessCommand request, CancellationToken cancellationToken)
+    {
+        if (!_currentUser.TenantId.HasValue)
+            return Result<ExternalBusinessDto>.Unauthorized();
+
+        var business = await _context.ExternalBusinesses
+            .FirstOrDefaultAsync(b => b.Id == request.Id, cancellationToken);
+        if (business == null)
+            return Result<ExternalBusinessDto>.NotFound("External business not found.");
+
+        var customerCode = request.CustomerCode.Trim();
+        var codeExists = await _context.ExternalBusinesses
+            .AnyAsync(b => b.Id != request.Id && b.CustomerCode == customerCode, cancellationToken);
+        if (codeExists)
+            return Result<ExternalBusinessDto>.Conflict($"Customer code '{customerCode}' already exists");
+
+        business.CustomerCode = customerCode;
+        business.Name = request.Name.Trim();
+        business.ContactPerson = request.ContactPerson?.Trim();
+        business.Mobile = request.Mobile?.Trim();
+        business.Email = request.Email?.Trim();
+        business.Address = request.Address?.Trim();
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<ExternalBusinessDto>.Success(CreateExternalBusinessCommandHandler.ToDto(business));
     }
 }

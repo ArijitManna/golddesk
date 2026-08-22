@@ -17,6 +17,7 @@ class AppConstants {
   // Storage Keys
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
+  static const String tokenExpiresAtKey = 'token_expires_at';
   static const String userDataKey = 'user_data';
   static const String tenantDataKey = 'tenant_data';
 
@@ -25,6 +26,7 @@ class AppConstants {
 
   // Date Formats
   static const String displayDateFormat = 'dd/MM/yyyy';
+  static const String displayDateTimeFormat = 'dd/MM/yyyy HH:mm';
   static const String apiDateFormat = 'yyyy-MM-dd';
 
   // Order Number Prefix

@@ -26,6 +26,7 @@ class MasterRepository {
     String? contactPerson,
     String? mobile,
     String? email,
+    String? address,
   }) async {
     try {
       final response = await _apiClient.dio.post(
@@ -38,6 +39,35 @@ class MasterRepository {
             'contactPerson': contactPerson,
           if (mobile != null && mobile.isNotEmpty) 'mobile': mobile,
           if (email != null && email.isNotEmpty) 'email': email,
+          if (address != null && address.isNotEmpty) 'address': address,
+        },
+      );
+      return ExternalBusiness.fromJson(response.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<ExternalBusiness> updateExternalBusiness({
+    required String id,
+    required String customerCode,
+    required String name,
+    String? contactPerson,
+    String? mobile,
+    String? email,
+    String? address,
+  }) async {
+    try {
+      final response = await _apiClient.dio.put(
+        '/external-businesses/$id',
+        data: {
+          'customerCode': customerCode,
+          'name': name,
+          if (contactPerson != null && contactPerson.isNotEmpty)
+            'contactPerson': contactPerson,
+          if (mobile != null && mobile.isNotEmpty) 'mobile': mobile,
+          if (email != null && email.isNotEmpty) 'email': email,
+          if (address != null && address.isNotEmpty) 'address': address,
         },
       );
       return ExternalBusiness.fromJson(response.data);

@@ -32,7 +32,7 @@ public class AuthProvider : IAuthProvider
         var key = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
         var issuer = _configuration["Jwt:Issuer"] ?? "GoldDesk";
         var audience = _configuration["Jwt:Audience"] ?? "GoldDesk";
-        var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "15");
+        var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "60");
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
