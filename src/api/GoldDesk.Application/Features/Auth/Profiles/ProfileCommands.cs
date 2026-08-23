@@ -21,6 +21,8 @@ public record UpdateFcmTokenCommand : IRequest<Result<bool>>
     public string FcmToken { get; init; } = string.Empty;
 }
 
+public record ClearFcmTokenCommand : IRequest<Result<bool>>;
+
 public class UpdateFcmTokenCommandHandler : IRequestHandler<UpdateFcmTokenCommand, Result<bool>>
 {
     private readonly IApplicationDbContext _context;
@@ -52,6 +54,40 @@ public class UpdateFcmTokenCommandHandler : IRequestHandler<UpdateFcmTokenComman
             return Result<bool>.NotFound("User not found.");
 
         user.FcmToken = request.FcmToken;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result<bool>.Success(true);
+    }
+}
+
+public class ClearFcmTokenCommandHandler : IRequestHandler<ClearFcmTokenCommand, Result<bool>>
+{
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+
+    public ClearFcmTokenCommandHandler(
+        IApplicationDbContext context,
+        ICurrentUserService currentUser)
+    {
+        _context = context;
+        _currentUser = currentUser;
+    }
+
+    public async Task<Result<bool>> Handle(
+        ClearFcmTokenCommand request,
+        CancellationToken cancellationToken)
+    {
+        if (!_currentUser.UserId.HasValue)
+            return Result<bool>.Unauthorized();
+
+        var user = await _context.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == _currentUser.UserId.Value, cancellationToken);
+
+        if (user == null)
+            return Result<bool>.NotFound("User not found.");
+
+        user.FcmToken = null;
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<bool>.Success(true);

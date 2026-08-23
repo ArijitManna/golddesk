@@ -68,6 +68,15 @@ public static class AuthEndpoints
         .WithName("UpdateFcmToken")
         .WithDescription("Register the current device's Firebase Cloud Messaging token");
 
+        group.MapDelete("/device-token", async (IMediator mediator) =>
+        {
+            var result = await mediator.Send(new ClearFcmTokenCommand());
+            return ToResponse(result);
+        })
+        .RequireAuthorization()
+        .WithName("ClearFcmToken")
+        .WithDescription("Remove the current device's Firebase Cloud Messaging token on logout");
+
         group.MapPost("/change-password", async (ChangePasswordCommand command, IMediator mediator) =>
         {
             var result = await mediator.Send(command);

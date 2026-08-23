@@ -54,6 +54,12 @@ class FcmService {
 
   Future<String?> getToken() => _messaging.getToken();
 
+  Future<void> clearDeviceToken() async {
+    _tokenRefreshSubscription?.cancel();
+    _tokenRefreshSubscription = null;
+    await _messaging.deleteToken();
+  }
+
   void listenForTokenRefresh(Future<void> Function(String token) onRefresh) {
     _tokenRefreshSubscription?.cancel();
     _tokenRefreshSubscription = _messaging.onTokenRefresh.listen(

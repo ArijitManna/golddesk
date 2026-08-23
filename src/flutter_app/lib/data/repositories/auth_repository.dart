@@ -123,6 +123,14 @@ class AuthRepository {
     }
   }
 
+  Future<void> clearFcmToken() async {
+    try {
+      await _apiClient.dio.delete('/auth/device-token');
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<UserInfo?> getCurrentUser() async {
     final userData = await _storage.read(key: AppConstants.userDataKey);
     if (userData == null) return null;

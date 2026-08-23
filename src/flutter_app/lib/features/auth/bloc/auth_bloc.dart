@@ -98,6 +98,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
+    try {
+      await _authRepository.clearFcmToken();
+    } catch (_) {
+      // Continue logout even if the server token cannot be cleared.
+    }
+
+    try {
+      await _fcmService.clearDeviceToken();
+    } catch (_) {
+      // Continue logout even if the local Firebase token cannot be removed.
+    }
+
     await _authRepository.logout();
     emit(AuthUnauthenticated());
   }
