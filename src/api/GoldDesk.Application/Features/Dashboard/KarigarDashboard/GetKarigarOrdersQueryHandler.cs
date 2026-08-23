@@ -87,7 +87,12 @@ public class GetKarigarOrdersQueryHandler : IRequestHandler<GetKarigarOrdersQuer
                 DueDate = a.DueDate.ToString("yyyy-MM-dd"),
                 DaysLeft = a.DueDate.DayNumber - today.DayNumber,
                 Notes = a.Notes,
-                TotalWeight = a.Order.TotalWeight
+                TotalWeight = a.Order.TotalWeight,
+                FirstItemImage = a.Order.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+                FirstItemSize = a.Order.Items
+                    .Where(i => i.Size != null && i.Size != "")
+                    .Select(i => i.Size)
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 

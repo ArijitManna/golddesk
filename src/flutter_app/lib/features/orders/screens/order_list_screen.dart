@@ -416,6 +416,22 @@ class _OrderListScreenState extends State<OrderListScreen>
                             color: AppColors.textSecondary,
                           ),
                         ),
+                        if (order.dueDate != null && order.dueDate!.isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          const Icon(
+                            Icons.event_outlined,
+                            size: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Due ${order.dueDate}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                         if (businessType == 'Shop' &&
                             order.karigarName != null) ...[
                           const SizedBox(width: 12),
@@ -425,16 +441,30 @@ class _OrderListScreenState extends State<OrderListScreen>
                             color: AppColors.textSecondary,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            order.karigarName!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
+                          Flexible(
+                            child: Text(
+                              order.karigarName!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ],
                     ),
+                    if (order.firstItemSize != null &&
+                        order.firstItemSize!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Size ${order.firstItemSize}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

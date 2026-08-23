@@ -132,6 +132,8 @@ class KarigarOrderItem {
   final int daysLeft;
   final String? notes;
   final double totalWeight;
+  final String? firstItemImage;
+  final String? firstItemSize;
 
   KarigarOrderItem({
     required this.orderId,
@@ -144,6 +146,8 @@ class KarigarOrderItem {
     required this.daysLeft,
     this.notes,
     required this.totalWeight,
+    this.firstItemImage,
+    this.firstItemSize,
   });
 
   factory KarigarOrderItem.fromJson(Map<String, dynamic> json) =>
@@ -158,5 +162,7 @@ class KarigarOrderItem {
         daysLeft: json['daysLeft'] ?? 0,
         notes: json['notes'],
         totalWeight: (json['totalWeight'] ?? 0).toDouble(),
+        firstItemImage: json['firstItemImage'],
+        firstItemSize: json['firstItemSize'],
       );
 }

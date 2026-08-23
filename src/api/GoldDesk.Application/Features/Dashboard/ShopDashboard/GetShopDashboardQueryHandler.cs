@@ -201,8 +201,15 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
             EstimatedAmount = o.EstimatedAmount,
             Notes = o.Notes,
             KarigarName = isShowroomViewer ? null : activeAssignment?.Karigar?.Name,
-            DueDate = isShowroomViewer ? null : activeAssignment?.DueDate.ToString("yyyy-MM-dd"),
+            DueDate = isShowroomViewer
+                ? o.DeliveryDate?.ToString("yyyy-MM-dd")
+                : activeAssignment?.DueDate.ToString("yyyy-MM-dd")
+                    ?? o.DeliveryDate?.ToString("yyyy-MM-dd"),
             FirstItemImage = o.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+            FirstItemSize = o.Items
+                .Where(i => !string.IsNullOrWhiteSpace(i.Size))
+                .Select(i => i.Size)
+                .FirstOrDefault(),
             Source = o.Source.ToString(),
             CreatedByBusinessId = o.CreatedByBusinessId,
             CreatedByBusinessName = o.CreatedByBusiness.ShopName,

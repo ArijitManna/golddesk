@@ -36,6 +36,8 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
             .Include(a => a.Order)
                 .ThenInclude(o => o.Tenant)
             .Include(a => a.Order)
+                .ThenInclude(o => o.Items)
+            .Include(a => a.Order)
                 .ThenInclude(o => o.OrderFromBusiness)
             .Include(a => a.Order)
                 .ThenInclude(o => o.OrderFromExternalBusiness)
@@ -76,7 +78,12 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
                 DueDate = a.DueDate.ToString("yyyy-MM-dd"),
                 DaysLeft = a.DueDate.DayNumber - today.DayNumber,
                 Notes = a.Notes,
-                TotalWeight = a.Order.TotalWeight
+                TotalWeight = a.Order.TotalWeight,
+                FirstItemImage = a.Order.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+                FirstItemSize = a.Order.Items
+                    .Where(i => !string.IsNullOrWhiteSpace(i.Size))
+                    .Select(i => i.Size)
+                    .FirstOrDefault()
             })
             .ToList();
 
@@ -95,7 +102,12 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
                 DueDate = a.DueDate.ToString("yyyy-MM-dd"),
                 DaysLeft = a.DueDate.DayNumber - today.DayNumber,
                 Notes = a.Notes,
-                TotalWeight = a.Order.TotalWeight
+                TotalWeight = a.Order.TotalWeight,
+                FirstItemImage = a.Order.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+                FirstItemSize = a.Order.Items
+                    .Where(i => !string.IsNullOrWhiteSpace(i.Size))
+                    .Select(i => i.Size)
+                    .FirstOrDefault()
             })
             .ToList();
 

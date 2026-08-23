@@ -152,7 +152,7 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
                         .Select(a => a.Status.ToString())
                         .FirstOrDefault(),
                 DueDate = isShowroomViewer
-                    ? null
+                    ? (o.DeliveryDate != null ? o.DeliveryDate.Value.ToString("yyyy-MM-dd") : null)
                     : o.Assignments
                         .Where(a => a.IsActive)
                         .Select(a => a.DueDate.ToString("yyyy-MM-dd"))
@@ -160,8 +160,13 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
                         ?? o.Assignments
                             .OrderByDescending(a => a.CreatedAt)
                             .Select(a => a.DueDate.ToString("yyyy-MM-dd"))
-                            .FirstOrDefault(),
+                            .FirstOrDefault()
+                        ?? (o.DeliveryDate != null ? o.DeliveryDate.Value.ToString("yyyy-MM-dd") : null),
                 FirstItemImage = o.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+                FirstItemSize = o.Items
+                    .Where(i => i.Size != null && i.Size != "")
+                    .Select(i => i.Size)
+                    .FirstOrDefault(),
                 Source = o.Source.ToString(),
                 CreatedByBusinessId = o.CreatedByBusinessId,
                 CreatedByBusinessName = o.CreatedByBusiness.ShopName,

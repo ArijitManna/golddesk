@@ -40,8 +40,9 @@ public static class FileEndpoints
             if (orderItem == null)
                 return Results.NotFound(new { error = "Order item not found" });
 
-            if (currentUser.TenantId != orderItem.Order.TenantId)
-                return Results.Json(new { error = "Only the fulfilling Shop can upload this order image" }, statusCode: 403);
+            if (currentUser.TenantId != orderItem.Order.TenantId &&
+                currentUser.TenantId != orderItem.Order.CreatedByBusinessId)
+                return Results.Json(new { error = "Only the order Shop or creator can upload this order image" }, statusCode: 403);
 
             // Create uploads directory
             var uploadsFolder = Path.Combine(env.ContentRootPath, "uploads", "order-items");

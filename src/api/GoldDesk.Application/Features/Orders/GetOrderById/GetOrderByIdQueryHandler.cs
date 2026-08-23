@@ -20,7 +20,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
 
     public async Task<Result<OrderDetailDto>> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken)
     {
-        if (!_currentUser.TenantId.HasValue)
+        if (!_currentUser.TenantId.HasValue || !_currentUser.UserId.HasValue)
             return Result<OrderDetailDto>.Unauthorized();
 
         var tenantId = _currentUser.TenantId.Value;
@@ -31,8 +31,21 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
             return Result<OrderDetailDto>.NotFound("Business profile not found");
 
         var isShowroomViewer = viewer.BusinessType == BusinessType.Showroom;
+        var isKarigarViewer = viewer.BusinessType == BusinessType.Karigar;
 
-        // Ignore related tenant filters so either order party can read the shared order.
+        Guid? assignedKarigarId = null;
+        if (isKarigarViewer)
+        {
+            assignedKarigarId = await _context.Karigars
+                .AsNoTracking()
+                .Where(k => k.UserId == _currentUser.UserId)
+                .Select(k => (Guid?)k.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!assignedKarigarId.HasValue)
+                return Result<OrderDetailDto>.Forbidden("You are not registered as a Karigar");
+        }
+
+        // Ignore related tenant filters so either order party (or assigned Karigar) can read the shared order.
         var order = await _context.Orders
             .IgnoreQueryFilters()
             .Include(o => o.CreatedByBusiness)
@@ -46,7 +59,9 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
             .FirstOrDefaultAsync(o => o.Id == request.Id &&
                                       (o.TenantId == tenantId ||
                                        o.CreatedByBusinessId == tenantId ||
-                                       o.OrderFromBusinessId == tenantId),
+                                       o.OrderFromBusinessId == tenantId ||
+                                       (assignedKarigarId.HasValue &&
+                                        o.Assignments.Any(a => a.IsActive && a.KarigarId == assignedKarigarId.Value))),
                 cancellationToken);
 
         if (order == null)
@@ -54,31 +69,46 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
 
         var activeAssignment = order.Assignments.FirstOrDefault(a => a.IsActive);
 
+        // Karigar only sees the fulfilling Shop as counterparty (never showroom/customer).
+        var orderFromName = isKarigarViewer
+            ? order.Tenant.ShopName
+            : order.OrderFromBusiness?.ShopName ??
+              order.OrderFromExternalBusiness?.Name ??
+              string.Empty;
+
+        var dueDate = isShowroomViewer
+            ? order.DeliveryDate?.ToString("yyyy-MM-dd")
+            : activeAssignment?.DueDate.ToString("yyyy-MM-dd")
+                ?? order.DeliveryDate?.ToString("yyyy-MM-dd");
+
         var dto = new OrderDetailDto
         {
             Id = order.Id,
             OrderNo = order.OrderNo,
-            OrderFromBusinessId = order.OrderFromBusinessId,
-            OrderFromExternalBusinessId = order.OrderFromExternalBusinessId,
-            OrderFromBusinessName = order.OrderFromBusiness?.ShopName ??
-                                    order.OrderFromExternalBusiness?.Name ??
-                                    string.Empty,
+            OrderFromBusinessId = isKarigarViewer ? null : order.OrderFromBusinessId,
+            OrderFromExternalBusinessId = isKarigarViewer ? null : order.OrderFromExternalBusinessId,
+            OrderFromBusinessName = orderFromName,
             OrderDate = order.OrderDate.ToString("yyyy-MM-dd"),
             DeliveryDate = order.DeliveryDate?.ToString("yyyy-MM-dd"),
             Status = order.Status.ToString(),
             AcceptanceStatus = order.AcceptanceStatus.ToString(),
-            AcceptanceNote = order.AcceptanceNote,
+            AcceptanceNote = isKarigarViewer ? null : order.AcceptanceNote,
             TotalWeight = order.TotalWeight,
-            MakingCharges = order.MakingCharges,
-            AdvancePaid = order.AdvancePaid,
-            EstimatedAmount = order.EstimatedAmount,
+            MakingCharges = isKarigarViewer ? 0 : order.MakingCharges,
+            AdvancePaid = isKarigarViewer ? 0 : order.AdvancePaid,
+            EstimatedAmount = isKarigarViewer ? 0 : order.EstimatedAmount,
             Notes = order.Notes,
-            KarigarName = isShowroomViewer ? null : activeAssignment?.Karigar?.Name,
+            KarigarName = isShowroomViewer || isKarigarViewer ? null : activeAssignment?.Karigar?.Name,
             AssignmentStatus = isShowroomViewer ? null : activeAssignment?.Status.ToString(),
-            DueDate = isShowroomViewer ? null : activeAssignment?.DueDate.ToString("yyyy-MM-dd"),
+            DueDate = dueDate,
+            FirstItemImage = order.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+            FirstItemSize = order.Items
+                .Where(i => !string.IsNullOrWhiteSpace(i.Size))
+                .Select(i => i.Size)
+                .FirstOrDefault(),
             Source = order.Source.ToString(),
-            CreatedByBusinessId = order.CreatedByBusinessId,
-            CreatedByBusinessName = order.CreatedByBusiness.ShopName,
+            CreatedByBusinessId = isKarigarViewer ? order.TenantId : order.CreatedByBusinessId,
+            CreatedByBusinessName = isKarigarViewer ? order.Tenant.ShopName : order.CreatedByBusiness.ShopName,
             CreatedForBusinessId = order.TenantId,
             CreatedForBusinessName = order.Tenant.ShopName,
             CreatedAt = order.CreatedAt,
@@ -92,13 +122,13 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
                 Weight = i.Weight,
                 Quantity = i.Quantity,
                 Purity = i.Purity,
-                Rate = i.Rate,
-                MakingCharge = i.MakingCharge,
-                Amount = i.Amount,
+                Rate = isKarigarViewer ? 0 : i.Rate,
+                MakingCharge = isKarigarViewer ? 0 : i.MakingCharge,
+                Amount = isKarigarViewer ? 0 : i.Amount,
                 Size = i.Size,
                 ImagePath = i.ImagePath
             }).ToList(),
-            Assignments = isShowroomViewer
+            Assignments = isShowroomViewer || isKarigarViewer
                 ? new List<AssignmentDto>()
                 : order.Assignments
                     .OrderByDescending(a => a.CreatedAt)
@@ -114,7 +144,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
                         IsActive = a.IsActive,
                         CreatedAt = a.CreatedAt
                     }).ToList(),
-            StatusHistory = isShowroomViewer
+            StatusHistory = isShowroomViewer || isKarigarViewer
                 ? new List<StatusHistoryDto>()
                 : order.StatusHistory
                     .OrderByDescending(h => h.CreatedAt)

@@ -40,4 +40,6 @@ public record KarigarOrderDto
     public int DaysLeft { get; init; }
     public string? Notes { get; init; }
     public decimal TotalWeight { get; init; }
+    public string? FirstItemImage { get; init; }
+    public string? FirstItemSize { get; init; }
 }

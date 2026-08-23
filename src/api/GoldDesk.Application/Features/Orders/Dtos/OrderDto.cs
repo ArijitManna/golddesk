@@ -21,6 +21,7 @@ public record OrderDto
     public string? AssignmentStatus { get; init; }
     public string? DueDate { get; init; }
     public string? FirstItemImage { get; init; }
+    public string? FirstItemSize { get; init; }
     public string Source { get; init; } = "Direct";
     public Guid CreatedByBusinessId { get; init; }
     public string CreatedByBusinessName { get; init; } = string.Empty;

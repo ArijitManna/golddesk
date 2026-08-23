@@ -206,13 +206,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           _infoRow('Order Date', order.orderDate),
           if (order.deliveryDate != null)
             _infoRow('Delivery Date', order.deliveryDate!),
+          if (order.dueDate != null &&
+              order.dueDate!.isNotEmpty &&
+              order.dueDate != order.deliveryDate)
+            _infoRow('Due Date', order.dueDate!),
+          if (order.dueDate != null &&
+              order.dueDate!.isNotEmpty &&
+              order.deliveryDate == null)
+            _infoRow('Due Date', order.dueDate!),
           _infoRow('Order From', order.orderFromBusinessName),
           _infoRow('Order To', order.createdForBusinessName),
           _infoRow(
             'Acceptance',
             _displayAcceptanceStatus(order.acceptanceStatus),
           ),
-          if (order.dueDate != null) _infoRow('Due Date', order.dueDate!),
           if (_isShop() && order.karigarName != null)
             _infoRow('Karigar', order.karigarName!),
           if (order.notes != null && order.notes!.isNotEmpty)

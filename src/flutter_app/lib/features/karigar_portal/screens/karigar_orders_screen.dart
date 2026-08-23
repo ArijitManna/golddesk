@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_bottom_navigation.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/utils/order_status_labels.dart';
+import '../../../core/widgets/order_image.dart';
 import '../../../data/repositories/karigar_portal_repository.dart';
 import '../../dashboard/widgets/side_drawer.dart';
 
@@ -194,94 +195,124 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
         onTap: () => context.go('/karigar/orders/${order.orderId}/update'),
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    order.orderNo,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _displayStatus(order),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor,
-                      ),
-                    ),
-                  ),
-                ],
+              OrderImage(
+                imagePath: order.firstItemImage,
+                size: 50,
+                label: order.orderNo,
               ),
-              const SizedBox(height: 8),
-              Text(
-                order.orderFromBusinessName,
-                style: const TextStyle(fontSize: 13),
-              ),
-              if (order.sourceShopName.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  order.sourceShopName,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.gold,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.scale_outlined,
-                    size: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${order.totalWeight.toStringAsFixed(3)} gm',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          order.orderNo,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _displayStatus(order),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  if (!isCompleted) ...[
-                    const SizedBox(width: 16),
-                    Icon(Icons.schedule, size: 14, color: dueColor),
-                    const SizedBox(width: 4),
+                    const SizedBox(height: 8),
                     Text(
-                      order.daysLeft <= 0 ? 'Overdue' : 'Due: ${order.dueDate}',
-                      style: TextStyle(fontSize: 12, color: dueColor),
+                      order.orderFromBusinessName,
+                      style: const TextStyle(fontSize: 13),
                     ),
+                    if (order.sourceShopName.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        order.sourceShopName,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.gold,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.scale_outlined,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${order.totalWeight.toStringAsFixed(3)} gm',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        if (order.firstItemSize != null &&
+                            order.firstItemSize!.isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          Text(
+                            'Size ${order.firstItemSize}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (!isCompleted) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.schedule, size: 14, color: dueColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            order.daysLeft <= 0
+                                ? 'Overdue · Due ${order.dueDate}'
+                                : 'Due: ${order.dueDate}',
+                            style: TextStyle(fontSize: 12, color: dueColor),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (order.notes != null && order.notes!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        order.notes!,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
-                ],
-              ),
-              if (order.notes != null && order.notes!.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  order.notes!,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textLight,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
+              ),
             ],
           ),
         ),

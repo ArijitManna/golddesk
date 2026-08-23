@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/widgets/notification_bell.dart';
 import '../../../core/widgets/app_bottom_navigation.dart';
+import '../../../core/widgets/order_image.dart';
 import '../../../data/repositories/karigar_portal_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
@@ -292,6 +293,12 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
+              OrderImage(
+                imagePath: order.firstItemImage,
+                size: 44,
+                label: order.orderNo,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,15 +318,18 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    if (order.sourceShopName.isNotEmpty)
-                      Text(
-                        order.sourceShopName,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.gold,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    Text(
+                      [
+                        '${order.totalWeight.toStringAsFixed(3)} gm',
+                        if (order.firstItemSize != null &&
+                            order.firstItemSize!.isNotEmpty)
+                          'Size ${order.firstItemSize}',
+                      ].join(' · '),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
                       ),
+                    ),
                     if (!isCompleted) ...[
                       const SizedBox(height: 2),
                       Text(
