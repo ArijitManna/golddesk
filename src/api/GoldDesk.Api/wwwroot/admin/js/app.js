@@ -52,6 +52,9 @@
   }
 
   function statusBadge(status) {
+    if (status === 'Suspended') {
+      return '<span class="badge badge-inactive">Inactive</span>';
+    }
     const cls = status === 'Active' ? 'badge-active' : 'badge-pending';
     return `<span class="badge ${cls}">${status || 'Pending'}</span>`;
   }
@@ -256,21 +259,21 @@
       </div>
       <div class="cards">
         <div class="stat-card">
-          <div class="label">Registered Shops</div>
+          <div class="label">Active Shops</div>
           <div class="value" style="color:var(--navy)">${report.shopCount ?? 0}</div>
-          <p>Active & pending shops</p>
+          <p>Currently active shops</p>
           <a href="#/businesses?type=Shop">View Shops →</a>
         </div>
         <div class="stat-card">
-          <div class="label">Registered Showrooms</div>
+          <div class="label">Active Showrooms</div>
           <div class="value" style="color:var(--gold)">${report.showroomCount ?? 0}</div>
-          <p>Active & pending showrooms</p>
+          <p>Currently active showrooms</p>
           <a href="#/businesses?type=Showroom">View Showrooms →</a>
         </div>
         <div class="stat-card">
-          <div class="label">Registered Karigars</div>
+          <div class="label">Active Karigars</div>
           <div class="value" style="color:var(--blue)">${report.karigarCount ?? 0}</div>
-          <p>Active & pending karigars</p>
+          <p>Currently active karigars</p>
           <a href="#/businesses?type=Karigar">View Karigars →</a>
         </div>
       </div>
@@ -391,7 +394,8 @@
 
   async function renderBusinesses() {
     const type = route.params.type || '';
-    const report = await AdminApi.getReport(type || null);
+    const showInactive = route.params.inactive === '1';
+    const report = await AdminApi.getReport(type || null, showInactive);
     const shops = report.shops || [];
     const el = document.getElementById('pageContent');
 
@@ -403,6 +407,11 @@
           <option value="Showroom" ${type === 'Showroom' ? 'selected' : ''}>Showroom</option>
           <option value="Karigar" ${type === 'Karigar' ? 'selected' : ''}>Karigar</option>
         </select>
+        <label class="toggle">
+          <input type="checkbox" id="showInactive" ${showInactive ? 'checked' : ''} />
+          <span class="toggle-ui"></span>
+          <span>Show inactive</span>
+        </label>
       </div>
       <div class="panel">
         <div class="panel-header">
@@ -419,6 +428,7 @@
                 <th>Mobile</th>
                 <th>Status</th>
                 <th>Registered</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -430,6 +440,13 @@
                   <td>${escapeHtml(row.mobile)}</td>
                   <td>${statusBadge(row.status)}</td>
                   <td>${formatDate(row.registeredAt)}</td>
+                  <td class="actions">
+                    ${row.status === 'Active'
+                      ? `<button class="btn btn-danger btn-sm" data-deactivate="${row.tenantId}" data-name="${escapeHtml(row.shopName)}">Inactivate</button>`
+                      : row.status === 'Suspended'
+                        ? `<button class="btn btn-success btn-sm" data-activate="${row.tenantId}" data-name="${escapeHtml(row.shopName)}">Activate</button>`
+                        : '<span style="color:var(--muted);font-size:12px">—</span>'}
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -440,7 +457,55 @@
 
     document.getElementById('bizType').onchange = (e) => {
       const v = e.target.value;
-      go(v ? `/businesses?type=${v}` : '/businesses');
+      const inactive = document.getElementById('showInactive').checked ? '&inactive=1' : '';
+      if (v) go(`/businesses?type=${v}${inactive}`);
+      else go(`/businesses${inactive ? '?inactive=1' : ''}`);
+    };
+
+    document.getElementById('showInactive').onchange = (e) => {
+      const inactive = e.target.checked ? 'inactive=1' : '';
+      const typeParam = type ? `type=${type}${inactive ? '&' + inactive : ''}` : inactive;
+      go(typeParam ? `/businesses?${typeParam}` : '/businesses');
+    };
+
+    el.querySelectorAll('[data-deactivate]').forEach(btn => {
+      btn.onclick = () => openStatusModal(btn.dataset.deactivate, btn.dataset.name, false);
+    });
+
+    el.querySelectorAll('[data-activate]').forEach(btn => {
+      btn.onclick = () => openStatusModal(btn.dataset.activate, btn.dataset.name, true);
+    });
+  }
+
+  function openStatusModal(tenantId, name, activate) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal">
+        <h3>${activate ? 'Activate' : 'Inactivate'} ${escapeHtml(name)}?</h3>
+        <p>${activate
+          ? 'This business and its owner login will be enabled again.'
+          : 'This business will be disabled and users will not be able to log in.'}</p>
+        <div class="modal-actions">
+          <button class="btn btn-ghost btn-sm" id="cancelStatus">Cancel</button>
+          <button class="btn ${activate ? 'btn-success' : 'btn-danger'} btn-sm" id="confirmStatus">
+            ${activate ? 'Activate' : 'Inactivate'}
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+    backdrop.querySelector('#cancelStatus').onclick = () => backdrop.remove();
+    backdrop.querySelector('#confirmStatus').onclick = async () => {
+      try {
+        if (activate) await AdminApi.activateBusiness(tenantId);
+        else await AdminApi.deactivateBusiness(tenantId);
+        backdrop.remove();
+        toast(activate ? 'Business activated' : 'Business inactivated');
+        await renderBusinesses();
+      } catch (err) {
+        toast(err.message);
+      }
     };
   }
 

@@ -40,13 +40,17 @@ class AdminRepository {
     }
   }
 
-  Future<PlatformShopsReport> getShopsReport({String? businessType}) async {
+  Future<PlatformShopsReport> getShopsReport({
+    String? businessType,
+    bool includeInactive = false,
+  }) async {
     try {
       final response = await _apiClient.dio.get(
         '/admin/reports/shops',
         queryParameters: {
           if (businessType != null && businessType.isNotEmpty)
             'businessType': businessType,
+          if (includeInactive) 'includeInactive': true,
         },
       );
       return PlatformShopsReport.fromJson(response.data);

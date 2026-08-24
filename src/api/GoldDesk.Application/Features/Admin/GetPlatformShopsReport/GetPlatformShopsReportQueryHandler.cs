@@ -32,6 +32,11 @@ public class GetPlatformShopsReportQueryHandler
             query = query.Where(t => t.BusinessType == businessType);
         }
 
+        if (request.IncludeInactive)
+            query = query.Where(t => t.Status == TenantStatus.Active || t.Status == TenantStatus.Suspended);
+        else
+            query = query.Where(t => t.Status == TenantStatus.Active);
+
         var tenants = await query
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new
@@ -95,9 +100,9 @@ public class GetPlatformShopsReportQueryHandler
             PendingShopCount = pending.Count(t => t == BusinessType.Shop),
             PendingShowroomCount = pending.Count(t => t == BusinessType.Showroom),
             PendingKarigarCount = pending.Count(t => t == BusinessType.Karigar),
-            ShowroomCount = allTenants.Count(t => t.BusinessType == BusinessType.Showroom),
-            ShopCount = allTenants.Count(t => t.BusinessType == BusinessType.Shop),
-            KarigarCount = allTenants.Count(t => t.BusinessType == BusinessType.Karigar),
+            ShowroomCount = allTenants.Count(t => t.BusinessType == BusinessType.Showroom && t.Status == TenantStatus.Active),
+            ShopCount = allTenants.Count(t => t.BusinessType == BusinessType.Shop && t.Status == TenantStatus.Active),
+            KarigarCount = allTenants.Count(t => t.BusinessType == BusinessType.Karigar && t.Status == TenantStatus.Active),
             TotalShops = businesses.Count,
             ActiveShops = businesses.Count(s => s.Status == TenantStatus.Active.ToString()),
             PendingShops = businesses.Count(s => s.Status == TenantStatus.PendingApproval.ToString()),

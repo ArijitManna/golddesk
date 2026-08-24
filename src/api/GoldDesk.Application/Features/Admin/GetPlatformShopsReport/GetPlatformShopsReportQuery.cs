@@ -6,6 +6,7 @@ namespace GoldDesk.Application.Features.Admin.GetPlatformShopsReport;
 public record GetPlatformShopsReportQuery : IRequest<Result<PlatformShopsReportDto>>
 {
     public string? BusinessType { get; init; }
+    public bool IncludeInactive { get; init; }
 }
 
 public class PlatformShopsReportDto

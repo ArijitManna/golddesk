@@ -92,9 +92,20 @@ const AdminApi = (() => {
     });
   }
 
-  function getReport(businessType) {
-    const q = businessType ? `?businessType=${encodeURIComponent(businessType)}` : '';
-    return request(`/api/admin/reports/shops${q}`);
+  function getReport(businessType, includeInactive = false) {
+    const params = new URLSearchParams();
+    if (businessType) params.set('businessType', businessType);
+    if (includeInactive) params.set('includeInactive', 'true');
+    const q = params.toString();
+    return request(`/api/admin/reports/shops${q ? `?${q}` : ''}`);
+  }
+
+  function deactivateBusiness(tenantId) {
+    return request(`/api/admin/businesses/${tenantId}/deactivate`, { method: 'POST' });
+  }
+
+  function activateBusiness(tenantId) {
+    return request(`/api/admin/businesses/${tenantId}/activate`, { method: 'POST' });
   }
 
   return {
@@ -106,6 +117,8 @@ const AdminApi = (() => {
     getPending,
     approve,
     reject,
-    getReport
+    getReport,
+    deactivateBusiness,
+    activateBusiness
   };
 })();

@@ -3,6 +3,7 @@ using GoldDesk.Application.Features.Admin.ApproveShop;
 using GoldDesk.Application.Features.Admin.GetPendingRegistrations;
 using GoldDesk.Application.Features.Admin.GetPlatformShopsReport;
 using GoldDesk.Application.Features.Admin.RejectShop;
+using GoldDesk.Application.Features.Admin.SetBusinessStatus;
 using MediatR;
 
 namespace GoldDesk.Api.Endpoints;
@@ -51,16 +52,33 @@ public static class AdminEndpoints
         .WithName("RejectShop")
         .WithDescription("Reject a pending shop registration");
 
-        group.MapGet("/reports/shops", async (string? businessType, IMediator mediator) =>
+        group.MapGet("/reports/shops", async (string? businessType, bool? includeInactive, IMediator mediator) =>
         {
             var result = await mediator.Send(new GetPlatformShopsReportQuery
             {
-                BusinessType = businessType
+                BusinessType = businessType,
+                IncludeInactive = includeInactive == true
             });
             return ToResponse(result);
         })
         .WithName("GetPlatformShopsReport")
         .WithDescription("Platform report: shops with karigar counts");
+
+        group.MapPost("/businesses/{tenantId:guid}/deactivate", async (Guid tenantId, IMediator mediator) =>
+        {
+            var result = await mediator.Send(new DeactivateBusinessCommand { TenantId = tenantId });
+            return ToResponse(result);
+        })
+        .WithName("DeactivateBusiness")
+        .WithDescription("Inactivate an active shop, showroom, or karigar business");
+
+        group.MapPost("/businesses/{tenantId:guid}/activate", async (Guid tenantId, IMediator mediator) =>
+        {
+            var result = await mediator.Send(new ActivateBusinessCommand { TenantId = tenantId });
+            return ToResponse(result);
+        })
+        .WithName("ActivateBusiness")
+        .WithDescription("Reactivate an inactive shop, showroom, or karigar business");
     }
 
     private static IResult ToResponse<T>(Result<T> result)
