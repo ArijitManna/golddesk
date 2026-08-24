@@ -21,11 +21,19 @@ public class GetPlatformShopsReportQueryHandler
         GetPlatformShopsReportQuery request,
         CancellationToken cancellationToken)
     {
-        var tenants = await _context.Tenants
+        var query = _context.Tenants
             .IgnoreQueryFilters()
             .Where(t => t.Id != PlatformTenantId)
-            .Where(t => t.Status != TenantStatus.Rejected && t.Status != TenantStatus.Closed)
-            .OrderBy(t => t.ShopName)
+            .Where(t => t.Status != TenantStatus.Rejected && t.Status != TenantStatus.Closed);
+
+        if (!string.IsNullOrWhiteSpace(request.BusinessType) &&
+            Enum.TryParse<BusinessType>(request.BusinessType, true, out var businessType))
+        {
+            query = query.Where(t => t.BusinessType == businessType);
+        }
+
+        var tenants = await query
+            .OrderByDescending(t => t.CreatedAt)
             .Select(t => new
             {
                 t.Id,
@@ -33,9 +41,17 @@ public class GetPlatformShopsReportQueryHandler
                 t.OwnerName,
                 t.Mobile,
                 t.Email,
+                BusinessType = t.BusinessType.ToString(),
                 Status = t.Status.ToString(),
                 t.CreatedAt
             })
+            .ToListAsync(cancellationToken);
+
+        var allTenants = await _context.Tenants
+            .IgnoreQueryFilters()
+            .Where(t => t.Id != PlatformTenantId)
+            .Where(t => t.Status != TenantStatus.Rejected && t.Status != TenantStatus.Closed)
+            .Select(t => new { t.BusinessType, t.Status })
             .ToListAsync(cancellationToken);
 
         var karigarStats = await _context.Karigars
@@ -49,7 +65,7 @@ public class GetPlatformShopsReportQueryHandler
             })
             .ToDictionaryAsync(x => x.TenantId, cancellationToken);
 
-        var shops = tenants.Select(t =>
+        var businesses = tenants.Select(t =>
         {
             karigarStats.TryGetValue(t.Id, out var stats);
             return new PlatformShopSummaryDto
@@ -59,6 +75,7 @@ public class GetPlatformShopsReportQueryHandler
                 OwnerName = t.OwnerName,
                 Mobile = t.Mobile,
                 Email = t.Email,
+                BusinessType = t.BusinessType,
                 Status = t.Status,
                 KarigarCount = stats?.Total ?? 0,
                 ActiveKarigarCount = stats?.Active ?? 0,
@@ -66,13 +83,26 @@ public class GetPlatformShopsReportQueryHandler
             };
         }).ToList();
 
+        var pending = await _context.Tenants
+            .IgnoreQueryFilters()
+            .Where(t => t.Id != PlatformTenantId && t.Status == TenantStatus.PendingApproval)
+            .Select(t => t.BusinessType)
+            .ToListAsync(cancellationToken);
+
         var report = new PlatformShopsReportDto
         {
-            TotalShops = shops.Count,
-            ActiveShops = shops.Count(s => s.Status == TenantStatus.Active.ToString()),
-            PendingShops = shops.Count(s => s.Status == TenantStatus.PendingApproval.ToString()),
-            TotalKarigars = shops.Sum(s => s.KarigarCount),
-            Shops = shops
+            PendingApprovals = pending.Count,
+            PendingShopCount = pending.Count(t => t == BusinessType.Shop),
+            PendingShowroomCount = pending.Count(t => t == BusinessType.Showroom),
+            PendingKarigarCount = pending.Count(t => t == BusinessType.Karigar),
+            ShowroomCount = allTenants.Count(t => t.BusinessType == BusinessType.Showroom),
+            ShopCount = allTenants.Count(t => t.BusinessType == BusinessType.Shop),
+            KarigarCount = allTenants.Count(t => t.BusinessType == BusinessType.Karigar),
+            TotalShops = businesses.Count,
+            ActiveShops = businesses.Count(s => s.Status == TenantStatus.Active.ToString()),
+            PendingShops = businesses.Count(s => s.Status == TenantStatus.PendingApproval.ToString()),
+            TotalKarigars = businesses.Sum(s => s.KarigarCount),
+            Shops = businesses
         };
 
         return Result<PlatformShopsReportDto>.Success(report);

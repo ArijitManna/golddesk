@@ -5,7 +5,9 @@ import '../../../core/di/injection.dart';
 import '../../../data/repositories/admin_repository.dart';
 
 class PlatformReportsScreen extends StatefulWidget {
-  const PlatformReportsScreen({super.key});
+  final String? businessType;
+
+  const PlatformReportsScreen({super.key, this.businessType});
 
   @override
   State<PlatformReportsScreen> createState() => _PlatformReportsScreenState();
@@ -15,6 +17,19 @@ class _PlatformReportsScreenState extends State<PlatformReportsScreen> {
   PlatformShopsReport? _report;
   bool _loading = true;
   String? _error;
+
+  String get _listTitle {
+    switch (widget.businessType) {
+      case 'Shop':
+        return 'Shops';
+      case 'Showroom':
+        return 'Showrooms';
+      case 'Karigar':
+        return 'Karigars';
+      default:
+        return 'All Businesses';
+    }
+  }
 
   @override
   void initState() {
@@ -28,7 +43,9 @@ class _PlatformReportsScreenState extends State<PlatformReportsScreen> {
       _error = null;
     });
     try {
-      _report = await getIt<AdminRepository>().getShopsReport();
+      _report = await getIt<AdminRepository>().getShopsReport(
+        businessType: widget.businessType,
+      );
     } catch (e) {
       _error = e.toString();
     }
@@ -44,7 +61,7 @@ class _PlatformReportsScreenState extends State<PlatformReportsScreen> {
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => context.go('/dashboard'),
         ),
-        title: const Text('Platform Reports'),
+        title: Text(_listTitle),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
@@ -64,20 +81,22 @@ class _PlatformReportsScreenState extends State<PlatformReportsScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      _buildSummaryCards(_report!),
-                      const SizedBox(height: 20),
+                      if (widget.businessType == null) ...[
+                        _buildSummaryCards(_report!),
+                        const SizedBox(height: 20),
+                      ],
                       Text(
-                        'Shops (${_report!.totalShops})',
+                        '$_listTitle (${_report!.shops.length})',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
                       if (_report!.shops.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(32),
+                        Padding(
+                          padding: const EdgeInsets.all(32),
                           child: Center(
                             child: Text(
-                              'No shops registered yet',
-                              style: TextStyle(color: AppColors.textSecondary),
+                              'No ${_listTitle.toLowerCase()} registered yet',
+                              style: const TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
                         )
@@ -90,18 +109,19 @@ class _PlatformReportsScreenState extends State<PlatformReportsScreen> {
   }
 
   Widget _buildSummaryCards(PlatformShopsReport report) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.6,
+    return Row(
       children: [
-        _statCard('Total Shops', report.totalShops, AppColors.primaryDark),
-        _statCard('Active Shops', report.activeShops, AppColors.success),
-        _statCard('Pending', report.pendingShops, AppColors.statusPending),
-        _statCard('Total Karigars', report.totalKarigars, AppColors.gold),
+        Expanded(
+          child: _statCard('Shops', report.shopCount, AppColors.primaryDark),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _statCard('Showrooms', report.showroomCount, AppColors.gold),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _statCard('Karigars', report.karigarCount, AppColors.statusInProgress),
+        ),
       ],
     );
   }
@@ -116,14 +136,17 @@ class _PlatformReportsScreenState extends State<PlatformReportsScreen> {
       padding: const EdgeInsets.all(12),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '$count',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
           ),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -134,32 +157,74 @@ class _PlatformReportsScreenState extends State<PlatformReportsScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.primaryDark.withValues(alpha: 0.1),
-          child: const Icon(Icons.storefront, color: AppColors.primaryDark, size: 20),
+          backgroundColor: _businessTypeColor(shop.businessType).withValues(alpha: 0.1),
+          child: Icon(
+            _businessTypeIcon(shop.businessType),
+            color: _businessTypeColor(shop.businessType),
+            size: 20,
+          ),
         ),
         title: Text(shop.shopName, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(
-          '${shop.ownerName}\nKarigars: ${shop.activeKarigarCount} active / ${shop.karigarCount} total',
+          '${shop.ownerName}\n${shop.mobile}',
           style: const TextStyle(fontSize: 12),
         ),
         isThreeLine: true,
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: _statusColor(shop.status).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            shop.status,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: _statusColor(shop.status),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _businessTypeChip(shop.businessType),
+            const SizedBox(height: 4),
+            Text(
+              shop.status,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: _statusColor(shop.status),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _businessTypeChip(String businessType) {
+    final color = _businessTypeColor(businessType);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        businessType,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+      ),
+    );
+  }
+
+  IconData _businessTypeIcon(String businessType) {
+    switch (businessType) {
+      case 'Showroom':
+        return Icons.store_mall_directory_outlined;
+      case 'Karigar':
+        return Icons.handyman_outlined;
+      default:
+        return Icons.storefront_outlined;
+    }
+  }
+
+  Color _businessTypeColor(String businessType) {
+    switch (businessType) {
+      case 'Showroom':
+        return AppColors.gold;
+      case 'Karigar':
+        return AppColors.statusInProgress;
+      default:
+        return AppColors.primaryDark;
+    }
   }
 
   Color _statusColor(String status) {

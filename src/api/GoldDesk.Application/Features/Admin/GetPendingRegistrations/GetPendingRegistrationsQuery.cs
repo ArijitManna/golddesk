@@ -6,6 +6,7 @@ namespace GoldDesk.Application.Features.Admin.GetPendingRegistrations;
 public record GetPendingRegistrationsQuery : IRequest<Result<List<PendingRegistrationDto>>>
 {
     public string? Search { get; init; }
+    public string? BusinessType { get; init; }
 }
 
 public record PendingRegistrationDto
@@ -16,5 +17,6 @@ public record PendingRegistrationDto
     public string Mobile { get; init; } = string.Empty;
     public string Email { get; init; } = string.Empty;
     public string? Address { get; init; }
+    public string BusinessType { get; init; } = string.Empty;
     public DateTime RegisteredAt { get; init; }
 }

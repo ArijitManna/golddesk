@@ -41,11 +41,10 @@ services:
         condition: service_healthy
     volumes:
       - golddesk_uploads:/app/uploads
-      - golddesk_public:/app/public
+      - ./src/api/output:/app/output
       - ./secrets:/app/secrets:ro
     restart: unless-stopped
 
 volumes:
   golddesk_pgdata:
   golddesk_uploads:
-  golddesk_public:

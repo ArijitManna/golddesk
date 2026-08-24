@@ -153,6 +153,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   }
 
   Widget _buildShopCard(PendingShop shop) {
+    final typeColor = _businessTypeColor(shop.businessType);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -163,8 +164,12 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.gold.withValues(alpha: 0.15),
-                  child: const Icon(Icons.store, color: AppColors.gold, size: 20),
+                  backgroundColor: typeColor.withValues(alpha: 0.15),
+                  child: Icon(
+                    _businessTypeIcon(shop.businessType),
+                    color: typeColor,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -174,6 +179,21 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
                       Text(shop.shopName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                       Text(shop.ownerName, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                     ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    shop.businessType,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: typeColor,
+                    ),
                   ),
                 ),
               ],
@@ -228,5 +248,27 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
         Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
       ],
     );
+  }
+
+  IconData _businessTypeIcon(String businessType) {
+    switch (businessType) {
+      case 'Showroom':
+        return Icons.store_mall_directory_outlined;
+      case 'Karigar':
+        return Icons.handyman_outlined;
+      default:
+        return Icons.storefront_outlined;
+    }
+  }
+
+  Color _businessTypeColor(String businessType) {
+    switch (businessType) {
+      case 'Showroom':
+        return AppColors.gold;
+      case 'Karigar':
+        return AppColors.statusInProgress;
+      default:
+        return AppColors.primaryDark;
+    }
   }
 }

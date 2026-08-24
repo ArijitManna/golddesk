@@ -15,13 +15,17 @@ public static class AdminEndpoints
             .WithTags("Admin")
             .RequireAuthorization(policy => policy.RequireRole("SuperAdmin"));
 
-        group.MapGet("/registrations/pending", async (string? search, IMediator mediator) =>
+        group.MapGet("/registrations/pending", async (string? search, string? businessType, IMediator mediator) =>
         {
-            var result = await mediator.Send(new GetPendingRegistrationsQuery { Search = search });
+            var result = await mediator.Send(new GetPendingRegistrationsQuery
+            {
+                Search = search,
+                BusinessType = businessType
+            });
             return ToResponse(result);
         })
         .WithName("GetPendingRegistrations")
-        .WithDescription("Get all shops pending approval");
+        .WithDescription("Get pending registrations, optionally filtered by business type");
 
         group.MapPost("/registrations/{tenantId:guid}/approve", async (Guid tenantId, ApproveShopRequest? request, IMediator mediator) =>
         {
@@ -47,9 +51,12 @@ public static class AdminEndpoints
         .WithName("RejectShop")
         .WithDescription("Reject a pending shop registration");
 
-        group.MapGet("/reports/shops", async (IMediator mediator) =>
+        group.MapGet("/reports/shops", async (string? businessType, IMediator mediator) =>
         {
-            var result = await mediator.Send(new GetPlatformShopsReportQuery());
+            var result = await mediator.Send(new GetPlatformShopsReportQuery
+            {
+                BusinessType = businessType
+            });
             return ToResponse(result);
         })
         .WithName("GetPlatformShopsReport")

@@ -146,3 +146,8 @@ Thumbs.db
 # Local uploaded files
 **/uploads/
 
+# APK builds kept for sideload updates (folder tracked, binaries ignored)
+src/api/output/*
+!src/api/output/.gitkeep
+!src/api/output/README.md
+

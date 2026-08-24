@@ -12,11 +12,16 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
 {
     private readonly IApplicationDbContext _context;
     private readonly IAuthProvider _authProvider;
+    private readonly INotificationService _notificationService;
 
-    public RegisterCommandHandler(IApplicationDbContext context, IAuthProvider authProvider)
+    public RegisterCommandHandler(
+        IApplicationDbContext context,
+        IAuthProvider authProvider,
+        INotificationService notificationService)
     {
         _context = context;
         _authProvider = authProvider;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<RegisterResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -91,6 +96,8 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
         }
         await _context.SaveChangesAsync(cancellationToken);
 
+        await NotifySuperAdminsAsync(tenant, cancellationToken);
+
         return Result<RegisterResponse>.Created(new RegisterResponse
         {
             TenantId = tenant.Id,
@@ -98,5 +105,29 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
             GoldDeskId = tenant.GoldDeskId,
             Message = "Registration successful. Your account is pending approval."
         });
+    }
+
+    private async Task NotifySuperAdminsAsync(Tenant tenant, CancellationToken cancellationToken)
+    {
+        var superAdmins = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.Role == UserRole.SuperAdmin)
+            .ToListAsync(cancellationToken);
+
+        var businessLabel = tenant.BusinessType.ToString();
+        var title = $"New {businessLabel} registration";
+        var message = $"{tenant.ShopName} ({tenant.OwnerName}) is waiting for approval.";
+
+        foreach (var admin in superAdmins)
+        {
+            await _notificationService.CreateAndPushAsync(
+                admin.TenantId,
+                admin.Id,
+                null,
+                NotificationType.RegistrationRequested,
+                title,
+                message,
+                cancellationToken);
+        }
     }
 }

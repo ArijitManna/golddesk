@@ -38,7 +38,10 @@ import '../../features/settings/screens/team_users_screen.dart';
 import '../../features/splash/splash_screen.dart';
 
 class AppRouter {
+  static final rootNavigatorKey = GlobalKey<NavigatorState>();
+
   static final GoRouter router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: false,
     refreshListenable: GoRouterRefreshStream(getIt<AuthBloc>().stream),
@@ -80,7 +83,10 @@ class AppRouter {
       GoRoute(
         path: '/admin/reports',
         name: 'admin-reports',
-        builder: (context, state) => const PlatformReportsScreen(),
+        builder: (context, state) {
+          final type = state.uri.queryParameters['type'];
+          return PlatformReportsScreen(businessType: type);
+        },
       ),
       GoRoute(
         path: '/external-businesses',

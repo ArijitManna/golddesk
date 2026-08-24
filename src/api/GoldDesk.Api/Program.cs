@@ -115,6 +115,18 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 app.UseMiddleware<GoldDesk.Api.Middleware.ExceptionHandlingMiddleware>();
 app.UseCors("AllowAll");
+
+// Admin web panel + default static files from wwwroot
+var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(Path.Combine(webRoot, "admin"));
+app.UseDefaultFiles(new DefaultFilesOptions
+{
+    FileProvider = new PhysicalFileProvider(Path.Combine(webRoot, "admin")),
+    RequestPath = "/admin",
+    DefaultFileNames = { "index.html" }
+});
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -145,6 +157,21 @@ app.MapNotificationEndpoints();
 app.MapFileEndpoints();
 app.MapAppVersionEndpoints();
 
+// Serve APK downloads from output folder
+var outputPath = Path.Combine(app.Environment.ContentRootPath, "output");
+Directory.CreateDirectory(outputPath);
+
+var contentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+contentTypeProvider.Mappings[".apk"] = "application/vnd.android.package-archive";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(outputPath),
+    RequestPath = "/output",
+    ContentTypeProvider = contentTypeProvider,
+    ServeUnknownFileTypes = false
+});
+
 // Serve uploaded files as static files
 var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
 Directory.CreateDirectory(uploadsPath);
@@ -154,22 +181,17 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads"
 });
 
-// Serve public folder (APK downloads)
-var publicPath = Path.Combine(app.Environment.ContentRootPath, "public");
-Directory.CreateDirectory(publicPath);
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(publicPath),
-    RequestPath = "/public"
-});
-
 // Root endpoint
 app.MapGet("/", () => Results.Ok(new
 {
     Application = "GoldDesk API",
     Description = "Gold Shop Order Management - Digital Partner for Gold Shop",
     Version = "1.0.0",
+    Admin = "/admin",
     Docs = "/scalar/v1"
 }));
+
+app.MapGet("/admin", () => Results.Redirect("/admin/"));
+app.MapFallbackToFile("/admin/{**path}", "admin/index.html");
 
 app.Run();

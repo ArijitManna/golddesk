@@ -3,10 +3,20 @@ using MediatR;
 
 namespace GoldDesk.Application.Features.Admin.GetPlatformShopsReport;
 
-public record GetPlatformShopsReportQuery : IRequest<Result<PlatformShopsReportDto>>;
+public record GetPlatformShopsReportQuery : IRequest<Result<PlatformShopsReportDto>>
+{
+    public string? BusinessType { get; init; }
+}
 
 public class PlatformShopsReportDto
 {
+    public int PendingApprovals { get; init; }
+    public int PendingShopCount { get; init; }
+    public int PendingShowroomCount { get; init; }
+    public int PendingKarigarCount { get; init; }
+    public int ShowroomCount { get; init; }
+    public int ShopCount { get; init; }
+    public int KarigarCount { get; init; }
     public int TotalShops { get; init; }
     public int ActiveShops { get; init; }
     public int PendingShops { get; init; }
@@ -21,6 +31,7 @@ public class PlatformShopSummaryDto
     public string OwnerName { get; init; } = string.Empty;
     public string Mobile { get; init; } = string.Empty;
     public string Email { get; init; } = string.Empty;
+    public string BusinessType { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public int KarigarCount { get; init; }
     public int ActiveKarigarCount { get; init; }

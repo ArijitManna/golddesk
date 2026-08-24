@@ -24,6 +24,12 @@ public class GetPendingRegistrationsQueryHandler
             .IgnoreQueryFilters()
             .Where(t => t.Status == TenantStatus.PendingApproval);
 
+        if (!string.IsNullOrWhiteSpace(request.BusinessType) &&
+            Enum.TryParse<BusinessType>(request.BusinessType, true, out var businessType))
+        {
+            query = query.Where(t => t.BusinessType == businessType);
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.ToLower();
@@ -44,6 +50,7 @@ public class GetPendingRegistrationsQueryHandler
                 Mobile = t.Mobile,
                 Email = t.Email,
                 Address = t.Address,
+                BusinessType = t.BusinessType.ToString(),
                 RegisteredAt = t.CreatedAt
             })
             .ToListAsync(cancellationToken);

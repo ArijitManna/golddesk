@@ -41,6 +41,7 @@ services:
         condition: service_healthy
     volumes:
       - golddesk_uploads:/app/uploads
+      - ../src/api/output:/app/output
       - ./secrets:/app/secrets:ro
     restart: unless-stopped
 

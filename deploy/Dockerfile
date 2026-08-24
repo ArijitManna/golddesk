@@ -16,7 +16,7 @@ RUN dotnet publish GoldDesk.Api/GoldDesk.Api.csproj -c Release -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-RUN mkdir -p /app/uploads/order-items /app/uploads/images /app/logs /app/secrets /app/public
+RUN mkdir -p /app/uploads/order-items /app/uploads/images /app/logs /app/secrets /app/output
 
 COPY --from=build /app/publish .
 

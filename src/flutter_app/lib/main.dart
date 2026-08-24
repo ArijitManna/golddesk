@@ -46,13 +46,11 @@ class GoldDeskApp extends StatefulWidget {
 }
 
 class _GoldDeskAppState extends State<GoldDeskApp> {
-  final _navigatorKey = GlobalKey<NavigatorState>();
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = _navigatorKey.currentContext;
+      final ctx = AppRouter.rootNavigatorKey.currentContext;
       if (ctx != null) {
         VersionCheckService.checkForUpdate(ctx);
       }
@@ -64,7 +62,6 @@ class _GoldDeskAppState extends State<GoldDeskApp> {
     return MultiBlocProvider(
       providers: [BlocProvider<AuthBloc>.value(value: getIt<AuthBloc>())],
       child: MaterialApp.router(
-        key: _navigatorKey,
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,

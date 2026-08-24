@@ -47,7 +47,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _load();
       } catch (_) {}
     }
-    if (item.orderId != null && mounted) {
+    if (!mounted) return;
+
+    if (item.type == 'RegistrationRequested') {
+      context.go('/admin/approvals');
+      return;
+    }
+
+    if (item.orderId != null) {
       final authState = context.read<AuthBloc>().state;
       final user = authState is AuthAuthenticated ? authState.user : null;
       if (isKarigarUser(user)) {
@@ -178,6 +185,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'ConnectionAccepted': return Icons.handshake_outlined;
       case 'OrderAccepted': return Icons.task_alt;
       case 'OrderRejected': return Icons.cancel_outlined;
+      case 'RegistrationRequested': return Icons.approval_outlined;
       default: return Icons.notifications;
     }
   }
@@ -197,6 +205,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'ConnectionAccepted': return AppColors.statusReady;
       case 'OrderAccepted': return AppColors.statusReady;
       case 'OrderRejected': return AppColors.error;
+      case 'RegistrationRequested': return AppColors.statusPending;
       default: return AppColors.gold;
     }
   }

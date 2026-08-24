@@ -88,7 +88,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
               ],
             ),
           ),
-          actions: [if (!isSuperAdmin) const NotificationBell()],
+          actions: [const NotificationBell()],
         ),
         drawer: const SideDrawer(),
         bottomNavigationBar: isSuperAdmin
@@ -163,7 +163,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
           Text('Platform Admin', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           const Text(
-            'Shops using GoldDesk and their Karigar counts.',
+            'Review registrations and browse registered businesses.',
             style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 16),
@@ -176,61 +176,45 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
               title: const Text('Pending Approvals'),
               subtitle: Text(
                 report == null
-                    ? 'Review new shop registrations'
-                    : '${report.pendingShops} pending registration(s)',
+                    ? 'Review new registrations'
+                    : '${report.pendingApprovals} pending registration(s)',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go('/admin/approvals'),
             ),
           ),
           const SizedBox(height: 16),
-          if (report != null) ...[
+          if (report != null)
             Row(
               children: [
                 Expanded(
                   child: _platformStat(
-                    'Total Shops',
-                    report.totalShops,
+                    'Shops',
+                    report.shopCount,
                     AppColors.primaryDark,
-                    onTap: () => context.go('/admin/reports'),
+                    onTap: () => context.go('/admin/reports?type=Shop'),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _platformStat(
-                    'Active',
-                    report.activeShops,
-                    AppColors.success,
-                    onTap: () => context.go('/admin/reports'),
+                    'Showrooms',
+                    report.showroomCount,
+                    AppColors.gold,
+                    onTap: () => context.go('/admin/reports?type=Showroom'),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _platformStat(
                     'Karigars',
-                    report.totalKarigars,
-                    AppColors.gold,
-                    onTap: () => context.go('/admin/reports'),
+                    report.karigarCount,
+                    AppColors.statusInProgress,
+                    onTap: () => context.go('/admin/reports?type=Karigar'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Text('Shop List', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            if (report.shops.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(
-                  child: Text(
-                    'No shops registered yet',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                ),
-              )
-            else
-              ...report.shops.map(_buildPlatformShopCard),
-          ],
         ],
       ),
     );
@@ -268,39 +252,6 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlatformShopCard(PlatformShopSummary shop) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primaryDark.withValues(alpha: 0.1),
-          child: const Icon(
-            Icons.storefront,
-            color: AppColors.primaryDark,
-            size: 20,
-          ),
-        ),
-        title: Text(
-          shop.shopName,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          '${shop.ownerName}\nKarigars: ${shop.activeKarigarCount} active / ${shop.karigarCount} total',
-          style: const TextStyle(fontSize: 12),
-        ),
-        isThreeLine: true,
-        trailing: Text(
-          '${shop.karigarCount}',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.gold,
           ),
         ),
       ),

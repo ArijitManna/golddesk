@@ -40,9 +40,15 @@ class AdminRepository {
     }
   }
 
-  Future<PlatformShopsReport> getShopsReport() async {
+  Future<PlatformShopsReport> getShopsReport({String? businessType}) async {
     try {
-      final response = await _apiClient.dio.get('/admin/reports/shops');
+      final response = await _apiClient.dio.get(
+        '/admin/reports/shops',
+        queryParameters: {
+          if (businessType != null && businessType.isNotEmpty)
+            'businessType': businessType,
+        },
+      );
       return PlatformShopsReport.fromJson(response.data);
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);
@@ -57,6 +63,7 @@ class PendingShop {
   final String mobile;
   final String email;
   final String? address;
+  final String businessType;
   final String registeredAt;
 
   PendingShop({
@@ -66,6 +73,7 @@ class PendingShop {
     required this.mobile,
     required this.email,
     this.address,
+    required this.businessType,
     required this.registeredAt,
   });
 
@@ -76,11 +84,19 @@ class PendingShop {
         mobile: json['mobile'],
         email: json['email'],
         address: json['address'],
+        businessType: json['businessType'] ?? 'Shop',
         registeredAt: json['registeredAt'],
       );
 }
 
 class PlatformShopsReport {
+  final int pendingApprovals;
+  final int pendingShopCount;
+  final int pendingShowroomCount;
+  final int pendingKarigarCount;
+  final int showroomCount;
+  final int shopCount;
+  final int karigarCount;
   final int totalShops;
   final int activeShops;
   final int pendingShops;
@@ -88,6 +104,13 @@ class PlatformShopsReport {
   final List<PlatformShopSummary> shops;
 
   PlatformShopsReport({
+    required this.pendingApprovals,
+    this.pendingShopCount = 0,
+    this.pendingShowroomCount = 0,
+    this.pendingKarigarCount = 0,
+    required this.showroomCount,
+    required this.shopCount,
+    required this.karigarCount,
     required this.totalShops,
     required this.activeShops,
     required this.pendingShops,
@@ -95,7 +118,15 @@ class PlatformShopsReport {
     required this.shops,
   });
 
-  factory PlatformShopsReport.fromJson(Map<String, dynamic> json) => PlatformShopsReport(
+  factory PlatformShopsReport.fromJson(Map<String, dynamic> json) =>
+      PlatformShopsReport(
+        pendingApprovals: json['pendingApprovals'] ?? json['pendingShops'] ?? 0,
+        pendingShopCount: json['pendingShopCount'] ?? 0,
+        pendingShowroomCount: json['pendingShowroomCount'] ?? 0,
+        pendingKarigarCount: json['pendingKarigarCount'] ?? 0,
+        showroomCount: json['showroomCount'] ?? 0,
+        shopCount: json['shopCount'] ?? 0,
+        karigarCount: json['karigarCount'] ?? 0,
         totalShops: json['totalShops'] ?? 0,
         activeShops: json['activeShops'] ?? 0,
         pendingShops: json['pendingShops'] ?? 0,
@@ -112,6 +143,7 @@ class PlatformShopSummary {
   final String ownerName;
   final String mobile;
   final String email;
+  final String businessType;
   final String status;
   final int karigarCount;
   final int activeKarigarCount;
@@ -123,18 +155,21 @@ class PlatformShopSummary {
     required this.ownerName,
     required this.mobile,
     required this.email,
+    required this.businessType,
     required this.status,
     required this.karigarCount,
     required this.activeKarigarCount,
     required this.registeredAt,
   });
 
-  factory PlatformShopSummary.fromJson(Map<String, dynamic> json) => PlatformShopSummary(
+  factory PlatformShopSummary.fromJson(Map<String, dynamic> json) =>
+      PlatformShopSummary(
         tenantId: json['tenantId'],
         shopName: json['shopName'],
         ownerName: json['ownerName'],
         mobile: json['mobile'] ?? '',
         email: json['email'] ?? '',
+        businessType: json['businessType'] ?? 'Shop',
         status: json['status'] ?? '',
         karigarCount: json['karigarCount'] ?? 0,
         activeKarigarCount: json['activeKarigarCount'] ?? 0,
