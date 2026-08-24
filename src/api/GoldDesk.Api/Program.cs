@@ -118,12 +118,20 @@ app.UseCors("AllowAll");
 
 // Admin web panel + default static files from wwwroot
 var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-Directory.CreateDirectory(Path.Combine(webRoot, "admin"));
+var adminRoot = Path.Combine(webRoot, "admin");
+Directory.CreateDirectory(adminRoot);
+var adminFiles = new PhysicalFileProvider(adminRoot);
 app.UseDefaultFiles(new DefaultFilesOptions
 {
-    FileProvider = new PhysicalFileProvider(Path.Combine(webRoot, "admin")),
+    FileProvider = adminFiles,
     RequestPath = "/admin",
-    DefaultFileNames = { "index.html" }
+    DefaultFileNames = { "index.html" },
+    RedirectToAppendTrailingSlash = true
+});
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = adminFiles,
+    RequestPath = "/admin"
 });
 app.UseStaticFiles();
 
@@ -187,11 +195,8 @@ app.MapGet("/", () => Results.Ok(new
     Application = "GoldDesk API",
     Description = "Gold Shop Order Management - Digital Partner for Gold Shop",
     Version = "1.0.0",
-    Admin = "/admin",
+    Admin = "/admin/",
     Docs = "/scalar/v1"
 }));
-
-app.MapGet("/admin", () => Results.Redirect("/admin/"));
-app.MapFallbackToFile("/admin/{**path}", "admin/index.html");
 
 app.Run();
