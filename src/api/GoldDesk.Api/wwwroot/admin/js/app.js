@@ -112,6 +112,7 @@
       if (route.path === '/dashboard') await renderDashboard();
       else if (route.path === '/requests') await renderRequests();
       else if (route.path === '/businesses') await renderBusinesses();
+      else if (route.path === '/version-control') await renderVersionControl();
       else if (route.path === '/settings') renderSettings();
       else go('/dashboard');
     } catch (err) {
@@ -135,6 +136,7 @@
       return 'All Requests';
     }
     if (path === '/businesses') return 'Businesses';
+    if (path === '/version-control') return 'Version Control';
     if (path === '/settings') return 'Settings';
     return 'Admin';
   }
@@ -154,25 +156,28 @@
         </div>
         <div class="nav-section">Main</div>
         <a class="nav-item ${path === '/dashboard' ? 'active' : ''}" href="#/dashboard">
-          <span class="icon">◆</span> Dashboard
+          <span class="icon">D</span> Dashboard
         </a>
         <div class="nav-section">Requests</div>
         <a class="nav-item ${reqActive && type === 'Shop' ? 'active' : ''}" href="#/requests?type=Shop">
-          <span class="icon">●</span> Shop Requests
+          <span class="icon">S</span> Shop Requests
         </a>
         <a class="nav-item ${reqActive && type === 'Karigar' ? 'active' : ''}" href="#/requests?type=Karigar">
-          <span class="icon">●</span> Karigar Requests
+          <span class="icon">K</span> Karigar Requests
         </a>
         <a class="nav-item ${reqActive && type === 'Showroom' ? 'active' : ''}" href="#/requests?type=Showroom">
-          <span class="icon">●</span> Showroom Requests
+          <span class="icon">H</span> Showroom Requests
         </a>
         <div class="nav-section">Management</div>
         <a class="nav-item ${path === '/businesses' ? 'active' : ''}" href="#/businesses">
-          <span class="icon">■</span> Businesses
+          <span class="icon">B</span> Businesses
+        </a>
+        <a class="nav-item ${path === '/version-control' ? 'active' : ''}" href="#/version-control">
+          <span class="icon">V</span> Version Control
         </a>
         <div class="nav-section">Settings</div>
         <a class="nav-item ${path === '/settings' ? 'active' : ''}" href="#/settings">
-          <span class="icon">◎</span> Settings
+          <span class="icon">G</span> Settings
         </a>
         <div class="sidebar-footer">
           <div class="avatar">${initial}</div>
@@ -519,11 +524,148 @@
           <div><strong>Email:</strong> ${escapeHtml(user?.email || '—')}</div>
           <div><strong>Role:</strong> Super Admin</div>
           <div style="margin-top:12px;color:var(--muted)">
-            App updates are managed via the <code>AppVersions</code> table and APKs in <code>/output</code>.
+            Manage Android APK updates from <a href="#/version-control" style="color:var(--blue);font-weight:600">Version Control</a>.
           </div>
         </div>
       </div>
     `;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes == null || Number.isNaN(Number(bytes))) return '—';
+    const n = Number(bytes);
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function renderVersionControl() {
+    const el = document.getElementById('pageContent');
+    el.innerHTML = `<div class="empty">Loading version info...</div>`;
+
+    let current;
+    let history = [];
+    try {
+      [current, history] = await Promise.all([
+        AdminApi.getCurrentAppVersion(),
+        AdminApi.getAppVersionHistory()
+      ]);
+    } catch (err) {
+      el.innerHTML = `<div class="error-banner">${escapeHtml(err.message)}</div>`;
+      return;
+    }
+
+    el.innerHTML = `
+      <div class="cards" style="margin-bottom:16px">
+        <div class="stat-card">
+          <div class="label">Current App Version</div>
+          <div class="value" style="font-size:28px;color:var(--navy)">${escapeHtml(current.currentVersion || 'Not set')}</div>
+          <p>${current.forceUpdate ? 'Force update is ON' : 'Force update is OFF'}</p>
+        </div>
+        <div class="stat-card">
+          <div class="label">APK on Server</div>
+          <div class="value" style="font-size:18px;color:var(--gold)">${escapeHtml(current.apk?.fileName || 'No APK')}</div>
+          <p>${current.apk ? `${formatBytes(current.apk.sizeBytes)} · updated ${formatDate(current.apk.lastModifiedUtc)}` : 'Upload an APK below'}</p>
+        </div>
+        <div class="stat-card">
+          <div class="label">Download URL</div>
+          <div style="font-size:12px;word-break:break-all;margin-top:8px;color:var(--muted)">${escapeHtml(current.downloadUrl || '—')}</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:16px">
+        <div class="panel-header"><h3>Publish New Version</h3></div>
+        <div style="padding:18px">
+          <div class="form-group">
+            <label for="vcVersion">Version *</label>
+            <input id="vcVersion" type="text" placeholder="e.g. 1.0.1" value="" />
+          </div>
+          <div class="form-group">
+            <label for="vcNotes">Release Notes</label>
+            <textarea id="vcNotes" placeholder="What changed in this build"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="vcApk">APK File (.apk)</label>
+            <input id="vcApk" type="file" accept=".apk,application/vnd.android.package-archive" />
+            <div style="margin-top:6px;font-size:12px;color:var(--muted)">Saved as golddesk.apk under /output. Max 200MB.</div>
+          </div>
+          <label class="toggle" style="margin:12px 0 18px">
+            <input id="vcForce" type="checkbox" />
+            <span class="toggle-ui"></span>
+            <span>Force update (users must install before continuing)</span>
+          </label>
+          <button class="btn btn-primary" id="vcPublishBtn" type="button" style="width:auto;min-width:180px">Publish Version</button>
+          <div id="vcPublishMsg" class="error-banner hidden" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h3>Version History</h3></div>
+        <div class="table-wrap">
+          ${history.length === 0 ? `<div class="empty">No versions published yet</div>` : `
+          <table>
+            <thead>
+              <tr>
+                <th>Version</th>
+                <th>Force</th>
+                <th>Notes</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history.map(row => `
+                <tr>
+                  <td><strong>${escapeHtml(row.version)}</strong></td>
+                  <td>${row.forceUpdate ? '<span class="badge badge-pending">Force</span>' : '<span class="badge badge-active">Optional</span>'}</td>
+                  <td>${escapeHtml(row.releaseNotes || '—')}</td>
+                  <td>${formatDate(row.createdAt)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`}
+        </div>
+      </div>
+    `;
+
+    const msg = document.getElementById('vcPublishMsg');
+    document.getElementById('vcPublishBtn').onclick = async () => {
+      const version = document.getElementById('vcVersion').value.trim();
+      const releaseNotes = document.getElementById('vcNotes').value.trim();
+      const forceUpdate = document.getElementById('vcForce').checked;
+      const apkInput = document.getElementById('vcApk');
+      const apkFile = apkInput.files && apkInput.files[0] ? apkInput.files[0] : null;
+      const btn = document.getElementById('vcPublishBtn');
+
+      msg.classList.add('hidden');
+      if (!version) {
+        msg.textContent = 'Version is required';
+        msg.classList.remove('hidden');
+        return;
+      }
+      if (apkFile && !apkFile.name.toLowerCase().endsWith('.apk')) {
+        msg.textContent = 'Only .apk files are allowed';
+        msg.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Publishing...';
+      try {
+        const result = await AdminApi.publishAppVersion({
+          version,
+          forceUpdate,
+          releaseNotes: releaseNotes || null,
+          apkFile
+        });
+        toast(result.message || 'Version published');
+        await renderVersionControl();
+      } catch (err) {
+        msg.textContent = err.message || 'Publish failed';
+        msg.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Publish Version';
+      }
+    };
   }
 
   render();

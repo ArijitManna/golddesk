@@ -108,6 +108,40 @@ const AdminApi = (() => {
     return request(`/api/admin/businesses/${tenantId}/activate`, { method: 'POST' });
   }
 
+  function getCurrentAppVersion() {
+    return request('/app-version/current');
+  }
+
+  function getAppVersionHistory() {
+    return request('/app-version/history');
+  }
+
+  async function publishAppVersion({ version, forceUpdate, releaseNotes, apkFile }) {
+    const form = new FormData();
+    form.append('version', version);
+    form.append('forceUpdate', forceUpdate ? 'true' : 'false');
+    if (releaseNotes) form.append('releaseNotes', releaseNotes);
+    if (apkFile) form.append('apk', apkFile);
+
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const response = await fetch('/app-version/publish', {
+      method: 'POST',
+      headers,
+      body: form
+    });
+    const text = await response.text();
+    let body = null;
+    try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+    if (!response.ok) {
+      const message = body?.error || body?.detail || body?.title || `Request failed (${response.status})`;
+      throw new Error(message);
+    }
+    return body;
+  }
+
   return {
     getToken,
     getUser,
@@ -119,6 +153,9 @@ const AdminApi = (() => {
     reject,
     getReport,
     deactivateBusiness,
-    activateBusiness
+    activateBusiness,
+    getCurrentAppVersion,
+    getAppVersionHistory,
+    publishAppVersion
   };
 })();

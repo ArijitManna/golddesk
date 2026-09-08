@@ -134,6 +134,8 @@ app.*.map.json
 !**/secrets/
 !**/secrets/README.md
 !**/secrets/.gitkeep
+# Local VPS credentials / deploy notes (do not push passwords)
+/deployment.md
 
 # ==============================
 # OS
