@@ -40,7 +40,8 @@ class _AuthInterceptor extends Interceptor {
     final path = options.path;
     return path.contains('/auth/login') ||
         path.contains('/auth/register') ||
-        path.contains('/auth/refresh');
+        path.contains('/auth/refresh') ||
+        path.contains('/app-version/check');
   }
 
   @override

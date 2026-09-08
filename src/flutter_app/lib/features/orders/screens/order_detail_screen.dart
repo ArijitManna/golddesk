@@ -114,9 +114,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             const SizedBox(height: 16),
           ],
           if (_isShop() &&
-              (order.status == 'Assigned' ||
-                  order.status == 'InProgress' ||
-                  order.status == 'Ready')) ...[
+              (order.status == 'Assigned' || order.status == 'InProgress')) ...[
+            _buildMarkWorkReadyButton(order),
+            const SizedBox(height: 16),
+          ],
+          if (_isShop() && order.status == 'Ready') ...[
             _buildMarkDeliveredButton(order),
             const SizedBox(height: 16),
           ],
@@ -282,6 +284,61 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
+  Widget _buildMarkWorkReadyButton(OrderDetail order) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => _confirmMarkWorkReady(order),
+        icon: const Icon(Icons.check_circle_outline, size: 18),
+        label: const Text('MARK WORK READY'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.statusReady,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmMarkWorkReady(OrderDetail order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Mark work ready?'),
+        content: Text(
+          'Mark ${order.orderNo} as Work Ready. Use this when Karigar already handed over the work offline and did not update status in the app. You can mark Delivered after this.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.statusReady,
+            ),
+            child: const Text('Mark Work Ready'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final updated = await context.read<OrderDetailCubit>().updateOrderStatus(
+      order.id,
+      status: 'Ready',
+    );
+    if (updated && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order marked as Work Ready'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
   Widget _buildMarkDeliveredButton(OrderDetail order) {
     return SizedBox(
       width: double.infinity,
@@ -299,16 +356,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Future<void> _confirmMarkDelivered(OrderDetail order) async {
-    final needsOfflineNote =
-        order.status == 'Assigned' || order.status == 'InProgress';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Mark order delivered?'),
         content: Text(
-          needsOfflineNote
-              ? 'Mark ${order.orderNo} as delivered. Use this when Karigar already returned the work offline and did not update status in the app.'
-              : 'Mark ${order.orderNo} as delivered to complete this work.',
+          'Mark ${order.orderNo} as delivered to complete this work.',
         ),
         actions: [
           TextButton(

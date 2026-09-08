@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
@@ -21,10 +22,15 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Settings'),
       ),
       bottomNavigationBar: const AppBottomNavigation(selectedPath: '/settings'),
-      body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          final user = state is AuthAuthenticated ? state.user : null;
-          return ListView(
+      body: FutureBuilder<PackageInfo>(
+        future: PackageInfo.fromPlatform(),
+        builder: (context, packageSnapshot) {
+          final appVersion =
+              packageSnapshot.data?.version ?? AppConstants.appVersion;
+          return BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              final user = state is AuthAuthenticated ? state.user : null;
+              return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               // Profile card
@@ -130,8 +136,8 @@ class SettingsScreen extends StatelessWidget {
               _settingsTile(
                 icon: Icons.info_outline,
                 title: 'About',
-                subtitle: '${AppConstants.appName} v${AppConstants.appVersion}',
-                onTap: () => _showAboutDialog(context),
+                subtitle: '${AppConstants.appName} v$appVersion',
+                onTap: () => _showAboutDialog(context, appVersion),
               ),
               _settingsTile(
                 icon: Icons.description_outlined,
@@ -169,7 +175,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Version ${AppConstants.appVersion}',
+                      'Version $appVersion',
                       style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.textLight,
@@ -179,6 +185,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ],
+          );
+            },
           );
         },
       ),
@@ -332,7 +340,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showAboutDialog(BuildContext context) {
+  void _showAboutDialog(BuildContext context, String appVersion) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -357,7 +365,7 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Version ${AppConstants.appVersion}',
+              'Version $appVersion',
               style: const TextStyle(fontSize: 12, color: AppColors.textLight),
             ),
             const SizedBox(height: 16),

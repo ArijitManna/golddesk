@@ -45,16 +45,39 @@ class GoldDeskApp extends StatefulWidget {
   State<GoldDeskApp> createState() => _GoldDeskAppState();
 }
 
-class _GoldDeskAppState extends State<GoldDeskApp> {
+class _GoldDeskAppState extends State<GoldDeskApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = AppRouter.rootNavigatorKey.currentContext;
-      if (ctx != null) {
-        VersionCheckService.checkForUpdate(ctx);
-      }
-    });
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runVersionCheck());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _runVersionCheck();
+    }
+  }
+
+  void _runVersionCheck() {
+    final ctx = AppRouter.rootNavigatorKey.currentContext;
+    if (ctx == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final retryCtx = AppRouter.rootNavigatorKey.currentContext;
+        if (retryCtx != null) {
+          VersionCheckService.checkForUpdate(retryCtx);
+        }
+      });
+      return;
+    }
+    VersionCheckService.checkForUpdate(ctx);
   }
 
   @override
