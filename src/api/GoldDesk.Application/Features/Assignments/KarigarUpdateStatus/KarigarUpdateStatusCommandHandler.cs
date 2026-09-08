@@ -72,12 +72,19 @@ public class KarigarUpdateStatusCommandHandler : IRequestHandler<KarigarUpdateSt
         if (newStatus == OrderStatus.Ready && order.Status != OrderStatus.InProgress)
             return Result<bool>.Failure("Can only mark 'Ready' when order is In Progress");
 
+        if (newStatus == OrderStatus.Ready)
+        {
+            if (!request.FinalWeight.HasValue || request.FinalWeight.Value <= 0)
+                return Result<bool>.Failure("Final weight is required when marking work Ready");
+        }
+
         order.Status = newStatus;
 
         // Update assignment status if Ready
         if (newStatus == OrderStatus.Ready)
         {
             assignment.Status = AssignmentStatus.Completed;
+            order.FinalWeight = request.FinalWeight;
         }
 
         _context.OrderStatusHistory.Add(new OrderStatusHistory

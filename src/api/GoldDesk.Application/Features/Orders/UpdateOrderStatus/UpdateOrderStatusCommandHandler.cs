@@ -47,6 +47,24 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
         var previousStatus = order.Status;
         order.Status = newStatus;
 
+        // When Shop marks Delivered without Karigar Ready update, close the active assignment.
+        if (newStatus == OrderStatus.Delivered &&
+            (previousStatus == OrderStatus.Assigned ||
+             previousStatus == OrderStatus.InProgress ||
+             previousStatus == OrderStatus.Ready))
+        {
+            var activeAssignments = await _context.OrderAssignments
+                .Where(a => a.OrderId == order.Id && a.IsActive &&
+                            (a.Status == AssignmentStatus.Active ||
+                             a.Status == AssignmentStatus.PendingAcceptance))
+                .ToListAsync(cancellationToken);
+
+            foreach (var assignment in activeAssignments)
+            {
+                assignment.Status = AssignmentStatus.Completed;
+            }
+        }
+
         _context.OrderStatusHistory.Add(new OrderStatusHistory
         {
             OrderId = order.Id,
@@ -92,8 +110,10 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
             (OrderStatus.Pending, OrderStatus.Cancelled) => true,
             (OrderStatus.Assigned, OrderStatus.InProgress) => true,
             (OrderStatus.Assigned, OrderStatus.Cancelled) => true,
+            (OrderStatus.Assigned, OrderStatus.Delivered) => true,
             (OrderStatus.InProgress, OrderStatus.Ready) => true,
             (OrderStatus.InProgress, OrderStatus.Cancelled) => true,
+            (OrderStatus.InProgress, OrderStatus.Delivered) => true,
             (OrderStatus.Ready, OrderStatus.Delivered) => true,
             (OrderStatus.Delivered, OrderStatus.Closed) => true,
             _ => false

@@ -46,11 +46,16 @@ class KarigarPortalRepository {
     String orderId,
     String status, {
     String? notes,
+    double? finalWeight,
   }) async {
     try {
       await _apiClient.dio.post(
         '/orders/$orderId/karigar-update',
-        data: {'status': status, if (notes != null) 'progressNotes': notes},
+        data: {
+          'status': status,
+          if (notes != null) 'progressNotes': notes,
+          if (finalWeight != null) 'finalWeight': finalWeight,
+        },
       );
     } on DioException catch (e) {
       throw ApiException.fromDioError(e);

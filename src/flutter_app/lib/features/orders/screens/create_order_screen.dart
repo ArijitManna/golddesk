@@ -81,9 +81,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   double get _totalWeight => _items.fold(0, (sum, item) {
-    final weight = double.tryParse(item.weightController.text) ?? 0;
-    final pieces = int.tryParse(item.quantityController.text) ?? 1;
-    return sum + (weight * pieces);
+    return sum + (double.tryParse(item.totalWeightController.text) ?? 0);
   });
 
   void _populateFromOrder(OrderDetail order) {
@@ -99,8 +97,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       form.existingId = i.id;
       form.selectedItemId = i.itemMasterId;
       form.nameController.text = i.itemName;
+      final qty = i.quantity < 1 ? 1 : i.quantity;
+      final lineTotal = i.weight * qty;
       form.weightController.text = i.weight == 0 ? '' : i.weight.toString();
-      form.quantityController.text = i.quantity.toString();
+      form.quantityController.text = qty.toString();
+      form.totalWeightController.text =
+          lineTotal == 0 ? '' : lineTotal.toString();
       form.sizeController.text = i.size ?? '';
       form.existingImagePath = i.imagePath;
       _items.add(form);
@@ -458,12 +460,18 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             ? null
             : _notesController.text.trim(),
         items: _items.map((item) {
+          final quantity = int.tryParse(item.quantityController.text) ?? 1;
+          final safeQty = quantity < 1 ? 1 : quantity;
+          final lineTotal =
+              double.tryParse(item.totalWeightController.text) ?? 0;
+          // Keep existing API contract: Weight * Quantity = line total.
+          final unitWeight = lineTotal / safeQty;
           return OrderItemRequest(
             id: item.existingId,
             itemMasterId: item.selectedItemId,
             itemName: item.nameController.text,
-            weight: double.tryParse(item.weightController.text) ?? 0,
-            quantity: int.tryParse(item.quantityController.text) ?? 1,
+            weight: unitWeight,
+            quantity: safeQty,
             size: item.sizeController.text.trim().isEmpty
                 ? null
                 : item.sizeController.text.trim(),
@@ -766,9 +774,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               children: [
                 Expanded(
                   child: TextFormField(
-                    controller: item.weightController,
+                    controller: item.totalWeightController,
                     decoration: const InputDecoration(
-                      labelText: 'Weight (gm)',
+                      labelText: 'Total Weight (gm)',
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
@@ -779,6 +787,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                       decimal: true,
                     ),
                     onChanged: (_) => setState(() {}),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return null;
+                      final n = double.tryParse(v);
+                      if (n == null || n < 0) return 'Invalid';
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -817,18 +831,6 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Item weight: ${((double.tryParse(item.weightController.text) ?? 0) * (int.tryParse(item.quantityController.text) ?? 1)).toStringAsFixed(3)} gm',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gold,
-                ),
-              ),
             ),
           ],
         ),
@@ -973,6 +975,7 @@ class _OrderFromOption {
 class _OrderItemForm {
   final nameController = TextEditingController();
   final weightController = TextEditingController();
+  final totalWeightController = TextEditingController();
   final quantityController = TextEditingController(text: '1');
   final sizeController = TextEditingController();
   String? existingId;
@@ -983,6 +986,7 @@ class _OrderItemForm {
   void dispose() {
     nameController.dispose();
     weightController.dispose();
+    totalWeightController.dispose();
     quantityController.dispose();
     sizeController.dispose();
   }

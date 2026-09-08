@@ -196,6 +196,7 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
             AcceptanceStatus = o.AcceptanceStatus.ToString(),
             AcceptanceNote = o.AcceptanceNote,
             TotalWeight = o.TotalWeight,
+            FinalWeight = o.FinalWeight,
             MakingCharges = o.MakingCharges,
             AdvancePaid = o.AdvancePaid,
             EstimatedAmount = o.EstimatedAmount,

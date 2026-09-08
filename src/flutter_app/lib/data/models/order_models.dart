@@ -99,6 +99,7 @@ class OrderDetail {
   final String? deliveryDate;
   final String status;
   final double totalWeight;
+  final double? finalWeight;
   final double makingCharges;
   final double advancePaid;
   final double estimatedAmount;
@@ -121,6 +122,7 @@ class OrderDetail {
     this.deliveryDate,
     required this.status,
     required this.totalWeight,
+    this.finalWeight,
     required this.makingCharges,
     required this.advancePaid,
     required this.estimatedAmount,
@@ -145,6 +147,9 @@ class OrderDetail {
       deliveryDate: json['deliveryDate'],
       status: json['status'],
       totalWeight: (json['totalWeight'] ?? 0).toDouble(),
+      finalWeight: json['finalWeight'] == null
+          ? null
+          : (json['finalWeight'] as num).toDouble(),
       makingCharges: (json['makingCharges'] ?? 0).toDouble(),
       advancePaid: (json['advancePaid'] ?? 0).toDouble(),
       estimatedAmount: (json['estimatedAmount'] ?? 0).toDouble(),

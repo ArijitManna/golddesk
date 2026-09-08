@@ -113,7 +113,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _buildResponseActions(order),
             const SizedBox(height: 16),
           ],
-          if (_isShop() && order.status == 'Ready') ...[
+          if (_isShop() &&
+              (order.status == 'Assigned' ||
+                  order.status == 'InProgress' ||
+                  order.status == 'Ready')) ...[
             _buildMarkDeliveredButton(order),
             const SizedBox(height: 16),
           ],
@@ -296,12 +299,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Future<void> _confirmMarkDelivered(OrderDetail order) async {
+    final needsOfflineNote =
+        order.status == 'Assigned' || order.status == 'InProgress';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Mark order delivered?'),
         content: Text(
-          'Mark ${order.orderNo} as delivered to complete this work.',
+          needsOfflineNote
+              ? 'Mark ${order.orderNo} as delivered. Use this when Karigar already returned the work offline and did not update status in the app.'
+              : 'Mark ${order.orderNo} as delivered to complete this work.',
         ),
         actions: [
           TextButton(
@@ -529,6 +536,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             'Total Weight',
             '${order.totalWeight.toStringAsFixed(3)} gm',
           ),
+          if (order.finalWeight != null)
+            _summaryRow(
+              'Final Weight',
+              '${order.finalWeight!.toStringAsFixed(3)} gm',
+            ),
           if (order.makingCharges > 0)
             _summaryRow(
               'Making Charges',

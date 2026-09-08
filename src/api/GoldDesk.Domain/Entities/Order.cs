@@ -24,6 +24,8 @@ public class Order : BaseTenantEntity
     public DateOnly? DeliveryDate { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public decimal TotalWeight { get; set; }
+    /// <summary>Actual weight entered by Karigar when marking work Ready.</summary>
+    public decimal? FinalWeight { get; set; }
     public decimal MakingCharges { get; set; }
     public decimal AdvancePaid { get; set; }
     public decimal EstimatedAmount { get; set; }

@@ -7,7 +7,7 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API
-  // Use 'http://localhost:5282' for Android emulator
+  // Use 'http://10.0.2.2:5282' for Android emulator
   // Use 'http://localhost:5282' for iOS simulator or web
   // Use 'http://192.168.x.x:5282' for physical device
   // Production: 'http://162.35.185.106:8082'

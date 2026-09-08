@@ -128,6 +128,7 @@ public class UpdateOrderCommandHandler : IRequestHandler<UpdateOrderCommand, Res
             AcceptanceStatus = order.AcceptanceStatus.ToString(),
             AcceptanceNote = order.AcceptanceNote,
             TotalWeight = order.TotalWeight,
+            FinalWeight = order.FinalWeight,
             MakingCharges = order.MakingCharges,
             AdvancePaid = order.AdvancePaid,
             EstimatedAmount = order.EstimatedAmount,

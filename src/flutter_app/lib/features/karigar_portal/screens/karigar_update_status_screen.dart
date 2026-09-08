@@ -23,6 +23,7 @@ class KarigarUpdateStatusScreen extends StatefulWidget {
 class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
   String _selectedStatus = 'InProgress';
   final _notesController = TextEditingController();
+  final _finalWeightController = TextEditingController();
   bool _isLoading = false;
   bool _loadingOrder = true;
   KarigarOrderItem? _assignment;
@@ -59,12 +60,29 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
   }
 
   Future<void> _updateStatus() async {
+    if (_selectedStatus == 'Ready') {
+      final finalWeight = double.tryParse(_finalWeightController.text.trim());
+      if (finalWeight == null || finalWeight <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Enter final weight (gm) before marking Work Ready'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
     try {
+      final finalWeight = _selectedStatus == 'Ready'
+          ? double.tryParse(_finalWeightController.text.trim())
+          : null;
       await getIt<KarigarPortalRepository>().updateStatus(
         widget.orderId,
         _selectedStatus,
         notes: _notesController.text.isEmpty ? null : _notesController.text,
+        finalWeight: finalWeight,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -117,6 +135,7 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
   @override
   void dispose() {
     _notesController.dispose();
+    _finalWeightController.dispose();
     super.dispose();
   }
 
@@ -263,6 +282,19 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
                       AppColors.statusReady,
                       'Mark that the work is complete and ready for delivery',
                     ),
+                    if (_selectedStatus == 'Ready') ...[
+                      const SizedBox(height: 16),
+                      GoldDeskTextField(
+                        label: 'Final Weight (gm) *',
+                        hint: _order == null
+                            ? 'Enter final submitted weight'
+                            : 'Estimated ${_order!.totalWeight.toStringAsFixed(3)} gm',
+                        controller: _finalWeightController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     GoldDeskTextField(
                       label: 'Progress Notes (Optional)',

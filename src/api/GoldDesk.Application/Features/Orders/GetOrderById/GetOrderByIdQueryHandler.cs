@@ -94,6 +94,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
             AcceptanceStatus = order.AcceptanceStatus.ToString(),
             AcceptanceNote = isKarigarViewer ? null : order.AcceptanceNote,
             TotalWeight = order.TotalWeight,
+            FinalWeight = order.FinalWeight,
             MakingCharges = isKarigarViewer ? 0 : order.MakingCharges,
             AdvancePaid = isKarigarViewer ? 0 : order.AdvancePaid,
             EstimatedAmount = isKarigarViewer ? 0 : order.EstimatedAmount,

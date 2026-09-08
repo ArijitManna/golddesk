@@ -176,7 +176,8 @@ public static class OrderEndpoints
             {
                 OrderId = id,
                 Status = request.Status,
-                ProgressNotes = request.ProgressNotes
+                ProgressNotes = request.ProgressNotes,
+                FinalWeight = request.FinalWeight
             });
             return result.IsSuccess
                 ? Results.Ok(new { message = $"Status updated to {request.Status}" })
@@ -244,4 +245,5 @@ public record KarigarStatusUpdateRequest
 {
     public string Status { get; init; } = string.Empty;
     public string? ProgressNotes { get; init; }
+    public decimal? FinalWeight { get; init; }
 }

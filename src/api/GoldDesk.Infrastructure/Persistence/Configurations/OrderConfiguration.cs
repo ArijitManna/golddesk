@@ -18,6 +18,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.AcceptanceStatus).HasConversion<string>().HasMaxLength(50);
         builder.Property(o => o.AcceptanceNote).HasMaxLength(1000);
         builder.Property(o => o.TotalWeight).HasPrecision(18, 3);
+        builder.Property(o => o.FinalWeight).HasPrecision(18, 3);
         builder.Property(o => o.MakingCharges).HasPrecision(18, 2);
         builder.Property(o => o.AdvancePaid).HasPrecision(18, 2);
         builder.Property(o => o.EstimatedAmount).HasPrecision(18, 2);

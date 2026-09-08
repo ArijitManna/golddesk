@@ -13,6 +13,7 @@ public record OrderDto
     public string AcceptanceStatus { get; init; } = string.Empty;
     public string? AcceptanceNote { get; init; }
     public decimal TotalWeight { get; init; }
+    public decimal? FinalWeight { get; init; }
     public decimal MakingCharges { get; init; }
     public decimal AdvancePaid { get; init; }
     public decimal EstimatedAmount { get; init; }
