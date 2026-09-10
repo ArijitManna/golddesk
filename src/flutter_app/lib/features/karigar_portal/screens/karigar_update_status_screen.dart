@@ -7,6 +7,7 @@ import '../../../core/utils/order_status_labels.dart';
 import '../../../core/widgets/golddesk_button.dart';
 import '../../../core/widgets/golddesk_text_field.dart';
 import '../../../core/widgets/message_icon_button.dart';
+import '../../../core/widgets/order_image.dart';
 import '../../../data/models/order_models.dart';
 import '../../../data/repositories/karigar_portal_repository.dart';
 import '../../../data/repositories/order_repository.dart';
@@ -335,17 +336,26 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: item.imagePath != null
-                  ? Image.network(
-                      '${AppConstants.serverUrl}${item.imagePath}',
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _itemPlaceholder(),
-                    )
-                  : _itemPlaceholder(),
+            GestureDetector(
+              onTap: item.imagePath != null
+                  ? () => showZoomableOrderImagePath(
+                        context,
+                        imagePath: item.imagePath!,
+                        label: item.itemName,
+                      )
+                  : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: item.imagePath != null
+                    ? Image.network(
+                        '${AppConstants.serverUrl}${item.imagePath}',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _itemPlaceholder(),
+                      )
+                    : _itemPlaceholder(),
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(

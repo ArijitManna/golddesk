@@ -185,6 +185,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'ConnectionAccepted': return Icons.handshake_outlined;
       case 'OrderAccepted': return Icons.task_alt;
       case 'OrderRejected': return Icons.cancel_outlined;
+      case 'OrderCancelled': return Icons.cancel_outlined;
       case 'RegistrationRequested': return Icons.approval_outlined;
       default: return Icons.notifications;
     }
@@ -205,6 +206,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'ConnectionAccepted': return AppColors.statusReady;
       case 'OrderAccepted': return AppColors.statusReady;
       case 'OrderRejected': return AppColors.error;
+      case 'OrderCancelled': return AppColors.error;
       case 'RegistrationRequested': return AppColors.statusPending;
       default: return AppColors.gold;
     }

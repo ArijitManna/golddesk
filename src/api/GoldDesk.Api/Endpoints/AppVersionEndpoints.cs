@@ -21,9 +21,8 @@ public static class AppVersionEndpoints
             string? currentVersion,
             ApplicationDbContext db) =>
         {
-            var latest = await db.AppVersions
-                .OrderByDescending(v => v.CreatedAt)
-                .FirstOrDefaultAsync();
+            var versions = await db.AppVersions.AsNoTracking().ToListAsync();
+            var latest = AppVersionHelper.SelectLatest(versions);
 
             if (latest == null)
                 return Results.Ok(new { updateAvailable = false });
@@ -53,9 +52,8 @@ public static class AppVersionEndpoints
             IWebHostEnvironment environment,
             ApplicationDbContext db) =>
         {
-            var latest = await db.AppVersions
-                .OrderByDescending(v => v.CreatedAt)
-                .FirstOrDefaultAsync();
+            var versions = await db.AppVersions.AsNoTracking().ToListAsync();
+            var latest = AppVersionHelper.SelectLatest(versions);
 
             var apkInfo = GetApkInfo(configuration, environment);
             var downloadUrl = latest == null
@@ -83,7 +81,12 @@ public static class AppVersionEndpoints
         group.MapGet("/history", async (ApplicationDbContext db) =>
         {
             var rows = await db.AppVersions
-                .OrderByDescending(v => v.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var ordered = rows
+                .OrderByDescending(v => v.Version, Comparer<string>.Create(AppVersionHelper.CompareVersions))
+                .ThenByDescending(v => v.CreatedAt)
                 .Take(20)
                 .Select(v => new
                 {
@@ -93,10 +96,9 @@ public static class AppVersionEndpoints
                     v.ReleaseNotes,
                     v.DownloadUrl,
                     v.CreatedAt
-                })
-                .ToListAsync();
+                });
 
-            return Results.Ok(rows);
+            return Results.Ok(ordered);
         })
         .RequireAuthorization(policy => policy.RequireRole("SuperAdmin"))
         .WithName("GetAppVersionHistory");

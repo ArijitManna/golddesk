@@ -1,3 +1,5 @@
+using GoldDesk.Domain.Entities;
+
 namespace GoldDesk.Api.Services;
 
 public static class AppVersionHelper
@@ -11,6 +13,17 @@ public static class AppVersionHelper
             return true;
 
         return CompareVersions(currentVersion, latestVersion) < 0;
+    }
+
+    /// <summary>
+    /// Picks the highest semantic version. CreatedAt is only a tie-breaker.
+    /// </summary>
+    public static AppVersion? SelectLatest(IEnumerable<AppVersion> versions)
+    {
+        return versions
+            .OrderByDescending(v => v.Version, Comparer<string>.Create(CompareVersions))
+            .ThenByDescending(v => v.CreatedAt)
+            .FirstOrDefault();
     }
 
     public static int CompareVersions(string left, string right)

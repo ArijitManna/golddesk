@@ -18,5 +18,6 @@ public enum NotificationType
     WorkAccepted = 13,
     WorkStarted = 14,
     OrderDelivered = 15,
-    RegistrationRequested = 16
+    RegistrationRequested = 16,
+    OrderCancelled = 17
 }

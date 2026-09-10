@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/order_status_labels.dart';
 import '../../../core/widgets/message_icon_button.dart';
+import '../../../core/widgets/order_image.dart';
 import '../../../data/models/order_models.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
@@ -162,10 +163,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            _buildCancelButton(order),
           ],
-          if (_isShowroom() && order.status == 'Pending') ...[
+          if (_isShop() && _canCancelOrder(order)) ...[
             const SizedBox(height: 12),
             _buildCancelButton(order),
           ],
@@ -429,7 +428,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             // Item image - tap to view full size
             GestureDetector(
               onTap: item.imagePath != null
-                  ? () => _showFullImage(item.imagePath!, item.itemName)
+                  ? () => showZoomableOrderImagePath(
+                        context,
+                        imagePath: item.imagePath!,
+                        label: item.itemName,
+                      )
                   : null,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -486,78 +489,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  void _showFullImage(String imagePath, String itemName) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: Stack(
-          children: [
-            // Image
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  '${AppConstants.serverUrl}$imagePath',
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 200,
-                    height: 200,
-                    color: AppColors.surface,
-                    child: const Center(child: Text('Image not available')),
-                  ),
-                ),
-              ),
-            ),
-            // Close button
-            Positioned(
-              top: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(ctx),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryDark,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.close, color: Colors.white, size: 22),
-                ),
-              ),
-            ),
-            // Item name at bottom
-            Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryDark.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    itemName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _itemPlaceholder() {
     return Container(
       width: 50,
@@ -567,11 +498,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.divider),
       ),
-      child: const Icon(
-        Icons.diamond_outlined,
-        color: AppColors.gold,
-        size: 22,
-      ),
+      child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 22),
     );
   }
 
@@ -733,26 +660,39 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Future<void> _confirmCancel(OrderDetail order) async {
     final reasonCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel Order'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Cancel ${order.orderNo}? This cannot be undone.'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Reason (optional)',
-                border: OutlineInputBorder(),
-                isDense: true,
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Cancel ${order.orderNo}? This cannot be undone.'
+                '${order.assignments.any((a) => a.isActive) ? ' The Karigar assignment will be revoked.' : ''}',
               ),
-              maxLines: 2,
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: reasonCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Cancellation comment *',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                maxLines: 3,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Please enter a cancellation comment';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -760,7 +700,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             child: const Text('Keep Order'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () {
+              if (formKey.currentState?.validate() != true) return;
+              Navigator.pop(ctx, true);
+            },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Cancel Order'),
           ),
@@ -772,7 +715,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     final ok = await context.read<OrderDetailCubit>().cancelOrder(
       order.id,
-      reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
+      reason: reasonCtrl.text.trim(),
     );
     if (!mounted) return;
     if (ok) {
@@ -783,6 +726,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       );
     }
+  }
+
+  bool _canCancelOrder(OrderDetail order) {
+    return order.status != 'Delivered' &&
+        order.status != 'Closed' &&
+        order.status != 'Cancelled';
   }
 
   Widget _buildSectionTitle(String title) {
