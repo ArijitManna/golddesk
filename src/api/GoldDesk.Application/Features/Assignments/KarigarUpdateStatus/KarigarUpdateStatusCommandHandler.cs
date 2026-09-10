@@ -59,8 +59,14 @@ public class KarigarUpdateStatusCommandHandler : IRequestHandler<KarigarUpdateSt
         if (assignment == null)
             return Result<bool>.NotFound("No active assignment found for this order");
 
+        if (assignment.Order.Status is OrderStatus.Cancelled or OrderStatus.Delivered or OrderStatus.Closed)
+            return Result<bool>.Failure("This order was cancelled or closed and can no longer be updated.");
+
         if (assignment.Status == AssignmentStatus.PendingAcceptance)
             return Result<bool>.Failure("Accept this work before updating its progress.");
+
+        if (assignment.Status == AssignmentStatus.Cancelled)
+            return Result<bool>.Failure("This work assignment was cancelled.");
 
         var order = assignment.Order;
         var previousStatus = order.Status;

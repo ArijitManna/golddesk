@@ -4,7 +4,7 @@ class AppConstants {
   // App Info
   static const String appName = 'GoldDesk';
   static const String appTagline = 'Digital Partner for Gold Shop';
-  static const String appVersion = '1.0.4';
+  static const String appVersion = '1.0.5';
 
   // API
   // Use 'http://10.0.2.2:5282' for Android emulator

@@ -29,9 +29,9 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Res
         if (string.IsNullOrWhiteSpace(reason))
             return Result<bool>.Failure("Cancellation comment is required");
 
+        // Do not ThenInclude Karigar here — Karigar tenant filter can hide
+        // independent-Karigar assignments and leave them active after cancel.
         var order = await _context.Orders
-            .Include(o => o.Assignments.Where(a => a.IsActive))
-                .ThenInclude(a => a.Karigar)
             .FirstOrDefaultAsync(o => o.Id == request.OrderId, cancellationToken);
 
         if (order == null)
@@ -46,17 +46,22 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Res
         if (order.Status == OrderStatus.Cancelled)
             return Result<bool>.Failure("Order is already cancelled");
 
+        var activeAssignments = await _context.OrderAssignments
+            .IgnoreQueryFilters()
+            .Include(a => a.Karigar)
+            .Where(a => a.OrderId == order.Id && a.IsActive)
+            .ToListAsync(cancellationToken);
+
         var previousStatus = order.Status;
         order.Status = OrderStatus.Cancelled;
 
-        var karigarUserIds = order.Assignments
-            .Where(a => a.IsActive && a.Karigar.UserId.HasValue)
+        var karigarUserIds = activeAssignments
+            .Where(a => a.Karigar.UserId.HasValue)
             .Select(a => a.Karigar.UserId!.Value)
             .Distinct()
             .ToList();
 
-        // Revoke active Karigar assignments
-        foreach (var assignment in order.Assignments.Where(a => a.IsActive))
+        foreach (var assignment in activeAssignments)
         {
             assignment.IsActive = false;
             assignment.Status = AssignmentStatus.Cancelled;

@@ -44,8 +44,14 @@ public class AcceptAssignmentCommandHandler
         if (assignment == null)
             return Result<bool>.NotFound("No active work assignment found.");
 
+        if (assignment.Order.Status is OrderStatus.Cancelled or OrderStatus.Delivered or OrderStatus.Closed)
+            return Result<bool>.Failure("This order was cancelled or closed and can no longer be accepted.");
+
         if (assignment.Status != AssignmentStatus.PendingAcceptance)
             return Result<bool>.Failure("This work assignment has already been accepted.");
+
+        if (assignment.Status == AssignmentStatus.Cancelled)
+            return Result<bool>.Failure("This work assignment was cancelled.");
 
         assignment.Status = AssignmentStatus.Active;
         assignment.AcceptedAt = DateTime.UtcNow;

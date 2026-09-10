@@ -41,7 +41,10 @@ public class GetKarigarDashboardQueryHandler : IRequestHandler<GetKarigarDashboa
                 .ThenInclude(o => o.OrderFromBusiness)
             .Include(a => a.Order)
                 .ThenInclude(o => o.OrderFromExternalBusiness)
-            .Where(a => a.KarigarId == karigar.Id && a.IsActive)
+            .Where(a => a.KarigarId == karigar.Id &&
+                        a.IsActive &&
+                        a.Order.Status != OrderStatus.Cancelled &&
+                        a.Order.Status != OrderStatus.Closed)
             .ToListAsync(cancellationToken);
 
         // Calculate stats

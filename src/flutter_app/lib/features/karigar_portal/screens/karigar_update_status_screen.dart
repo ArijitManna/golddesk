@@ -147,6 +147,8 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
   String get _status => _order?.status ?? _assignment?.status ?? '';
   String get _assignmentStatus =>
       _order?.assignmentStatus ?? _assignment?.assignmentStatus ?? '';
+  bool get _isCancelled =>
+      _status == 'Cancelled' || _assignmentStatus == 'Cancelled';
 
   @override
   Widget build(BuildContext context) {
@@ -247,7 +249,21 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
                     ..._order!.items.map(_buildItemRow),
                   ],
                   const SizedBox(height: 24),
-                  if (_assignmentStatus == 'PendingAcceptance') ...[
+                  if (_isCancelled) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                      ),
+                      child: const Text(
+                        'This order was cancelled by the shop. You cannot accept or update it.',
+                        style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ] else if (_assignmentStatus == 'PendingAcceptance') ...[
                     const Text(
                       'The Shop has given you this work. Accept it before starting.',
                       style: TextStyle(color: AppColors.textSecondary),
