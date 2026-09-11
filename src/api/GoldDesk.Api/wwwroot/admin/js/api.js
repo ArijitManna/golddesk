@@ -142,6 +142,20 @@ const AdminApi = (() => {
     return body;
   }
 
+  function getApiTiming({ take, minMs, fromDate, toDate } = {}) {
+    const params = new URLSearchParams();
+    if (take) params.set('take', String(take));
+    if (minMs != null && minMs !== '') params.set('minMs', String(minMs));
+    if (fromDate) params.set('fromDate', fromDate);
+    if (toDate) params.set('toDate', toDate);
+    const q = params.toString();
+    return request(`/api/admin/api-timing${q ? `?${q}` : ''}`);
+  }
+
+  function flashApiTiming() {
+    return request('/api/admin/api-timing', { method: 'DELETE' });
+  }
+
   return {
     getToken,
     getUser,
@@ -156,6 +170,8 @@ const AdminApi = (() => {
     activateBusiness,
     getCurrentAppVersion,
     getAppVersionHistory,
-    publishAppVersion
+    publishAppVersion,
+    getApiTiming,
+    flashApiTiming
   };
 })();

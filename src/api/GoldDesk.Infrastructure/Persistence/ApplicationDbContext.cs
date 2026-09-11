@@ -33,6 +33,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<OrderComment> OrderComments => Set<OrderComment>();
     public DbSet<OrderEvent> OrderEvents => Set<OrderEvent>();
     public DbSet<AppVersion> AppVersions => Set<AppVersion>();
+    public DbSet<ApiRequestLog> ApiRequestLogs => Set<ApiRequestLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

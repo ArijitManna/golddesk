@@ -33,7 +33,7 @@
   }
 
   function formatDate(value) {
-    if (!value) return '—';
+    if (!value) return '?';
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return String(value).split('T')[0];
     return d.toLocaleString('en-IN', {
@@ -113,6 +113,7 @@
       else if (route.path === '/requests') await renderRequests();
       else if (route.path === '/businesses') await renderBusinesses();
       else if (route.path === '/version-control') await renderVersionControl();
+      else if (route.path === '/api-timing') await renderApiTiming();
       else if (route.path === '/settings') renderSettings();
       else go('/dashboard');
     } catch (err) {
@@ -137,6 +138,7 @@
     }
     if (path === '/businesses') return 'Businesses';
     if (path === '/version-control') return 'Version Control';
+    if (path === '/api-timing') return 'API Timing';
     if (path === '/settings') return 'Settings';
     return 'Admin';
   }
@@ -175,6 +177,9 @@
         <a class="nav-item ${path === '/version-control' ? 'active' : ''}" href="#/version-control">
           <span class="icon">V</span> Version Control
         </a>
+        <a class="nav-item ${path === '/api-timing' ? 'active' : ''}" href="#/api-timing">
+          <span class="icon">T</span> API Timing
+        </a>
         <div class="nav-section">Settings</div>
         <a class="nav-item ${path === '/settings' ? 'active' : ''}" href="#/settings">
           <span class="icon">G</span> Settings
@@ -205,7 +210,7 @@
             </div>
             <div class="form-group">
               <label for="password">Password</label>
-              <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••" />
+              <input id="password" type="password" autocomplete="current-password" required placeholder="????????" />
             </div>
             <button class="btn btn-primary" id="loginBtn" type="submit">Sign In</button>
           </form>
@@ -247,19 +252,19 @@
           <div class="label">Pending Shop Requests</div>
           <div class="value">${report.pendingShopCount ?? 0}</div>
           <p>Total pending shop registrations</p>
-          <a href="#/requests?type=Shop">View Shop Requests →</a>
+          <a href="#/requests?type=Shop">View Shop Requests ?</a>
         </div>
         <div class="stat-card karigar">
           <div class="label">Pending Karigar Requests</div>
           <div class="value">${report.pendingKarigarCount ?? 0}</div>
           <p>Total pending karigar registrations</p>
-          <a href="#/requests?type=Karigar">View Karigar Requests →</a>
+          <a href="#/requests?type=Karigar">View Karigar Requests ?</a>
         </div>
         <div class="stat-card showroom">
           <div class="label">Pending Showroom Requests</div>
           <div class="value">${report.pendingShowroomCount ?? 0}</div>
           <p>Total pending showroom registrations</p>
-          <a href="#/requests?type=Showroom">View Showroom Requests →</a>
+          <a href="#/requests?type=Showroom">View Showroom Requests ?</a>
         </div>
       </div>
       <div class="cards">
@@ -267,19 +272,19 @@
           <div class="label">Active Shops</div>
           <div class="value" style="color:var(--navy)">${report.shopCount ?? 0}</div>
           <p>Currently active shops</p>
-          <a href="#/businesses?type=Shop">View Shops →</a>
+          <a href="#/businesses?type=Shop">View Shops ?</a>
         </div>
         <div class="stat-card">
           <div class="label">Active Showrooms</div>
           <div class="value" style="color:var(--gold)">${report.showroomCount ?? 0}</div>
           <p>Currently active showrooms</p>
-          <a href="#/businesses?type=Showroom">View Showrooms →</a>
+          <a href="#/businesses?type=Showroom">View Showrooms ?</a>
         </div>
         <div class="stat-card">
           <div class="label">Active Karigars</div>
           <div class="value" style="color:var(--blue)">${report.karigarCount ?? 0}</div>
           <p>Currently active karigars</p>
-          <a href="#/businesses?type=Karigar">View Karigars →</a>
+          <a href="#/businesses?type=Karigar">View Karigars ?</a>
         </div>
       </div>
     `;
@@ -450,7 +455,7 @@
                       ? `<button class="btn btn-danger btn-sm" data-deactivate="${row.tenantId}" data-name="${escapeHtml(row.shopName)}">Inactivate</button>`
                       : row.status === 'Suspended'
                         ? `<button class="btn btn-success btn-sm" data-activate="${row.tenantId}" data-name="${escapeHtml(row.shopName)}">Activate</button>`
-                        : '<span style="color:var(--muted);font-size:12px">—</span>'}
+                        : '<span style="color:var(--muted);font-size:12px">?</span>'}
                   </td>
                 </tr>
               `).join('')}
@@ -520,8 +525,8 @@
       <div class="panel">
         <div class="panel-header"><h3>Admin Profile</h3></div>
         <div style="padding:18px;font-size:14px;line-height:1.8">
-          <div><strong>Name:</strong> ${escapeHtml(user?.fullName || '—')}</div>
-          <div><strong>Email:</strong> ${escapeHtml(user?.email || '—')}</div>
+          <div><strong>Name:</strong> ${escapeHtml(user?.fullName || '?')}</div>
+          <div><strong>Email:</strong> ${escapeHtml(user?.email || '?')}</div>
           <div><strong>Role:</strong> Super Admin</div>
           <div style="margin-top:12px;color:var(--muted)">
             Manage Android APK updates from <a href="#/version-control" style="color:var(--blue);font-weight:600">Version Control</a>.
@@ -532,7 +537,7 @@
   }
 
   function formatBytes(bytes) {
-    if (bytes == null || Number.isNaN(Number(bytes))) return '—';
+    if (bytes == null || Number.isNaN(Number(bytes))) return '?';
     const n = Number(bytes);
     if (n < 1024) return `${n} B`;
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -565,11 +570,11 @@
         <div class="stat-card">
           <div class="label">APK on Server</div>
           <div class="value" style="font-size:18px;color:var(--gold)">${escapeHtml(current.apk?.fileName || 'No APK')}</div>
-          <p>${current.apk ? `${formatBytes(current.apk.sizeBytes)} · updated ${formatDate(current.apk.lastModifiedUtc)}` : 'Upload an APK below'}</p>
+          <p>${current.apk ? `${formatBytes(current.apk.sizeBytes)} ? updated ${formatDate(current.apk.lastModifiedUtc)}` : 'Upload an APK below'}</p>
         </div>
         <div class="stat-card">
           <div class="label">Download URL</div>
-          <div style="font-size:12px;word-break:break-all;margin-top:8px;color:var(--muted)">${escapeHtml(current.downloadUrl || '—')}</div>
+          <div style="font-size:12px;word-break:break-all;margin-top:8px;color:var(--muted)">${escapeHtml(current.downloadUrl || '?')}</div>
         </div>
       </div>
 
@@ -617,7 +622,7 @@
                 <tr>
                   <td><strong>${escapeHtml(row.version)}</strong></td>
                   <td>${row.forceUpdate ? '<span class="badge badge-pending">Force</span>' : '<span class="badge badge-active">Optional</span>'}</td>
-                  <td>${escapeHtml(row.releaseNotes || '—')}</td>
+                  <td>${escapeHtml(row.releaseNotes || '?')}</td>
                   <td>${formatDate(row.createdAt)}</td>
                 </tr>
               `).join('')}
@@ -668,5 +673,177 @@
     };
   }
 
+  async function renderApiTiming(preset = {}) {
+    const root = document.getElementById('pageContent');
+    const today = new Date().toISOString().slice(0, 10);
+    const filters = {
+      fromDate: preset.fromDate ?? today,
+      toDate: preset.toDate ?? today,
+      minMs: preset.minMs ?? '',
+      take: preset.take ?? 100
+    };
+
+    root.innerHTML = `<div class="loading">Loading API timing...</div>`;
+    try {
+      const data = await AdminApi.getApiTiming(filters);
+      const summary = data.summary || {};
+      const byEndpoint = data.byEndpoint || [];
+      const recent = data.recent || [];
+
+      const msClass = (ms) => {
+        if (ms >= 2000) return 'timing-bad';
+        if (ms >= 500) return 'timing-warn';
+        return 'timing-ok';
+      };
+      const rowClass = (ms) => {
+        if (ms >= 2000) return 'timing-row-bad';
+        if (ms >= 500) return 'timing-row-warn';
+        return '';
+      };
+
+      root.innerHTML = `
+        <div class="cards" style="margin-bottom:16px">
+          <div class="stat-card">
+            <div class="label">Total logged calls</div>
+            <div class="value">${summary.totalCount ?? 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Filtered calls</div>
+            <div class="value">${summary.filteredCount ?? 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Avg ms (window)</div>
+            <div class="value ${msClass(summary.avgMsWindow || 0)}">${summary.avgMsWindow ?? 0}</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div>
+              <h3 style="margin:0">API Response Timing</h3>
+              <p style="margin:4px 0 0;color:var(--muted);font-size:13px">Tracks /api and /app-version request durations.</p>
+              <div class="timing-legend">
+                <span class="timing-ok">&lt; 500ms OK</span>
+                <span class="timing-warn">500-1999ms Slow</span>
+                <span class="timing-bad">&gt;= 2000ms High</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary" id="apiTimingRefresh" type="button">Apply</button>
+              <button class="btn btn-danger" id="apiTimingFlash" type="button">Flash Data</button>
+            </div>
+          </div>
+          <div class="filters" style="padding:14px 18px;display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+            <div class="form-group" style="margin:0">
+              <label for="timingFrom">From date</label>
+              <input id="timingFrom" type="date" value="${escapeHtml(filters.fromDate)}" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="timingTo">To date</label>
+              <input id="timingTo" type="date" value="${escapeHtml(filters.toDate)}" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="timingMinMs">Min response (ms)</label>
+              <input id="timingMinMs" type="number" min="0" step="100" placeholder="e.g. 1000" value="${escapeHtml(filters.minMs)}" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label for="timingTake">Rows</label>
+              <select id="timingTake">
+                ${[50, 100, 200, 500].map(n => `<option value="${n}" ${Number(filters.take) === n ? 'selected' : ''}>${n}</option>`).join('')}
+              </select>
+            </div>
+            <button class="btn btn-secondary" id="timingHighOnly" type="button">High only (&gt;=2s)</button>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <h3>Slowest endpoints</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>Calls</th>
+                  <th>Avg ms</th>
+                  <th>Min</th>
+                  <th>Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${byEndpoint.length === 0 ? `<tr><td colspan="6">No data for this filter.</td></tr>` : byEndpoint.map(row => `
+                  <tr class="${rowClass(row.avgMs)}">
+                    <td>${escapeHtml(row.method)}</td>
+                    <td><code>${escapeHtml(row.path)}</code></td>
+                    <td>${row.count}</td>
+                    <td class="${msClass(row.avgMs)}">${row.avgMs}</td>
+                    <td>${row.minMs}</td>
+                    <td class="${msClass(row.maxMs)}">${row.maxMs}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Calls (sorted by slowest)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>Status</th>
+                  <th>ms</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${recent.length === 0 ? `<tr><td colspan="5">No recent calls for this filter.</td></tr>` : recent.map(row => `
+                  <tr class="${rowClass(row.durationMs)}">
+                    <td>${escapeHtml(formatDate(row.createdAt))}</td>
+                    <td>${escapeHtml(row.method)}</td>
+                    <td><code>${escapeHtml(row.path)}</code></td>
+                    <td>${row.statusCode}</td>
+                    <td class="${msClass(row.durationMs)}">${row.durationMs}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      const readFilters = () => ({
+        fromDate: document.getElementById('timingFrom').value || '',
+        toDate: document.getElementById('timingTo').value || '',
+        minMs: document.getElementById('timingMinMs').value || '',
+        take: Number(document.getElementById('timingTake').value || 100)
+      });
+
+      document.getElementById('apiTimingRefresh').onclick = () => renderApiTiming(readFilters());
+      document.getElementById('timingHighOnly').onclick = () => {
+        const next = readFilters();
+        next.minMs = '2000';
+        renderApiTiming(next);
+      };
+      document.getElementById('apiTimingFlash').onclick = async () => {
+        const ok = confirm('Permanently delete ALL API timing data from the database? This cannot be undone.');
+        if (!ok) return;
+        try {
+          const result = await AdminApi.flashApiTiming();
+          toast(result.message ? `${result.message} (${result.deleted} rows)` : 'Timing data deleted');
+          await renderApiTiming(readFilters());
+        } catch (err) {
+          toast(err.message || 'Flash failed');
+        }
+      };
+    } catch (err) {
+      root.innerHTML = `<div class="error-banner">${escapeHtml(err.message)}</div>`;
+    }
+  }
+
   render();
 })();
+

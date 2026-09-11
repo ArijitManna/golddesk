@@ -147,6 +147,7 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<GoldDesk.Api.Middleware.ApiTimingMiddleware>();
 
 // Health check endpoint
 app.MapGet("/api/health", () => Results.Ok(new
@@ -174,6 +175,7 @@ app.MapDashboardEndpoints();
 app.MapNotificationEndpoints();
 app.MapFileEndpoints();
 app.MapAppVersionEndpoints();
+app.MapApiTimingEndpoints();
 
 // Serve APK downloads from output folder
 var outputPath = Path.Combine(app.Environment.ContentRootPath, "output");
