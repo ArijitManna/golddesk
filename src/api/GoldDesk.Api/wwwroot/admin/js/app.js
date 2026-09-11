@@ -69,11 +69,16 @@
 
   async function render() {
     if (!AdminApi.isLoggedIn() && route.path !== '/login') {
+      sessionStorage.setItem('admin_return_path', route.path + (Object.keys(route.params).length
+        ? `?${new URLSearchParams(route.params)}`
+        : ''));
       go('/login');
       return;
     }
     if (AdminApi.isLoggedIn() && route.path === '/login') {
-      go('/dashboard');
+      const ret = sessionStorage.getItem('admin_return_path') || '/dashboard';
+      sessionStorage.removeItem('admin_return_path');
+      go(ret.startsWith('/') ? ret : `/${ret}`);
       return;
     }
 
@@ -177,6 +182,7 @@
         <a class="nav-item ${path === '/version-control' ? 'active' : ''}" href="#/version-control">
           <span class="icon">V</span> Version Control
         </a>
+        <div class="nav-section">Monitoring</div>
         <a class="nav-item ${path === '/api-timing' ? 'active' : ''}" href="#/api-timing">
           <span class="icon">T</span> API Timing
         </a>
@@ -233,7 +239,9 @@
           document.getElementById('email').value.trim(),
           document.getElementById('password').value
         );
-        go('/dashboard');
+        const ret = sessionStorage.getItem('admin_return_path') || '/dashboard';
+        sessionStorage.removeItem('admin_return_path');
+        go(ret.startsWith('/') ? ret : `/${ret}`);
       } catch (ex) {
         err.textContent = ex.message || 'Login failed';
         err.classList.remove('hidden');
@@ -285,6 +293,14 @@
           <div class="value" style="color:var(--blue)">${report.karigarCount ?? 0}</div>
           <p>Currently active karigars</p>
           <a href="#/businesses?type=Karigar">View Karigars ?</a>
+        </div>
+      </div>
+      <div class="cards" style="margin-top:16px">
+        <div class="stat-card">
+          <div class="label">API Timing</div>
+          <div class="value" style="font-size:20px;color:var(--navy)">Monitor</div>
+          <p>Check API response times and slow endpoints</p>
+          <a href="#/api-timing">Open API Timing ?</a>
         </div>
       </div>
     `;
