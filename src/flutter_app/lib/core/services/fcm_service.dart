@@ -57,7 +57,13 @@ class FcmService {
   Future<void> clearDeviceToken() async {
     _tokenRefreshSubscription?.cancel();
     _tokenRefreshSubscription = null;
-    await _messaging.deleteToken();
+    try {
+      await _messaging
+          .deleteToken()
+          .timeout(const Duration(seconds: 3));
+    } catch (_) {
+      // Ignore — logout must continue even if Firebase is stuck.
+    }
   }
 
   void listenForTokenRefresh(Future<void> Function(String token) onRefresh) {

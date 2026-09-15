@@ -110,7 +110,9 @@ class OrderDetail {
   final String source;
   final String acceptanceStatus;
   final String orderFromBusinessName;
+  final String createdByBusinessId;
   final String createdByBusinessName;
+  final String createdForBusinessId;
   final String createdForBusinessName;
   final List<OrderItemDetail> items;
   final List<AssignmentDetail> assignments;
@@ -133,7 +135,9 @@ class OrderDetail {
     this.source = 'Direct',
     this.acceptanceStatus = 'Accepted',
     this.orderFromBusinessName = '',
+    this.createdByBusinessId = '',
     this.createdByBusinessName = '',
+    this.createdForBusinessId = '',
     this.createdForBusinessName = '',
     required this.items,
     required this.assignments,
@@ -160,7 +164,9 @@ class OrderDetail {
       source: json['source'] ?? 'Direct',
       acceptanceStatus: json['acceptanceStatus'] ?? 'Accepted',
       orderFromBusinessName: json['orderFromBusinessName'] ?? '',
+      createdByBusinessId: json['createdByBusinessId']?.toString() ?? '',
       createdByBusinessName: json['createdByBusinessName'] ?? '',
+      createdForBusinessId: json['createdForBusinessId']?.toString() ?? '',
       createdForBusinessName: json['createdForBusinessName'] ?? '',
       items:
           (json['items'] as List?)

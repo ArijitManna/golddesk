@@ -23,7 +23,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthCheckStatus event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading());
+    emit(AuthCheckingSession());
 
     final hasSession = await _authRepository.ensureValidSession();
     if (!hasSession) {
@@ -47,15 +47,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     try {
+      // Never block login on Firebase. FCM getToken() can hang forever on
+      // broken Play Services / bad google-services config; push token is
+      // registered after a successful session instead.
       final response = await _authRepository.login(
         LoginRequest(
           email: event.email,
           password: event.password,
-          fcmToken: await _currentFcmToken(),
+          fcmToken: null,
         ),
       );
       emit(AuthAuthenticated(response.user));
-      _listenForTokenRefresh();
+      _registerCurrentDeviceToken();
     } on ApiException catch (e) {
       if (e.statusCode == 403) {
         // Could be pending approval or rejected
@@ -116,7 +119,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _registerCurrentDeviceToken() async {
     try {
-      final token = await _fcmService.getToken();
+      final token = await _currentFcmToken();
       if (token != null) {
         await _authRepository.updateFcmToken(token);
         _listenForTokenRefresh();
@@ -126,9 +129,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  /// Short timeout — Firebase Messaging getToken has no built-in timeout and
+  /// can hang indefinitely when Google Play Services / FCM is broken.
   Future<String?> _currentFcmToken() async {
     try {
-      return await _fcmService.getToken();
+      return await _fcmService
+          .getToken()
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
     } catch (_) {
       return null;
     }

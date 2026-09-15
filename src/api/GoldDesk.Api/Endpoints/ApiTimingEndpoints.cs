@@ -68,20 +68,31 @@ public static class ApiTimingEndpoints
             if (minDuration > 0)
                 aggregateSource = aggregateSource.Where(x => x.DurationMs >= minDuration);
 
-            var byEndpoint = await aggregateSource
+            // Round AvgMs in memory — Math.Round is not translated by EF/Npgsql.
+            var byEndpointRaw = await aggregateSource
                 .GroupBy(x => new { x.Method, x.Path })
                 .Select(g => new
                 {
                     g.Key.Method,
                     g.Key.Path,
                     Count = g.Count(),
-                    AvgMs = Math.Round(g.Average(x => (double)x.DurationMs), 1),
+                    AvgMs = g.Average(x => (double)x.DurationMs),
                     MaxMs = g.Max(x => x.DurationMs),
                     MinMs = g.Min(x => x.DurationMs)
                 })
                 .OrderByDescending(x => x.AvgMs)
                 .Take(50)
                 .ToListAsync(ct);
+
+            var byEndpoint = byEndpointRaw.Select(x => new
+            {
+                x.Method,
+                x.Path,
+                x.Count,
+                AvgMs = Math.Round(x.AvgMs, 1),
+                x.MaxMs,
+                x.MinMs
+            }).ToList();
 
             var totalCount = await db.ApiRequestLogs.CountAsync(ct);
             var filteredCount = await filtered.CountAsync(ct);

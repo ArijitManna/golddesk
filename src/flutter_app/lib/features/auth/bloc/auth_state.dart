@@ -10,6 +10,10 @@ abstract class AuthState extends Equatable {
 
 class AuthInitial extends AuthState {}
 
+/// Startup / session restore only — must not disable login/register buttons.
+class AuthCheckingSession extends AuthState {}
+
+/// Login or register submit in progress.
 class AuthLoading extends AuthState {}
 
 class AuthAuthenticated extends AuthState {

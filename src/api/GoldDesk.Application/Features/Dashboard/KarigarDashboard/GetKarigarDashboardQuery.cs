@@ -38,7 +38,10 @@ public record KarigarOrderDto
     public string AssignmentStatus { get; init; } = string.Empty;
     public string DueDate { get; init; } = string.Empty;
     public int DaysLeft { get; init; }
+    /// <summary>Shop/showroom short note from order creation (Order.Notes).</summary>
     public string? Notes { get; init; }
+    /// <summary>Optional notes written when the Shop assigned this Karigar.</summary>
+    public string? AssignmentNotes { get; init; }
     public decimal TotalWeight { get; init; }
     public string? FirstItemImage { get; init; }
     public string? FirstItemSize { get; init; }

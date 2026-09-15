@@ -32,7 +32,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return BlocBuilder<OrderDetailCubit, OrderDetailState>(
       builder: (context, state) {
         final canEdit =
-            state is OrderDetailLoaded && state.order.status == 'Pending';
+            state is OrderDetailLoaded && _canEditOrder(state.order);
         return Scaffold(
           appBar: AppBar(
             backgroundColor: AppColors.primaryDark,
@@ -148,7 +148,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ),
           ],
-          if (_isShop() && order.status == 'Pending') ...[
+          if (_canEditOrder(order)) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -227,7 +227,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           if (_isShop() && order.karigarName != null)
             _infoRow('Karigar', order.karigarName!),
           if (order.notes != null && order.notes!.isNotEmpty)
-            _infoRow('Notes', order.notes!),
+            _infoRow('Short Note', order.notes!),
         ],
       ),
     );
@@ -235,6 +235,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   bool _canRespond(OrderDetail order) {
     return _isShop() && order.acceptanceStatus == 'Pending';
+  }
+
+  bool _canEditOrder(OrderDetail order) {
+    if (order.status == 'Cancelled' || order.status == 'Closed') return false;
+    final state = context.read<AuthBloc>().state;
+    if (state is! AuthAuthenticated) return false;
+    final tenantId = state.user.tenantId;
+    final isFulfillingShop =
+        order.createdForBusinessId.isNotEmpty &&
+        order.createdForBusinessId == tenantId;
+    final isCreator =
+        order.createdByBusinessId.isNotEmpty &&
+        order.createdByBusinessId == tenantId;
+    // Fallback for older payloads missing IDs: Shop can still edit.
+    if (order.createdForBusinessId.isEmpty &&
+        order.createdByBusinessId.isEmpty) {
+      return _isShop() || _isShowroom();
+    }
+    return isFulfillingShop || isCreator;
   }
 
   bool _isShop() {

@@ -199,6 +199,22 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
                           const SizedBox(height: 8),
                           _infoRow('Due Date', _dueDate),
                         ],
+                        if ((_order?.notes ?? _assignment?.notes)?.isNotEmpty ==
+                            true) ...[
+                          const SizedBox(height: 8),
+                          _infoRow(
+                            'Order Note',
+                            (_order?.notes ?? _assignment?.notes)!,
+                          ),
+                        ],
+                        if (_assignment?.assignmentNotes?.isNotEmpty ==
+                            true) ...[
+                          const SizedBox(height: 8),
+                          _infoRow(
+                            'Assignment Note',
+                            _assignment!.assignmentNotes!,
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         Row(
                           children: [

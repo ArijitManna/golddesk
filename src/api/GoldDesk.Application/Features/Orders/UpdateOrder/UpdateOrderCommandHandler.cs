@@ -32,11 +32,14 @@ public class UpdateOrderCommandHandler : IRequestHandler<UpdateOrderCommand, Res
         if (order == null)
             return Result<OrderDto>.NotFound("Order not found");
 
-        if (_currentUser.TenantId != order.TenantId)
-            return Result<OrderDto>.Forbidden("Only the fulfilling Shop can edit this order");
+        var tenantId = _currentUser.TenantId;
+        var isFulfillingShop = tenantId.HasValue && tenantId.Value == order.TenantId;
+        var isCreator = tenantId.HasValue && tenantId.Value == order.CreatedByBusinessId;
+        if (!isFulfillingShop && !isCreator)
+            return Result<OrderDto>.Forbidden("Only the Shop or the order creator can edit this order");
 
-        if (order.Status != OrderStatus.Pending)
-            return Result<OrderDto>.Failure("Only unassigned (pending) orders can be edited");
+        if (order.Status is OrderStatus.Cancelled or OrderStatus.Closed)
+            return Result<OrderDto>.Failure("Cancelled or closed orders cannot be edited");
 
         var orderDate = string.IsNullOrEmpty(request.OrderDate)
             ? order.OrderDate
@@ -110,6 +113,15 @@ public class UpdateOrderCommandHandler : IRequestHandler<UpdateOrderCommand, Res
         order.TotalWeight = totalWeight;
         order.MakingCharges = totalMakingCharges;
         order.EstimatedAmount = totalAmount;
+
+        _context.OrderEvents.Add(new OrderEvent
+        {
+            OrderId = order.Id,
+            BusinessId = tenantId ?? order.CreatedByBusinessId,
+            UserId = _currentUser.UserId,
+            EventType = "OrderUpdated",
+            Description = $"Order details updated while status was {order.Status}"
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
 

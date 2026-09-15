@@ -337,6 +337,18 @@ class _KarigarDashboardScreenState extends State<KarigarDashboardScreen> {
                         style: TextStyle(fontSize: 11, color: dueColor),
                       ),
                     ],
+                    if (order.notes != null && order.notes!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Note: ${order.notes!}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
               ),

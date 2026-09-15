@@ -136,6 +136,7 @@ class KarigarOrderItem {
   final String dueDate;
   final int daysLeft;
   final String? notes;
+  final String? assignmentNotes;
   final double totalWeight;
   final String? firstItemImage;
   final String? firstItemSize;
@@ -150,6 +151,7 @@ class KarigarOrderItem {
     required this.dueDate,
     required this.daysLeft,
     this.notes,
+    this.assignmentNotes,
     required this.totalWeight,
     this.firstItemImage,
     this.firstItemSize,
@@ -166,6 +168,7 @@ class KarigarOrderItem {
         dueDate: json['dueDate'],
         daysLeft: json['daysLeft'] ?? 0,
         notes: json['notes'],
+        assignmentNotes: json['assignmentNotes'],
         totalWeight: (json['totalWeight'] ?? 0).toDouble(),
         firstItemImage: json['firstItemImage'],
         firstItemSize: json['firstItemSize'],

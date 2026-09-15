@@ -89,7 +89,8 @@ public class GetKarigarOrdersQueryHandler : IRequestHandler<GetKarigarOrdersQuer
                 AssignmentStatus = a.Status.ToString(),
                 DueDate = a.DueDate.ToString("yyyy-MM-dd"),
                 DaysLeft = a.DueDate.DayNumber - today.DayNumber,
-                Notes = a.Notes,
+                Notes = a.Order.Notes,
+                AssignmentNotes = a.Notes,
                 TotalWeight = a.Order.TotalWeight,
                 FirstItemImage = a.Order.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
                 FirstItemSize = a.Order.Items

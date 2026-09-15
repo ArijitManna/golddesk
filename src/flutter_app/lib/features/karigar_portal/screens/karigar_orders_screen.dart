@@ -301,7 +301,20 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
                     if (order.notes != null && order.notes!.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        order.notes!,
+                        'Note: ${order.notes!}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (order.assignmentNotes != null &&
+                        order.assignmentNotes!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Assign: ${order.assignmentNotes!}',
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.textLight,
