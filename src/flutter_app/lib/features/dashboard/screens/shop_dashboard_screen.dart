@@ -630,44 +630,50 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   }
 
   Widget _buildUrgentAlerts(ShopDashboardData data) {
-    return Column(
+    return Row(
       children: [
-        _alertRow(
-          label: 'OVERDUE',
-          count: data.overdue,
-          background: AppColors.pastelRed,
-          icon: Icons.schedule_outlined,
-          iconColor: AppColors.statusOverdue,
-          onTap: () => context.go('/orders?due=overdue'),
+        Expanded(
+          child: _alertCard(
+            label: 'OVERDUE',
+            count: data.overdue,
+            background: AppColors.pastelRed,
+            accent: AppColors.statusOverdue,
+            icon: Icons.schedule_outlined,
+            onTap: () => context.go('/orders?due=overdue'),
+          ),
         ),
-        const SizedBox(height: 8),
-        _alertRow(
-          label: 'DUE TODAY',
-          count: data.dueToday,
-          background: AppColors.pastelOrange,
-          icon: Icons.event_outlined,
-          iconColor: AppColors.due2Days,
-          onTap: () => context.go('/orders?due=today'),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _alertCard(
+            label: 'DUE TODAY',
+            count: data.dueToday,
+            background: AppColors.pastelOrange,
+            accent: AppColors.due2Days,
+            icon: Icons.event_outlined,
+            onTap: () => context.go('/orders?due=today'),
+          ),
         ),
-        const SizedBox(height: 8),
-        _alertRow(
-          label: 'DUE IN 3 DAYS',
-          count: data.dueNext3Days,
-          background: AppColors.pastelGold,
-          icon: Icons.calendar_month_outlined,
-          iconColor: AppColors.due3Days,
-          onTap: () => context.go('/orders?due=next3'),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _alertCard(
+            label: 'DUE IN 3 DAYS',
+            count: data.dueNext3Days,
+            background: AppColors.pastelGold,
+            accent: AppColors.due3Days,
+            icon: Icons.calendar_month_outlined,
+            onTap: () => context.go('/orders?due=next3'),
+          ),
         ),
       ],
     );
   }
 
-  Widget _alertRow({
+  Widget _alertCard({
     required String label,
     required int count,
     required Color background,
+    required Color accent,
     required IconData icon,
-    required Color iconColor,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -677,27 +683,36 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: iconColor, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
+              Row(
+                children: [
+                  Icon(icon, color: accent, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: accent,
+                      height: 1,
+                    ),
                   ),
-                ),
+                ],
               ),
+              const SizedBox(height: 10),
               Text(
-                '$count',
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: iconColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                  color: accent,
+                  height: 1.15,
                 ),
               ),
             ],
@@ -706,6 +721,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
       ),
     );
   }
+
   Widget _buildStatsGrid(ShopDashboardData data) {
     if (data.businessType == 'Showroom') {
       return GridView.count(
