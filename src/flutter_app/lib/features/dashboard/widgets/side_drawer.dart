@@ -17,6 +17,7 @@ class SideDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: AppColors.drawerBackground,
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final user = state is AuthAuthenticated ? state.user : null;
@@ -29,7 +30,7 @@ class SideDrawer extends StatelessWidget {
               _buildHeader(context, user),
               Expanded(
                 child: ListView(
-                  padding: EdgeInsets.zero,
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
                   children: [
                     if (isSuperAdmin) ...[
                       _buildMenuItem(
@@ -43,7 +44,6 @@ class SideDrawer extends StatelessWidget {
                         icon: Icons.approval_outlined,
                         label: 'Pending Approvals',
                         onTap: () => _navigate(context, '/admin/approvals'),
-                        color: AppColors.gold,
                       ),
                     ] else if (isKarigar) ...[
                       _buildMenuItem(
@@ -58,6 +58,7 @@ class SideDrawer extends StatelessWidget {
                         label: 'My Orders',
                         onTap: () => _navigate(context, '/karigar/orders'),
                       ),
+                      _dottedDivider(),
                       _buildMenuItem(
                         context,
                         icon: Icons.hub_outlined,
@@ -95,13 +96,14 @@ class SideDrawer extends StatelessWidget {
                         label: 'Order List',
                         onTap: () => _navigate(context, '/orders'),
                       ),
-                      const Divider(),
+                      _dottedDivider(),
                       if (isShop)
                         _buildMenuItem(
                           context,
                           icon: Icons.people_outlined,
                           label: 'External Customers',
-                          onTap: () => _navigate(context, '/external-businesses'),
+                          onTap: () =>
+                              _navigate(context, '/external-businesses'),
                         ),
                       _buildMenuItem(
                         context,
@@ -115,7 +117,7 @@ class SideDrawer extends StatelessWidget {
                         label: 'Connections',
                         onTap: () => _navigate(context, '/connections'),
                       ),
-                      const Divider(),
+                      _dottedDivider(),
                       _buildMenuItem(
                         context,
                         icon: Icons.bar_chart_outlined,
@@ -138,20 +140,27 @@ class SideDrawer extends StatelessWidget {
                   ],
                 ),
               ),
-              const Divider(height: 1),
-              _buildMenuItem(
-                context,
-                icon: Icons.logout,
-                label: 'Logout',
-                onTap: () {
-                  final authBloc = context.read<AuthBloc>();
-                  Navigator.pop(context);
-                  authBloc.add(AuthLogoutRequested());
-                  context.go('/login');
-                },
-                color: AppColors.error,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                child: Column(
+                  children: [
+                    _dottedDivider(),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.logout,
+                      label: 'Logout',
+                      onTap: () {
+                        final authBloc = context.read<AuthBloc>();
+                        Navigator.pop(context);
+                        authBloc.add(AuthLogoutRequested());
+                        context.go('/login');
+                      },
+                      destructive: true,
+                    ),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom),
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
             ],
           );
         },
@@ -166,40 +175,74 @@ class SideDrawer extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 16, 16, 16),
-      decoration: const BoxDecoration(color: AppColors.primaryDark),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        MediaQuery.of(context).padding.top + 12,
+        16,
+        16,
+      ),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF243447), AppColors.drawerBackground],
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Image.asset('assets/images/logo.png', width: 160, height: 60, fit: BoxFit.contain),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.textOnDark,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+          Image.asset(
+            'assets/images/logo.png',
+            width: 150,
+            height: 56,
+            fit: BoxFit.contain,
           ),
-          const SizedBox(height: 4),
-          Text(
-            user?.fullName ?? '',
-            style: const TextStyle(
-              color: AppColors.textLight,
-              fontSize: 13,
-            ),
-          ),
-          if (user?.goldDeskId.isNotEmpty ?? false) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${user!.businessType} • ${user.goldDeskId}',
-              style: const TextStyle(
-                color: AppColors.gold,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.drawerItem.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.gold.withValues(alpha: 0.45),
               ),
             ),
-          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.gold,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if ((user?.fullName ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    user!.fullName,
+                    style: const TextStyle(
+                      color: AppColors.textLight,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+                if (user?.goldDeskId.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${user!.businessType} • ${user.goldDeskId}',
+                    style: TextStyle(
+                      color: AppColors.textOnDark.withValues(alpha: 0.75),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
           if (user != null && user.role != 'SuperAdmin') ...[
             const SizedBox(height: 10),
             FutureBuilder<List<UserInfo>>(
@@ -227,7 +270,10 @@ class SideDrawer extends StatelessWidget {
   }
 
   void _showProfilePicker(
-      BuildContext context, UserInfo activeUser, List<UserInfo> profiles) {
+    BuildContext context,
+    UserInfo activeUser,
+    List<UserInfo> profiles,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (sheetContext) => SafeArea(
@@ -235,32 +281,64 @@ class SideDrawer extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const ListTile(
-              title: Text('Switch business', style: TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(
+                'Switch business',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
-            ...profiles.map((profile) => ListTile(
-                  leading: Icon(
-                    profile.tenantId == activeUser.tenantId
-                        ? Icons.check_circle
-                        : Icons.storefront_outlined,
-                    color: profile.tenantId == activeUser.tenantId
-                        ? AppColors.gold
-                        : AppColors.primaryDark,
-                  ),
-                  title: Text(profile.shopName),
-                  subtitle: Text('${profile.businessType} • ${profile.goldDeskId}'),
-                  onTap: profile.tenantId == activeUser.tenantId
-                      ? () => Navigator.pop(sheetContext)
-                      : () {
-                          Navigator.pop(sheetContext);
-                          Navigator.pop(context);
-                          context
-                              .read<AuthBloc>()
-                              .add(AuthProfileSwitchRequested(profile.tenantId));
-                          context.go(homePathForUser(profile));
-                        },
-                )),
+            ...profiles.map(
+              (profile) => ListTile(
+                leading: Icon(
+                  profile.tenantId == activeUser.tenantId
+                      ? Icons.check_circle
+                      : Icons.storefront_outlined,
+                  color: profile.tenantId == activeUser.tenantId
+                      ? AppColors.gold
+                      : AppColors.primaryDark,
+                ),
+                title: Text(profile.shopName),
+                subtitle: Text(
+                  '${profile.businessType} • ${profile.goldDeskId}',
+                ),
+                onTap: profile.tenantId == activeUser.tenantId
+                    ? () => Navigator.pop(sheetContext)
+                    : () {
+                        Navigator.pop(sheetContext);
+                        Navigator.pop(context);
+                        context.read<AuthBloc>().add(
+                              AuthProfileSwitchRequested(profile.tenantId),
+                            );
+                        context.go(homePathForUser(profile));
+                      },
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _dottedDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const dashWidth = 4.0;
+          const dashSpace = 4.0;
+          final count =
+              (constraints.maxWidth / (dashWidth + dashSpace)).floor();
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(
+              count,
+              (_) => Container(
+                width: dashWidth,
+                height: 1,
+                color: AppColors.gold.withValues(alpha: 0.35),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -270,21 +348,49 @@ class SideDrawer extends StatelessWidget {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    Color? color,
+    bool destructive = false,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: color ?? AppColors.primaryDark, size: 22),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: color ?? AppColors.textPrimary,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
+    final accent = destructive ? AppColors.error : AppColors.gold;
+    final textColor =
+        destructive ? AppColors.error : AppColors.textOnDark;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: AppColors.drawerItem,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: accent.withValues(alpha: destructive ? 0.35 : 0.18),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(icon, color: accent, size: 22),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
-      onTap: onTap,
-      dense: true,
-      visualDensity: const VisualDensity(vertical: -1),
     );
   }
 

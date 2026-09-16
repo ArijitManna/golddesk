@@ -11,11 +11,27 @@ class AppColors {
   static const Color gold = Color(0xFFD4A843);
   static const Color goldDark = Color(0xFFC8962E);
   static const Color goldLight = Color(0xFFE8C96B);
+  static const Color goldBronze = Color(0xFFB8860B);
 
   // Background
-  static const Color background = Color(0xFFFFFFFF);
+  static const Color background = Color(0xFFF7F4EF);
   static const Color surface = Color(0xFFF8F9FA);
   static const Color cardBackground = Color(0xFFF5F5F5);
+
+  // Navigation / chrome (mock)
+  static const Color navBar = Color(0xFF121A24);
+  static const Color drawerBackground = Color(0xFF1B2838);
+  static const Color drawerItem = Color(0xFF243447);
+  static const Color glancePanel = Color(0xFFF0E2C4);
+
+  // Soft pastel pipeline / alert tiles
+  static const Color pastelOrange = Color(0xFFFFF0D9);
+  static const Color pastelPurple = Color(0xFFF0E8FF);
+  static const Color pastelTeal = Color(0xFFDDF5F2);
+  static const Color pastelBlue = Color(0xFFE3F0FF);
+  static const Color pastelGreen = Color(0xFFE4F8EC);
+  static const Color pastelRed = Color(0xFFFCE8E8);
+  static const Color pastelGold = Color(0xFFF7EDD8);
 
   // Text
   static const Color textPrimary = Color(0xFF1B2838);

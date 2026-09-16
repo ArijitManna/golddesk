@@ -31,22 +31,72 @@ class AppBottomNavigation extends StatelessWidget {
         const _Destination('Profile', Icons.person_outline, '/settings'),
     ];
     final index = destinations.indexWhere((item) => item.path == selectedPath);
+    final selectedIndex = index < 0 ? 0 : index;
 
-    return NavigationBar(
-      selectedIndex: index < 0 ? 0 : index,
-      onDestinationSelected: (value) => context.go(destinations[value].path),
-      backgroundColor: Colors.white,
-      indicatorColor: AppColors.gold.withValues(alpha: 0.18),
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      destinations: destinations
-          .map(
-            (item) => NavigationDestination(
-              icon: Icon(item.icon),
-              selectedIcon: Icon(item.icon, color: AppColors.gold),
-              label: item.label,
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.navBar,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 12,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              for (var i = 0; i < destinations.length; i++)
+                Expanded(
+                  child: _NavItem(
+                    destination: destinations[i],
+                    selected: i == selectedIndex,
+                    onTap: () => context.go(destinations[i].path),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final _Destination destination;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.destination,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.gold : const Color(0xFF9CA3AF);
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(destination.icon, color: color, size: 22),
+          const SizedBox(height: 4),
+          Text(
+            destination.label,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             ),
-          )
-          .toList(),
+          ),
+        ],
+      ),
     );
   }
 }

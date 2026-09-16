@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/utils/order_status_labels.dart';
 import '../../../core/widgets/app_bottom_navigation.dart';
+import '../../../core/widgets/gold_gradient_button.dart';
 import '../../../core/widgets/notification_bell.dart';
 import '../../../core/widgets/order_image.dart';
 import '../../../data/models/dashboard_models.dart';
@@ -88,10 +89,10 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
               ],
             ),
           ),
-          actions: [const NotificationBell()],
+          actions: const [NotificationBell()],
         ),
         drawer: const SideDrawer(),
-        bottomNavigationBar: isSuperAdmin
+        backgroundColor: AppColors.background,        bottomNavigationBar: isSuperAdmin
             ? null
             : const AppBottomNavigation(selectedPath: '/dashboard'),
         body: isSuperAdmin
@@ -259,11 +260,12 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   }
 
   Widget _buildDashboardContent(BuildContext context, ShopDashboardData data) {
+    final isShop = data.businessType == 'Shop';
     return RefreshIndicator(
       onRefresh: () => context.read<DashboardCubit>().loadDashboard(),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -271,33 +273,48 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    data.businessType == 'Showroom'
-                        ? 'Showroom Overview'
-                        : 'Shop Overview',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    isShop ? 'Shop Overview' : 'Showroom Overview',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                 ),
-                FilledButton.icon(
+                GoldGradientButton(
+                  label: 'New Order',
+                  icon: Icons.add,
                   onPressed: () => context.go('/orders/new'),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('New Order'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.gold,
-                    foregroundColor: AppColors.textOnGold,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    visualDensity: VisualDensity.compact,
-                  ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            // Stats Grid
-            _buildStatsGrid(data),
-            const SizedBox(height: 24),
-            // Overdue alert
-            if (data.overdue > 0) ...[
-              _buildOverdueAlert(data.overdue),
-              const SizedBox(height: 16),
+            if (isShop) ...[
+              _buildAtAGlance(data),
+              const SizedBox(height: 22),
+              Text(
+                'Order Pipeline',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              _buildOrderPipeline(data),
+              const SizedBox(height: 22),
+              Text(
+                'Urgent Alerts',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              _buildUrgentAlerts(data),
+              const SizedBox(height: 22),
+            ] else ...[
+              _buildStatsGrid(data),
+              const SizedBox(height: 24),
+              if (data.overdue > 0) ...[
+                _buildOverdueAlert(data.overdue),
+                const SizedBox(height: 16),
+              ],
             ],
             if (data.businessType == 'Showroom') ...[
               PartyCountSection(
@@ -319,7 +336,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            if (data.businessType == 'Shop') ...[
+            if (isShop) ...[
               PartyCountSection(
                 title: 'Showrooms',
                 searchHint: 'Search showroom name / code',
@@ -355,7 +372,6 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            // Recent Orders
             _buildSectionHeader(
               'Recent Orders',
               onViewAll: () => context.go('/orders'),
@@ -372,6 +388,307 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
     );
   }
 
+  Widget _buildAtAGlance(ShopDashboardData data) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF6E7C4), AppColors.glancePanel, Color(0xFFE8D4A8)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.gold.withValues(alpha: 0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'At a Glance',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _glanceChip(
+                  count: data.totalOrders,
+                  label: 'TOTAL ORDERS',
+                  onTap: () => context.go('/orders'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _glanceChip(
+                  count: data.directOrders,
+                  label: 'Direct Orders',
+                  onTap: () => context.go('/orders?source=Direct'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _glanceChip(
+                  count: data.fromShowrooms,
+                  label: 'Showroom Orders',
+                  onTap: () => context.go('/orders?source=Showroom'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glanceChip({
+    required int count,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.92),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Column(
+            children: [
+              Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderPipeline(ShopDashboardData data) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 1.35,
+      children: [
+        _pipelineCard(
+          label: 'TO GIVE WORK',
+          count: data.pending,
+          background: AppColors.pastelOrange,
+          icon: Icons.note_add_outlined,
+          iconColor: AppColors.statusPending,
+          onTap: () => context.go('/orders?status=Pending'),
+        ),
+        _pipelineCard(
+          label: 'WORK GIVEN',
+          count: data.assigned,
+          background: AppColors.pastelPurple,
+          icon: Icons.storefront_outlined,
+          iconColor: AppColors.statusAssigned,
+          onTap: () => context.go('/orders?status=Assigned'),
+        ),
+        _pipelineCard(
+          label: 'IN MAKING',
+          count: data.inProgress,
+          background: AppColors.pastelTeal,
+          icon: Icons.build_outlined,
+          iconColor: AppColors.statusInProgress,
+          onTap: () => context.go('/orders?status=InProgress'),
+        ),
+        _pipelineCard(
+          label: 'WORK READY',
+          count: data.ready,
+          background: AppColors.pastelGreen,
+          icon: Icons.assignment_turned_in_outlined,
+          iconColor: AppColors.statusReady,
+          badge: data.ready > 0 ? 'READY' : null,
+          onTap: () => context.go('/orders?status=Ready'),
+        ),
+      ],
+    );
+  }
+
+  Widget _pipelineCard({
+    required String label,
+    required int count,
+    required Color background,
+    required IconData icon,
+    required Color iconColor,
+    String? badge,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, color: iconColor, size: 22),
+                  const Spacer(),
+                  Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: iconColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (badge != null)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.statusReady,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    badge,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUrgentAlerts(ShopDashboardData data) {
+    return Column(
+      children: [
+        _alertRow(
+          label: 'OVERDUE',
+          count: data.overdue,
+          background: AppColors.pastelRed,
+          icon: Icons.schedule_outlined,
+          iconColor: AppColors.statusOverdue,
+          onTap: () => context.go('/orders?due=overdue'),
+        ),
+        const SizedBox(height: 8),
+        _alertRow(
+          label: 'DUE TODAY',
+          count: data.dueToday,
+          background: AppColors.pastelOrange,
+          icon: Icons.event_outlined,
+          iconColor: AppColors.due2Days,
+          onTap: () => context.go('/orders?due=today'),
+        ),
+        const SizedBox(height: 8),
+        _alertRow(
+          label: 'DUE IN 3 DAYS',
+          count: data.dueNext3Days,
+          background: AppColors.pastelGold,
+          icon: Icons.calendar_month_outlined,
+          iconColor: AppColors.due3Days,
+          onTap: () => context.go('/orders?due=next3'),
+        ),
+      ],
+    );
+  }
+
+  Widget _alertRow({
+    required String label,
+    required int count,
+    required Color background,
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, color: iconColor, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: iconColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
   Widget _buildStatsGrid(ShopDashboardData data) {
     if (data.businessType == 'Showroom') {
       return GridView.count(
