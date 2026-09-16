@@ -3,8 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/order_status_labels.dart';
-import '../../../core/widgets/order_image.dart';
 import '../../../core/widgets/app_bottom_navigation.dart';
+import '../../../core/widgets/gold_gradient_button.dart';
+import '../../../core/widgets/order_image.dart';
 import '../../../data/models/dashboard_models.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
@@ -203,26 +204,41 @@ class _OrderListScreenState extends State<OrderListScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryDark,
-        title: const Text('Order List'),
+        backgroundColor: AppColors.navBar,
+        title: const Text(
+          'Order List',
+          style: TextStyle(
+            color: AppColors.gold,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: _tabs,
           isScrollable: true,
           indicatorColor: AppColors.gold,
+          indicatorWeight: 2.5,
           labelColor: AppColors.gold,
-          unselectedLabelColor: AppColors.textLight,
-          indicatorWeight: 3,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
           tabAlignment: TabAlignment.start,
+          dividerColor: Colors.transparent,
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: GoldGradientButton(
+        label: 'New Order',
+        icon: Icons.add,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         onPressed: () => context.go('/orders/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('New Order'),
-        backgroundColor: AppColors.gold,
-        foregroundColor: AppColors.textOnGold,
       ),
       bottomNavigationBar: const AppBottomNavigation(selectedPath: '/orders'),
       body: Column(
@@ -236,27 +252,66 @@ class _OrderListScreenState extends State<OrderListScreen>
                   avatar: const Icon(Icons.filter_list, size: 16),
                   label: Text(_filterBanner!),
                   visualDensity: VisualDensity.compact,
+                  backgroundColor: AppColors.pastelGold,
+                  side: BorderSide(
+                    color: AppColors.gold.withValues(alpha: 0.35),
+                  ),
                 ),
               ),
             ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
             child: TextField(
               controller: _searchController,
+              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Search order or business',
-                prefixIcon: const Icon(Icons.search, size: 20),
+                hintStyle: TextStyle(
+                  color: AppColors.gold.withValues(alpha: 0.7),
+                  fontSize: 14,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: 20,
+                  color: AppColors.gold,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
+                        icon: const Icon(
+                          Icons.clear,
+                          size: 18,
+                          color: AppColors.gold,
+                        ),
                         onPressed: () {
                           _searchController.clear();
+                          setState(() {});
                           _reloadCurrent();
                         },
                       )
                     : null,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 isDense: true,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                    color: AppColors.gold.withValues(alpha: 0.55),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: AppColors.gold,
+                    width: 1.5,
+                  ),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                    color: AppColors.gold.withValues(alpha: 0.55),
+                  ),
+                ),
               ),
               onSubmitted: (_) => _reloadCurrent(),
             ),
@@ -305,9 +360,10 @@ class _OrderListScreenState extends State<OrderListScreen>
                     );
                   }
                   return RefreshIndicator(
+                    color: AppColors.gold,
                     onRefresh: () async => _reloadCurrent(),
                     child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 88),
                       itemCount: state.orders.length,
                       itemBuilder: (context, index) =>
                           _buildOrderCard(state.orders[index]),
@@ -329,131 +385,128 @@ class _OrderListScreenState extends State<OrderListScreen>
         ? auth.user.businessType
         : 'Shop';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.go('/orders/${order.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              OrderImage(
-                imagePath: order.firstItemImage,
-                size: 50,
-                label: order.orderNo,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => context.go('/orders/${order.id}'),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.gold.withValues(alpha: 0.35),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          order.orderNo,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: OrderImage(
+                    imagePath: order.firstItemImage,
+                    size: 54,
+                    label: order.orderNo,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              order.orderNo,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
                           ),
-                        ),
-                        const Spacer(),
-                        _buildStatusChip(order),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.person_outline,
-                          size: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            order.orderFromBusinessName,
-                            style: const TextStyle(fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          '${order.totalWeight.toStringAsFixed(3)} gm',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    if (order.source == 'Showroom') ...[
+                          _buildStatusChip(order),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           const Icon(
-                            Icons.storefront_outlined,
-                            size: 12,
+                            Icons.person_outline,
+                            size: 14,
                             color: AppColors.gold,
                           ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              'From ${order.createdByBusinessName}',
+                              order.orderFromBusinessName,
                               style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                                color: AppColors.textPrimary,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          order.orderDate,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        if (order.dueDate != null && order.dueDate!.isNotEmpty) ...[
-                          const SizedBox(width: 12),
-                          const Icon(
-                            Icons.event_outlined,
-                            size: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
                           Text(
-                            'Due ${order.dueDate}',
+                            '| ${order.totalWeight.toStringAsFixed(3)} gm |',
                             style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.textSecondary,
                             ),
                           ),
                         ],
-                        if (businessType == 'Shop' &&
-                            order.karigarName != null) ...[
-                          const SizedBox(width: 12),
+                      ),
+                      if (order.source == 'Showroom') ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.storefront_outlined,
+                              size: 12,
+                              color: AppColors.gold,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'From ${order.createdByBusinessName}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
                           const Icon(
-                            Icons.engineering_outlined,
+                            Icons.calendar_today_outlined,
                             size: 12,
-                            color: AppColors.textSecondary,
+                            color: AppColors.gold,
                           ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              order.karigarName!,
+                              [
+                                order.orderDate,
+                                if (order.dueDate != null &&
+                                    order.dueDate!.isNotEmpty)
+                                  'Due ${order.dueDate}',
+                              ].join(' | '),
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textSecondary,
@@ -461,24 +514,44 @@ class _OrderListScreenState extends State<OrderListScreen>
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          if (businessType == 'Shop' &&
+                              order.karigarName != null) ...[
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.engineering_outlined,
+                              size: 12,
+                              color: AppColors.gold,
+                            ),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                order.karigarName!,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                    if (order.firstItemSize != null &&
-                        order.firstItemSize!.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Size ${order.firstItemSize}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
                       ),
+                      if (order.firstItemSize != null &&
+                          order.firstItemSize!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Size ${order.firstItemSize}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -492,18 +565,18 @@ class _OrderListScreenState extends State<OrderListScreen>
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Text(
         _displayStatus(order),
         style: TextStyle(
           color: color,
           fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
-
   String _displayStatus(OrderSummary order) {
     final auth = context.read<AuthBloc>().state;
     final businessType = auth is AuthAuthenticated
