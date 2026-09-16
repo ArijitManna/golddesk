@@ -9,6 +9,7 @@ class ShopDashboardData {
   final int dueNext3Days;
   final int overdue;
   final int ready;
+  final int delivered;
   final int unassigned;
   final int activeKarigars;
   final String businessType;
@@ -29,6 +30,7 @@ class ShopDashboardData {
     required this.dueNext3Days,
     required this.overdue,
     required this.ready,
+    required this.delivered,
     required this.unassigned,
     required this.activeKarigars,
     required this.businessType,
@@ -51,6 +53,7 @@ class ShopDashboardData {
       dueNext3Days: json['dueNext3Days'] ?? 0,
       overdue: json['overdue'] ?? 0,
       ready: json['ready'] ?? 0,
+      delivered: json['delivered'] ?? 0,
       unassigned: json['unassigned'] ?? 0,
       activeKarigars: json['activeKarigars'] ?? 0,
       businessType: json['businessType'] ?? 'Shop',

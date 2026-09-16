@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/services/dashboard_preferences.dart';
 import '../../../core/utils/order_status_labels.dart';
 import '../../../core/widgets/app_bottom_navigation.dart';
 import '../../../core/widgets/gold_gradient_button.dart';
@@ -27,10 +28,12 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   PlatformShopsReport? _platformReport;
   bool _platformLoading = false;
   String? _platformError;
+  bool _showAtAGlance = true;
 
   @override
   void initState() {
     super.initState();
+    _loadAtAGlancePreference();
     final authState = context.read<AuthBloc>().state;
     final isSuperAdmin =
         authState is AuthAuthenticated && authState.user.role == 'SuperAdmin';
@@ -41,6 +44,10 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
     }
   }
 
+  Future<void> _loadAtAGlancePreference() async {
+    final visible = await DashboardPreferences.isAtAGlanceVisible();
+    if (mounted) setState(() => _showAtAGlance = visible);
+  }
   Future<void> _loadPlatformReport() async {
     setState(() {
       _platformLoading = true;
@@ -288,8 +295,10 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
             ),
             const SizedBox(height: 16),
             if (isShop) ...[
-              _buildAtAGlance(data),
-              const SizedBox(height: 22),
+              if (_showAtAGlance) ...[
+                _buildAtAGlance(data),
+                const SizedBox(height: 22),
+              ],
               Text(
                 'Order Pipeline',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -536,6 +545,14 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
           badge: data.ready > 0 ? 'READY' : null,
           onTap: () => context.go('/orders?status=Ready'),
         ),
+        _pipelineCard(
+          label: 'DELIVERED',
+          count: data.delivered,
+          background: AppColors.pastelBlue,
+          icon: Icons.local_shipping_outlined,
+          iconColor: AppColors.statusDelivered,
+          onTap: () => context.go('/orders?status=Delivered'),
+        ),
       ],
     );
   }
@@ -735,6 +752,13 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
             onTap: () => context.go('/orders?status=Ready'),
           ),
           _buildStatCard(
+            'Delivered',
+            data.delivered,
+            AppColors.statusDelivered,
+            subtitle: 'Completed orders',
+            onTap: () => context.go('/orders?status=Delivered'),
+          ),
+          _buildStatCard(
             'Overdue',
             data.overdue,
             AppColors.statusOverdue,
@@ -806,6 +830,12 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
           data.ready,
           AppColors.statusReady,
           onTap: () => context.go('/orders?status=Ready'),
+        ),
+        _buildStatCard(
+          'Delivered',
+          data.delivered,
+          AppColors.statusDelivered,
+          onTap: () => context.go('/orders?status=Delivered'),
         ),
         _buildStatCard(
           'Due 3 Days',
@@ -908,6 +938,8 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
         return Icons.build_outlined;
       case 'Work Ready':
         return Icons.assignment_turned_in_outlined;
+      case 'Delivered':
+        return Icons.local_shipping_outlined;
       case 'Due Today':
       case 'Due 3 Days':
         return Icons.event_outlined;

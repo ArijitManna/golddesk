@@ -18,6 +18,7 @@ public record ShopDashboardDto
     public int DueNext3Days { get; init; }
     public int Overdue { get; init; }
     public int Ready { get; init; }
+    public int Delivered { get; init; }
     public int Unassigned { get; init; }
     public int ActiveKarigars { get; init; }
     public string BusinessType { get; init; } = "Shop";

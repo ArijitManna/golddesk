@@ -62,6 +62,14 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
         var fromShowrooms = orders.Count(o => o.Source == OrderSource.Showroom && o.TenantId == business.Id);
         var directOrders = orders.Count(o => o.Source == OrderSource.Direct && o.TenantId == business.Id);
 
+        var delivered = await _context.Orders
+            .IgnoreQueryFilters()
+            .CountAsync(o => o.Status == OrderStatus.Delivered &&
+                             (o.TenantId == business.Id ||
+                              o.CreatedByBusinessId == business.Id ||
+                              o.OrderFromBusinessId == business.Id),
+                cancellationToken);
+
         // Unassigned = Pending (no active assignment)
         var unassigned = orders.Count(o => o.Status == OrderStatus.Pending && !o.Assignments.Any(a => a.IsActive));
 
@@ -167,6 +175,7 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
             DueNext3Days = dueNext3Days,
             Overdue = overdue,
             Ready = ready,
+            Delivered = delivered,
             Unassigned = unassigned,
             ActiveKarigars = activeKarigars,
             BusinessType = business.BusinessType.ToString(),

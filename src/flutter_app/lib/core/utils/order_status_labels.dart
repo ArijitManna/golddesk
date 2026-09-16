@@ -6,7 +6,8 @@ String displayOrderStatus({
   String? assignmentStatus,
 }) {
   if (status == 'Cancelled') return 'Cancelled';
-  if (status == 'Delivered' || status == 'Closed') return 'Done';
+  if (status == 'Closed') return 'Closed';
+  if (status == 'Delivered') return 'Delivered';
 
   if (businessType == 'Karigar') {
     if (assignmentStatus == 'PendingAcceptance') return 'New Work';

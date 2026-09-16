@@ -48,6 +48,7 @@ class _OrderListScreenState extends State<OrderListScreen>
     'Assigned',
     'InProgress',
     'Ready',
+    'Delivered',
     null,
     null,
     null,
@@ -55,6 +56,7 @@ class _OrderListScreenState extends State<OrderListScreen>
   ];
 
   static const _dueFilters = <String?>[
+    null,
     null,
     null,
     null,
@@ -94,13 +96,21 @@ class _OrderListScreenState extends State<OrderListScreen>
         : 'Shop';
 
     final statusTabs = switch (businessType) {
-      'Showroom' => const ['All', 'New', 'With Shop', 'Making', 'Work Ready'],
+      'Showroom' => const [
+        'All',
+        'New',
+        'With Shop',
+        'Making',
+        'Work Ready',
+        'Delivered',
+      ],
       _ => const [
         'All',
         'New / To Give Work',
         'Work Given / Accepted',
         'Making',
         'Work Ready',
+        'Delivered',
       ],
     };
 
