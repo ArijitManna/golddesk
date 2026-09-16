@@ -63,7 +63,7 @@ class _MessageIconButtonState extends State<MessageIconButton> {
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(Icons.chat_bubble_outline),
+          const Icon(Icons.forum_outlined),
           if (_unreadCount > 0)
             Positioned(
               right: -2,

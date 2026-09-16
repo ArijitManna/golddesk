@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
-import '../../../core/widgets/golddesk_button.dart';
 import '../../../core/widgets/golddesk_text_field.dart';
 import '../../../data/models/connection_models.dart';
 import '../../../data/models/order_models.dart';
@@ -192,7 +191,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           focusNode: focusNode,
           decoration: InputDecoration(
             hintText: 'Search shop name / code',
-            prefixIcon: const Icon(Icons.storefront_outlined, size: 20),
+            prefixIcon: const Icon(
+              Icons.storefront_outlined,
+              size: 18,
+              color: AppColors.goldBronze,
+            ),
             suffixIcon: selected == null && controller.text.isEmpty
                 ? null
                 : IconButton(
@@ -237,8 +240,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                           dense: true,
                           leading: const Icon(
                             Icons.storefront_outlined,
-                            color: AppColors.gold,
-                            size: 20,
+                            color: AppColors.goldBronze,
+                            size: 18,
                           ),
                           title: Text(
                             shop.counterpartyName,
@@ -296,7 +299,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               focusNode: focusNode,
               decoration: InputDecoration(
                 hintText: 'Search Showroom ID / External Customer code or name',
-                prefixIcon: const Icon(Icons.search, size: 20),
+                prefixIcon: const Icon(
+                  Icons.apartment_outlined,
+                  size: 18,
+                  color: AppColors.goldBronze,
+                ),
                 suffixIcon: selected == null && controller.text.isEmpty
                     ? null
                     : IconButton(
@@ -349,10 +356,10 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                               dense: true,
                               leading: Icon(
                                 option.isShowroom
-                                    ? Icons.storefront_outlined
-                                    : Icons.business_outlined,
-                                color: AppColors.gold,
-                                size: 20,
+                                    ? Icons.apartment_outlined
+                                    : Icons.person_outline,
+                                color: AppColors.goldBronze,
+                                size: 18,
                               ),
                               title: Text(
                                 option.title,
@@ -408,12 +415,18 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
+              leading: const Icon(
+                Icons.photo_camera_outlined,
+                color: AppColors.goldBronze,
+              ),
               title: const Text('Camera'),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const Icon(
+                Icons.photo_library_outlined,
+                color: AppColors.goldBronze,
+              ),
               title: const Text('Gallery'),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
@@ -523,18 +536,26 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: AppColors.primaryDark,
+          backgroundColor: AppColors.navBar,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios),
+            icon: const Icon(Icons.arrow_back_ios_new, size: 18),
             onPressed: () => _isEdit
                 ? context.go('/orders/${widget.orderId}')
                 : context.go('/orders'),
           ),
-          title: Text(_isEdit ? 'Edit Order' : 'New Order'),
+          title: Text(
+            _isEdit ? 'Edit Order' : 'New Order',
+            style: const TextStyle(
+              color: AppColors.gold,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.save_outlined),
+              icon: const Icon(Icons.task_alt_outlined),
+              tooltip: _isEdit ? 'Update Order' : 'Save Order',
               onPressed: _onSave,
             ),
           ],
@@ -546,92 +567,186 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             : Form(
                 key: _formKey,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (_isShowroom && !_isEdit) ...[
-                        Text(
-                          'Order For',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w500),
+                        _sectionCard(
+                          title: 'Order For',
+                          icon: Icons.storefront_outlined,
+                          child: _buildOrderForPicker(),
                         ),
-                        const SizedBox(height: 6),
-                        _buildOrderForPicker(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                       ],
                       if (_isShop && !_isEdit) ...[
-                        Text(
-                          'Order From',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w500),
+                        _sectionCard(
+                          title: 'Order From',
+                          icon: Icons.apartment_outlined,
+                          child: _buildOrderFromPicker(),
                         ),
-                        const SizedBox(height: 6),
-                        _buildOrderFromPicker(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                       ],
-                      const SizedBox(height: 8),
+                      _sectionCard(
+                        title: 'Order Info',
+                        icon: Icons.info_outline,
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GoldDeskTextField(
+                                    label: 'Order Date',
+                                    controller: _orderDateController,
+                                    readOnly: true,
+                                    onTap: () =>
+                                        _pickDate(_orderDateController),
+                                    suffixIcon: const Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 16,
+                                      color: AppColors.goldBronze,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: GoldDeskTextField(
+                                    label: 'Delivery Date',
+                                    hint: 'Optional',
+                                    controller: _deliveryDateController,
+                                    readOnly: true,
+                                    onTap: () =>
+                                        _pickDate(_deliveryDateController),
+                                    suffixIcon: const Icon(
+                                      Icons.local_shipping_outlined,
+                                      size: 16,
+                                      color: AppColors.goldBronze,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            GoldDeskTextField(
+                              label: 'Short Note',
+                              hint: 'Optional',
+                              controller: _notesController,
+                              maxLines: 2,
+                              maxLength: 200,
+                              prefixIcon: const Icon(
+                                Icons.notes_outlined,
+                                size: 18,
+                                color: AppColors.goldBronze,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
-                          Expanded(
-                            child: GoldDeskTextField(
-                              label: 'Order Date',
-                              controller: _orderDateController,
-                              readOnly: true,
-                              onTap: () => _pickDate(_orderDateController),
-                              suffixIcon: const Icon(
-                                Icons.calendar_today,
-                                size: 18,
+                          const Expanded(
+                            child: Text(
+                              'Items',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GoldDeskTextField(
-                              label: 'Delivery Date',
-                              hint: 'Optional',
-                              controller: _deliveryDateController,
-                              readOnly: true,
-                              onTap: () => _pickDate(_deliveryDateController),
-                              suffixIcon: const Icon(
-                                Icons.calendar_today,
-                                size: 18,
+                          TextButton.icon(
+                            onPressed: _addItem,
+                            icon: const Icon(
+                              Icons.add_circle_outline,
+                              size: 16,
+                              color: AppColors.goldBronze,
+                            ),
+                            label: const Text(
+                              'Add',
+                              style: TextStyle(
+                                color: AppColors.goldBronze,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
                               ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      GoldDeskTextField(
-                        label: 'Short Note',
-                        hint: 'Optional',
-                        controller: _notesController,
-                        maxLines: 2,
-                        maxLength: 200,
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Item',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       ...List.generate(
                         _items.length,
                         (index) => _buildItemCard(index),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       _buildSummary(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       BlocBuilder<CreateOrderCubit, CreateOrderState>(
                         builder: (context, state) {
-                          return GoldDeskButton(
-                            text: _isEdit ? 'UPDATE ORDER' : 'SAVE ORDER',
-                            onPressed: _onSave,
-                            isLoading: state is CreateOrderLoading,
+                          final loading = state is CreateOrderLoading;
+                          if (loading) {
+                            return const SizedBox(
+                              height: 44,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.gold,
+                                ),
+                              ),
+                            );
+                          }
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _onSave,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Ink(
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppColors.goldLight,
+                                      AppColors.gold,
+                                      AppColors.goldBronze,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      _isEdit
+                                          ? Icons.edit_outlined
+                                          : Icons.task_alt,
+                                      size: 18,
+                                      color: AppColors.textOnGold,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _isEdit ? 'UPDATE ORDER' : 'SAVE ORDER',
+                                      style: const TextStyle(
+                                        color: AppColors.textOnGold,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           );
                         },
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -640,200 +755,268 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     );
   }
 
+  Widget _sectionCard({
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: AppColors.goldBronze),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
+    );
+  }
+
   Widget _buildItemCard(int index) {
     final item = _items[index];
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: () => _pickItemImage(index),
-                  child: _buildItemThumb(item),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Autocomplete<Map<String, dynamic>>(
-                    initialValue: TextEditingValue(
-                      text: item.nameController.text,
-                    ),
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      if (textEditingValue.text.isEmpty) return _masterItems;
-                      final search = textEditingValue.text.toLowerCase();
-                      return _masterItems.where(
-                        (i) =>
-                            (i['itemCode'] ?? '')
-                                .toString()
-                                .toLowerCase()
-                                .contains(search) ||
-                            (i['name'] ?? '').toString().toLowerCase().contains(
-                              search,
-                            ),
-                      );
-                    },
-                    displayStringForOption: (i) =>
-                        '${i['itemCode']} - ${i['name']}',
-                    fieldViewBuilder:
-                        (context, controller, focusNode, onFieldSubmitted) {
-                          if (item.nameController.text.isNotEmpty &&
-                              controller.text.isEmpty) {
-                            controller.text = item.nameController.text;
-                          }
-                          return TextFormField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            decoration: const InputDecoration(
-                              labelText: 'Search Item Code / Name *',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () => _pickItemImage(index),
+                child: _buildItemThumb(item),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Autocomplete<Map<String, dynamic>>(
+                  initialValue: TextEditingValue(
+                    text: item.nameController.text,
+                  ),
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) return _masterItems;
+                    final search = textEditingValue.text.toLowerCase();
+                    return _masterItems.where(
+                      (i) =>
+                          (i['itemCode'] ?? '')
+                              .toString()
+                              .toLowerCase()
+                              .contains(search) ||
+                          (i['name'] ?? '').toString().toLowerCase().contains(
+                                search,
                               ),
-                              prefixIcon: Icon(Icons.search, size: 18),
-                            ),
-                            validator: (v) => item.nameController.text.isEmpty
-                                ? 'Select an item'
-                                : null,
-                            onChanged: (v) {
-                              if (item.selectedItemId == null) {
-                                item.nameController.text = v;
-                              }
+                    );
+                  },
+                  displayStringForOption: (i) =>
+                      '${i['itemCode']} - ${i['name']}',
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                    if (item.nameController.text.isNotEmpty &&
+                        controller.text.isEmpty) {
+                      controller.text = item.nameController.text;
+                    }
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(
+                        labelText: 'Item Code / Name *',
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          size: 16,
+                          color: AppColors.goldBronze,
+                        ),
+                      ),
+                      validator: (v) => item.nameController.text.isEmpty
+                          ? 'Select an item'
+                          : null,
+                      onChanged: (v) {
+                        if (item.selectedItemId == null) {
+                          item.nameController.text = v;
+                        }
+                      },
+                    );
+                  },
+                  optionsViewBuilder: (context, onSelected, options) {
+                    final maxWidth = MediaQuery.of(context).size.width - 72;
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4,
+                        borderRadius: BorderRadius.circular(8),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: 200,
+                            maxWidth: maxWidth,
+                          ),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (context, i) {
+                              final opt = options.elementAt(i);
+                              final desc = (opt['category'] ?? '').toString();
+                              return ListTile(
+                                dense: true,
+                                leading: const Icon(
+                                  Icons.auto_awesome,
+                                  size: 16,
+                                  color: AppColors.gold,
+                                ),
+                                title: Text(
+                                  '${opt['itemCode']} - ${opt['name']}',
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                                subtitle: desc.isEmpty
+                                    ? null
+                                    : Text(
+                                        desc,
+                                        style: const TextStyle(fontSize: 10),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                onTap: () => onSelected(opt),
+                              );
                             },
-                          );
-                        },
-                    optionsViewBuilder: (context, onSelected, options) {
-                      final maxWidth =
-                          MediaQuery.of(context).size.width - 72;
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4,
-                          borderRadius: BorderRadius.circular(8),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxHeight: 200,
-                              maxWidth: maxWidth,
-                            ),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              shrinkWrap: true,
-                              itemCount: options.length,
-                              itemBuilder: (context, i) {
-                                final opt = options.elementAt(i);
-                                final desc = (opt['category'] ?? '').toString();
-                                return ListTile(
-                                  dense: true,
-                                  title: Text(
-                                    '${opt['itemCode']} - ${opt['name']}',
-                                    style: const TextStyle(fontSize: 13),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                  subtitle: desc.isEmpty
-                                      ? null
-                                      : Text(
-                                          desc,
-                                          style: const TextStyle(fontSize: 10),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                  onTap: () => onSelected(opt),
-                                );
-                              },
-                            ),
                           ),
                         ),
-                      );
-                    },
-                    onSelected: (Map<String, dynamic> selection) {
-                      setState(() {
-                        item.nameController.text =
-                            '${selection['itemCode']} - ${selection['name']}';
-                        item.selectedItemId = selection['id'];
-                      });
-                    },
-                  ),
-                ),
-                if (_items.length > 1)
-                  IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      color: AppColors.error,
-                      size: 20,
-                    ),
-                    onPressed: () => _removeItem(index),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: item.totalWeightController,
-                    decoration: const InputDecoration(
-                      labelText: 'Total Weight (gm)',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
                       ),
+                    );
+                  },
+                  onSelected: (Map<String, dynamic> selection) {
+                    setState(() {
+                      item.nameController.text =
+                          '${selection['itemCode']} - ${selection['name']}';
+                      item.selectedItemId = selection['id'];
+                    });
+                  },
+                ),
+              ),
+              if (_items.length > 1)
+                IconButton(
+                  icon: const Icon(
+                    Icons.remove_circle_outline,
+                    color: AppColors.error,
+                    size: 18,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  onPressed: () => _removeItem(index),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: item.totalWeightController,
+                  decoration: const InputDecoration(
+                    labelText: 'Weight (gm)',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                    prefixIcon: Icon(
+                      Icons.monitor_weight_outlined,
+                      size: 14,
+                      color: AppColors.goldBronze,
                     ),
-                    onChanged: (_) => setState(() {}),
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return null;
-                      final n = double.tryParse(v);
-                      if (n == null || n < 0) return 'Invalid';
-                      return null;
-                    },
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final n = double.tryParse(v);
+                    if (n == null || n < 0) return 'Invalid';
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: TextFormField(
+                  controller: item.sizeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Size',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.straighten,
+                      size: 14,
+                      color: AppColors.goldBronze,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: item.sizeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Size',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: TextFormField(
+                  controller: item.quantityController,
+                  decoration: const InputDecoration(
+                    labelText: 'Piece',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.numbers,
+                      size: 14,
+                      color: AppColors.goldBronze,
                     ),
                   ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
+                  validator: (v) {
+                    final n = int.tryParse(v ?? '');
+                    if (n == null || n < 1) return 'Min 1';
+                    return null;
+                  },
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: item.quantityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Piece',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                    validator: (v) {
-                      final n = int.tryParse(v ?? '');
-                      if (n == null || n < 1) return 'Min 1';
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -843,15 +1026,15 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     if (item.localImagePath != null) {
       child = Image.file(
         File(item.localImagePath!),
-        width: 56,
-        height: 56,
+        width: 48,
+        height: 48,
         fit: BoxFit.cover,
       );
     } else if (item.existingImagePath != null) {
       child = Image.network(
         '${AppConstants.serverUrl}${item.existingImagePath}',
-        width: 56,
-        height: 56,
+        width: 48,
+        height: 48,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _itemPlaceholder(),
       );
@@ -869,10 +1052,15 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             bottom: 0,
             child: Container(
               padding: const EdgeInsets.all(2),
-              color: Colors.black54,
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(6),
+                ),
+              ),
               child: const Icon(
-                Icons.camera_alt,
-                size: 12,
+                Icons.add_a_photo_outlined,
+                size: 11,
                 color: Colors.white,
               ),
             ),
@@ -884,39 +1072,50 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
   Widget _itemPlaceholder() {
     return Container(
-      width: 56,
-      height: 56,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.pastelGold,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
       ),
       child: const Icon(
-        Icons.camera_alt_outlined,
-        color: AppColors.gold,
-        size: 22,
+        Icons.add_a_photo_outlined,
+        color: AppColors.goldBronze,
+        size: 20,
       ),
     );
   }
 
   Widget _buildSummary() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.pastelGold.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Total Weight',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          const Icon(
+            Icons.monitor_weight_outlined,
+            size: 14,
+            color: AppColors.goldBronze,
+          ),
+          const SizedBox(width: 6),
+          const Expanded(
+            child: Text(
+              'Total Weight',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
           ),
           Text(
             '${_totalWeight.toStringAsFixed(3)} gm',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.goldBronze,
+            ),
           ),
         ],
       ),

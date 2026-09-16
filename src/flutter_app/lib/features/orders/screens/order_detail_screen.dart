@@ -34,13 +34,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         final canEdit =
             state is OrderDetailLoaded && _canEditOrder(state.order);
         return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.primaryDark,
+            backgroundColor: AppColors.navBar,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios),
+              icon: const Icon(Icons.arrow_back_ios_new, size: 18),
               onPressed: () => context.go('/orders'),
             ),
-            title: const Text('Order Details'),
+            title: const Text(
+              'Order Details',
+              style: TextStyle(
+                color: AppColors.gold,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             actions: [
               if (canEdit)
                 IconButton(
@@ -93,53 +100,109 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildDetail(BuildContext context, OrderDetail order) {
+    final showReady = _isShop() &&
+        (order.status == 'Assigned' || order.status == 'InProgress');
+    final showDelivered = _isShop() && order.status == 'Ready';
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           _buildHeader(order),
-          const SizedBox(height: 16),
-          // Info card
+          const SizedBox(height: 10),
           _buildInfoCard(order),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/orders/${order.id}/timeline'),
-            icon: const Icon(Icons.history_outlined),
-            label: const Text('View order progress'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                flex: showReady || showDelivered ? 2 : 1,
+                child: SizedBox(
+                  height: 40,
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        context.push('/orders/${order.id}/timeline'),
+                    icon: const Icon(Icons.timeline_outlined, size: 16),
+                    label: const Text('Progress'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      side: const BorderSide(color: AppColors.primaryDark),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (showReady) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: SizedBox(
+                    height: 40,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _confirmMarkWorkReady(order),
+                      icon: const Icon(Icons.verified_outlined, size: 16),
+                      label: const Text('MARK WORK READY'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.statusReady,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        textStyle: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (showDelivered) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: SizedBox(
+                    height: 40,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _confirmMarkDelivered(order),
+                      icon: const Icon(Icons.local_shipping_outlined, size: 16),
+                      label: const Text('MARK DELIVERED'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        textStyle: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 16),
           if (_canRespond(order)) ...[
+            const SizedBox(height: 10),
             _buildResponseActions(order),
-            const SizedBox(height: 16),
           ],
-          if (_isShop() &&
-              (order.status == 'Assigned' || order.status == 'InProgress')) ...[
-            _buildMarkWorkReadyButton(order),
-            const SizedBox(height: 16),
-          ],
-          if (_isShop() && order.status == 'Ready') ...[
-            _buildMarkDeliveredButton(order),
-            const SizedBox(height: 16),
-          ],
-          // Items
+          const SizedBox(height: 14),
           _buildSectionTitle('Items'),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           ...order.items.map((item) => _buildItemRow(item)),
-          const SizedBox(height: 16),
-          // Summary
+          const SizedBox(height: 6),
           _buildSummaryCard(order),
-          const SizedBox(height: 16),
-          // Assignment — Shop-only (Showroom orders go to a Shop first)
           if (_isShop()) ...[
+            const SizedBox(height: 14),
             _buildSectionTitle('Karigar Assignment'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             if (order.assignments.isNotEmpty)
               ...order.assignments.map((a) => _buildAssignmentCard(a)),
             if (_canAssignKarigar(order))
               Padding(
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: 6),
                 child: _buildAssignButton(
                   order,
                   label: order.assignments.isEmpty
@@ -149,23 +212,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
           ],
           if (_canEditOrder(order)) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
+              height: 40,
               child: OutlinedButton.icon(
                 onPressed: () => context.go('/orders/${order.id}/edit'),
-                icon: const Icon(Icons.edit_outlined, size: 18),
+                icon: const Icon(Icons.edit, size: 16),
                 label: const Text('Edit Order'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primaryDark,
                   side: const BorderSide(color: AppColors.primaryDark),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
           ],
           if (_isShop() && _canCancelOrder(order)) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             _buildCancelButton(order),
           ],
         ],
@@ -177,19 +240,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Row(
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                order.orderNo,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'From: ${order.orderFromBusinessName}',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-            ],
+          child: Text(
+            order.orderNo,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
         _buildStatusChip(order.status, label: _displayOrderStatus(order)),
@@ -198,36 +255,81 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildInfoCard(OrderDetail order) {
+    final dateChips = <Widget>[
+      _compactChip(Icons.calendar_today_outlined, 'Order', order.orderDate),
+      if (order.deliveryDate != null)
+        _compactChip(Icons.local_shipping_outlined, 'Del', order.deliveryDate!),
+      if (order.dueDate != null && order.dueDate!.isNotEmpty)
+        _compactChip(Icons.alarm_outlined, 'Due', order.dueDate!),
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.divider),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          _infoRow('Order Date', order.orderDate),
-          if (order.deliveryDate != null)
-            _infoRow('Delivery Date', order.deliveryDate!),
-          if (order.dueDate != null &&
-              order.dueDate!.isNotEmpty &&
-              order.dueDate != order.deliveryDate)
-            _infoRow('Due Date', order.dueDate!),
-          if (order.dueDate != null &&
-              order.dueDate!.isNotEmpty &&
-              order.deliveryDate == null)
-            _infoRow('Due Date', order.dueDate!),
-          _infoRow('Order From', order.orderFromBusinessName),
-          _infoRow('Order To', order.createdForBusinessName),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: dateChips,
+          ),
+          const SizedBox(height: 8),
           _infoRow(
-            'Acceptance',
+            'Order From',
+            order.orderFromBusinessName,
+            icon: Icons.apartment_outlined,
+          ),
+          _infoRow(
+            'Order To',
+            order.createdForBusinessName,
+            icon: Icons.storefront_outlined,
+          ),
+          _infoRow(
+            'Accept',
             _displayAcceptanceStatus(order.acceptanceStatus),
+            icon: Icons.thumb_up_alt_outlined,
           ),
           if (_isShop() && order.karigarName != null)
-            _infoRow('Karigar', order.karigarName!),
+            _infoRow(
+              'Karigar',
+              order.karigarName!,
+              icon: Icons.person_outline,
+            ),
           if (order.notes != null && order.notes!.isNotEmpty)
-            _infoRow('Short Note', order.notes!),
+            _infoRow(
+              'Short Note',
+              order.notes!,
+              icon: Icons.notes_outlined,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _compactChip(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.pastelGold,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: AppColors.goldBronze),
+          const SizedBox(width: 4),
+          Text(
+            '$label $value',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -302,22 +404,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _buildMarkWorkReadyButton(OrderDetail order) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => _confirmMarkWorkReady(order),
-        icon: const Icon(Icons.check_circle_outline, size: 18),
-        label: const Text('MARK WORK READY'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.statusReady,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    );
-  }
-
   Future<void> _confirmMarkWorkReady(OrderDetail order) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -357,22 +443,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  Widget _buildMarkDeliveredButton(OrderDetail order) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => _confirmMarkDelivered(order),
-        icon: const Icon(Icons.local_shipping_outlined, size: 18),
-        label: const Text('MARK DELIVERED'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.success,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-      ),
-    );
-  }
-
   Future<void> _confirmMarkDelivered(OrderDetail order) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -410,18 +480,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _infoRow(String label, String value, {IconData? icon}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: AppColors.goldBronze),
+            const SizedBox(width: 6),
+          ],
           SizedBox(
-            width: 110,
+            width: icon != null ? 88 : 100,
             child: Text(
               label,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: AppColors.textSecondary,
               ),
             ),
@@ -429,7 +503,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -438,121 +512,141 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildItemRow(OrderItemDetail item) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            // Item image - tap to view full size
-            GestureDetector(
-              onTap: item.imagePath != null
-                  ? () => showZoomableOrderImagePath(
-                        context,
-                        imagePath: item.imagePath!,
-                        label: item.itemName,
-                      )
-                  : null,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: item.imagePath != null
-                    ? Image.network(
-                        '${AppConstants.serverUrl}${item.imagePath}',
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _itemPlaceholder(),
-                      )
-                    : _itemPlaceholder(),
-              ),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: item.imagePath != null
+                ? () => showZoomableOrderImagePath(
+                      context,
+                      imagePath: item.imagePath!,
+                      label: item.itemName,
+                    )
+                : null,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: item.imagePath != null
+                  ? Image.network(
+                      '${AppConstants.serverUrl}${item.imagePath}',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _itemPlaceholder(),
+                    )
+                  : _itemPlaceholder(),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.itemName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.itemName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    [
-                      '${item.weight.toStringAsFixed(3)} gm',
-                      if (item.size != null && item.size!.isNotEmpty)
-                        'Size ${item.size}',
-                      '${item.quantity} pc',
-                    ].join(' | '),
-                    style: const TextStyle(
-                      fontSize: 12,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.scale_outlined,
+                      size: 11,
                       color: AppColors.textSecondary,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        [
+                          '${item.weight.toStringAsFixed(3)} gm',
+                          if (item.size != null && item.size!.isNotEmpty)
+                            'Sz ${item.size}',
+                          '${item.quantity} pc',
+                        ].join(' · '),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (item.amount > 0)
+            Text(
+              '\u20B9${item.amount.toStringAsFixed(0)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: AppColors.goldBronze,
               ),
             ),
-            if (item.amount > 0)
-              Text(
-                '\u20B9${item.amount.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _itemPlaceholder() {
     return Container(
-      width: 50,
-      height: 50,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.pastelGold,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
       ),
-      child: const Icon(Icons.diamond_outlined, color: AppColors.gold, size: 22),
+      child: const Icon(Icons.auto_awesome, color: AppColors.gold, size: 20),
     );
   }
 
   Widget _buildSummaryCard(OrderDetail order) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.05),
+        color: AppColors.pastelGold.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [
           _summaryRow(
+            Icons.monitor_weight_outlined,
             'Total Weight',
             '${order.totalWeight.toStringAsFixed(3)} gm',
           ),
           if (order.finalWeight != null)
             _summaryRow(
+              Icons.fitness_center_outlined,
               'Final Weight',
               '${order.finalWeight!.toStringAsFixed(3)} gm',
             ),
           if (order.makingCharges > 0)
             _summaryRow(
+              Icons.build_circle_outlined,
               'Making Charges',
               '\u20B9${order.makingCharges.toStringAsFixed(0)}',
             ),
           if (order.advancePaid > 0)
             _summaryRow(
+              Icons.payments_outlined,
               'Advance Paid',
               '\u20B9${order.advancePaid.toStringAsFixed(0)}',
             ),
           if (order.estimatedAmount > 0) ...[
-            const Divider(),
+            const Divider(height: 10),
             _summaryRow(
+              Icons.currency_rupee,
               'Estimated Amount',
               '\u20B9${order.estimatedAmount.toStringAsFixed(0)}',
               bold: true,
@@ -563,24 +657,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _summaryRow(String label, String value, {bool bold = false}) {
+  Widget _summaryRow(
+    IconData icon,
+    String label,
+    String value, {
+    bool bold = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+          Icon(icon, size: 14, color: AppColors.goldBronze),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+              ),
             ),
           ),
           Text(
             value,
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
+              color: bold ? AppColors.goldBronze : AppColors.textPrimary,
             ),
           ),
         ],
@@ -589,55 +692,72 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildAssignmentCard(AssignmentDetail assignment) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      color: assignment.isActive ? null : AppColors.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: assignment.isActive
-                  ? AppColors.gold.withValues(alpha: 0.15)
-                  : AppColors.divider,
-              child: Icon(
-                Icons.engineering,
-                size: 18,
-                color: assignment.isActive
-                    ? AppColors.gold
-                    : AppColors.textLight,
-              ),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: assignment.isActive ? Colors.white : AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: assignment.isActive
+              ? AppColors.gold.withValues(alpha: 0.35)
+              : AppColors.divider,
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: assignment.isActive
+                ? AppColors.pastelGold
+                : AppColors.divider,
+            child: Icon(
+              Icons.person_outline,
+              size: 16,
+              color: assignment.isActive
+                  ? AppColors.goldBronze
+                  : AppColors.textLight,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    assignment.karigarName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  assignment.karigarName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
                   ),
-                  Text(
-                    'Due: ${assignment.dueDate}',
-                    style: const TextStyle(
-                      fontSize: 12,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.event_outlined,
+                      size: 11,
                       color: AppColors.textSecondary,
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 3),
+                    Text(
+                      'Due ${assignment.dueDate}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            _buildStatusChip(
-              assignment.isActive ? 'Active' : assignment.status,
-              label: _displayAssignmentStatus(assignment),
-              small: true,
-            ),
-          ],
-        ),
+          ),
+          _buildStatusChip(
+            assignment.isActive ? 'Active' : assignment.status,
+            label: _displayAssignmentStatus(assignment),
+            small: true,
+          ),
+        ],
       ),
     );
   }
@@ -648,14 +768,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }) {
     return SizedBox(
       width: double.infinity,
+      height: 40,
       child: OutlinedButton.icon(
         onPressed: () => context.go('/orders/${order.id}/assign'),
-        icon: const Icon(Icons.assignment_ind, size: 18),
+        icon: Icon(
+          label == 'Reassign' ? Icons.swap_horiz : Icons.person_add_alt_1_outlined,
+          size: 16,
+        ),
         label: Text(label),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.gold,
+          foregroundColor: AppColors.goldBronze,
           side: const BorderSide(color: AppColors.gold),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -664,14 +788,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget _buildCancelButton(OrderDetail order) {
     return SizedBox(
       width: double.infinity,
+      height: 40,
       child: OutlinedButton.icon(
         onPressed: () => _confirmCancel(order),
-        icon: const Icon(Icons.cancel_outlined, size: 18),
+        icon: const Icon(Icons.highlight_off_outlined, size: 16),
         label: const Text('Cancel Order'),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.error,
           side: const BorderSide(color: AppColors.error),
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -754,7 +879,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: Theme.of(context).textTheme.titleSmall);
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textSecondary,
+        letterSpacing: 0.2,
+      ),
+    );
   }
 
   Widget _buildStatusChip(String status, {String? label, bool small = false}) {
