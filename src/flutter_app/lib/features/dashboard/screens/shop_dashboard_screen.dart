@@ -505,12 +505,12 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
 
   Widget _buildOrderPipeline(ShopDashboardData data) {
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.35,
+      crossAxisSpacing: 8,
+      childAspectRatio: 0.92,
       children: [
         _pipelineCard(
           label: 'TO GIVE WORK',
@@ -575,16 +575,16 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
         child: Stack(
           children: [
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, color: iconColor, size: 22),
+                  Icon(icon, color: iconColor, size: 18),
                   const Spacer(),
                   Text(
                     '$count',
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: 22,
                       fontWeight: FontWeight.w800,
                       color: iconColor,
                     ),
@@ -593,31 +593,34 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
                   Text(
                     label,
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 9,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
-                      letterSpacing: 0.2,
+                      letterSpacing: 0.1,
+                      height: 1.15,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             if (badge != null)
               Positioned(
-                top: 10,
-                right: 10,
+                top: 8,
+                right: 8,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.statusReady,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     badge,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 9,
+                      fontSize: 8,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
