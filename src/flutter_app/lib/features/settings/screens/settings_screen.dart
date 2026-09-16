@@ -7,6 +7,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/dashboard_preferences.dart';
 import '../../../core/widgets/app_bottom_navigation.dart';
+import '../../../data/models/auth_models.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
@@ -46,10 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryDark,
-        title: const Text('Settings'),
-      ),
+      backgroundColor: AppColors.background,
       bottomNavigationBar: const AppBottomNavigation(selectedPath: '/settings'),
       body: FutureBuilder<PackageInfo>(
         future: PackageInfo.fromPlatform(),
@@ -62,184 +60,108 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final canToggleGlance =
                   user?.businessType == 'Shop' ||
                   user?.businessType == 'Showroom';
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.divider),
-                    ),
+              final topInset = MediaQuery.of(context).padding.top;
+
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
                     child: Column(
                       children: [
-                        CircleAvatar(
-                          radius: 36,
-                          backgroundColor:
-                              AppColors.gold.withValues(alpha: 0.15),
-                          child: Text(
-                            (user?.fullName ?? 'U')[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.gold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          user?.fullName ?? '',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user?.email ?? '',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.gold.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            user?.role ?? '',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.gold,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          user?.shopName ?? '',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _sectionTitle(context, 'Account'),
-                  _settingsTile(
-                    icon: Icons.person_outline,
-                    title: 'Edit Profile',
-                    subtitle: 'Shop name, address, GST, company logo',
-                    onTap: () => context.go('/settings/edit-profile'),
-                  ),
-                  _settingsTile(
-                    icon: Icons.lock_outline,
-                    title: 'Change Password',
-                    subtitle: 'Update your login password',
-                    onTap: () => _showChangePasswordDialog(context),
-                  ),
-                  if (user?.businessType == 'Shop' ||
-                      user?.businessType == 'Showroom')
-                    _settingsTile(
-                      icon: Icons.group_outlined,
-                      title: 'Team Users',
-                      subtitle: 'Add co-users with shop owner access',
-                      onTap: () => context.go('/settings/team-users'),
-                    ),
-                  const SizedBox(height: 16),
-                  _sectionTitle(context, 'Notifications'),
-                  _settingsTile(
-                    icon: Icons.notifications_outlined,
-                    title: 'Notification Preferences',
-                    subtitle: 'Configure due-date reminders',
-                    onTap: () => context.go('/settings/notification-prefs'),
-                  ),
-                  if (canToggleGlance) ...[
-                    const SizedBox(height: 16),
-                    _sectionTitle(context, 'Dashboard'),
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      child: SwitchListTile(
-                        secondary: const Icon(
-                          Icons.dashboard_customize_outlined,
-                          color: AppColors.primaryDark,
-                          size: 22,
-                        ),
-                        title: const Text(
-                          'At a Glance',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        subtitle: const Text(
-                          'Show Total / Direct / Showroom summary on dashboard',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        value: _showAtAGlance,
-                        activeThumbColor: AppColors.gold,
-                        onChanged: _prefsLoaded ? _setAtAGlanceVisible : null,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  _sectionTitle(context, 'App'),
-                  _settingsTile(
-                    icon: Icons.info_outline,
-                    title: 'About',
-                    subtitle: '${AppConstants.appName} v$appVersion',
-                    onTap: () => _showAboutDialog(context, appVersion),
-                  ),
-                  _settingsTile(
-                    icon: Icons.description_outlined,
-                    title: 'Terms & Privacy',
-                    subtitle: 'View terms of service',
-                    onTap: () {},
-                  ),
-                  const SizedBox(height: 24),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      context.read<AuthBloc>().add(AuthLogoutRequested());
-                      context.go('/login');
-                    },
-                    icon: const Icon(Icons.logout, color: AppColors.error),
-                    label: const Text(
-                      'Logout',
-                      style: TextStyle(color: AppColors.error),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Center(
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          'assets/images/logo.png',
-                          width: 80,
-                          height: 40,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Version $appVersion',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textLight,
+                        _buildProfileHeader(user, topInset),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _sectionTitle('Account'),
+                              _settingsTile(
+                                icon: Icons.person_outline,
+                                title: 'Edit Profile',
+                                subtitle:
+                                    'Shop name, address, GST, company logo',
+                                onTap: () =>
+                                    context.go('/settings/edit-profile'),
+                              ),
+                              _settingsTile(
+                                icon: Icons.lock_outline,
+                                title: 'Change Password',
+                                subtitle: 'Update your login password',
+                                onTap: () =>
+                                    _showChangePasswordDialog(context),
+                              ),
+                              if (user?.businessType == 'Shop' ||
+                                  user?.businessType == 'Showroom')
+                                _settingsTile(
+                                  icon: Icons.group_outlined,
+                                  title: 'Team Users',
+                                  subtitle:
+                                      'Add co-users with shop owner access',
+                                  onTap: () =>
+                                      context.go('/settings/team-users'),
+                                ),
+                              const SizedBox(height: 14),
+                              _sectionTitle('Notifications'),
+                              _settingsTile(
+                                icon: Icons.notifications_outlined,
+                                title: 'Notification Preferences',
+                                subtitle: 'Configure due-date reminders',
+                                onTap: () => context
+                                    .go('/settings/notification-prefs'),
+                              ),
+                              if (canToggleGlance) ...[
+                                const SizedBox(height: 14),
+                                _sectionTitle('Dashboard'),
+                                _settingsSwitchTile(
+                                  icon: Icons.dashboard_customize_outlined,
+                                  title: 'At a Glance',
+                                  subtitle:
+                                      'Show Total / Direct / Showroom summary on dashboard',
+                                  value: _showAtAGlance,
+                                  onChanged: _prefsLoaded
+                                      ? _setAtAGlanceVisible
+                                      : null,
+                                ),
+                              ],
+                              const SizedBox(height: 14),
+                              _sectionTitle('App'),
+                              _settingsTile(
+                                icon: Icons.info_outline,
+                                title: 'About',
+                                subtitle:
+                                    '${AppConstants.appName} v$appVersion',
+                                onTap: () =>
+                                    _showAboutDialog(context, appVersion),
+                              ),
+                              _settingsTile(
+                                icon: Icons.description_outlined,
+                                title: 'Terms & Privacy',
+                                subtitle: 'View terms of service',
+                                onTap: () {},
+                              ),
+                              const SizedBox(height: 20),
+                              _logoutButton(),
+                              const SizedBox(height: 28),
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/logo.png',
+                                      width: 80,
+                                      height: 40,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Version $appVersion',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textLight,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -254,14 +176,158 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _sectionTitle(BuildContext context, String title) {
+  Widget _buildProfileHeader(UserInfo? user, double topInset) {
+    final initial = (user?.fullName ?? 'U').trim().isEmpty
+        ? 'U'
+        : (user!.fullName.trim()[0].toUpperCase());
+
+    return SizedBox(
+      height: topInset + 210,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            height: topInset + 110,
+            width: double.infinity,
+            color: AppColors.navBar,
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            top: topInset + 28,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 48, 16, 18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.goldLight,
+                    AppColors.gold,
+                    AppColors.goldBronze,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.gold.withValues(alpha: 0.35),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    user?.fullName ?? '',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    user?.email ?? '',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textPrimary.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F0E0),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      user?.role ?? '',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.goldBronze,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  if ((user?.shopName ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      user!.shopName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: topInset + 4,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [AppColors.goldLight, AppColors.goldBronze],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.navBar,
+                  ),
+                  child: CircleAvatar(
+                    radius: 38,
+                    backgroundColor: const Color(0xFF2A3A4E),
+                    child: Text(
+                      initial,
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 8, left: 2),
       child: Text(
         title,
-        style: Theme.of(
-          context,
-        ).textTheme.titleSmall?.copyWith(color: AppColors.textSecondary),
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
@@ -272,25 +338,163 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 6),
-      child: ListTile(
-        leading: Icon(icon, color: AppColors.primaryDark, size: 22),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.gold.withValues(alpha: 0.28),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                _iconBox(icon),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.gold.withValues(alpha: 0.85),
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+      ),
+    );
+  }
+
+  Widget _settingsSwitchTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        trailing: const Icon(
-          Icons.chevron_right,
-          color: AppColors.textLight,
-          size: 20,
+        child: Row(
+          children: [
+            _iconBox(icon),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: value,
+              activeThumbColor: AppColors.gold,
+              onChanged: onChanged,
+            ),
+          ],
         ),
-        onTap: onTap,
-        dense: true,
+      ),
+    );
+  }
+
+  Widget _iconBox(IconData icon) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.gold, width: 1.2),
+        color: AppColors.gold.withValues(alpha: 0.06),
+      ),
+      child: Icon(icon, color: AppColors.gold, size: 20),
+    );
+  }
+
+  Widget _logoutButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          context.read<AuthBloc>().add(AuthLogoutRequested());
+          context.go('/login');
+        },
+        icon: const Icon(Icons.logout, color: AppColors.error),
+        label: const Text(
+          'Logout',
+          style: TextStyle(color: AppColors.error),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColors.error),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
       ),
     );
   }
