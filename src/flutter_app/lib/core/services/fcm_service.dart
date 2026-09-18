@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../routing/app_router.dart';
 
@@ -77,11 +79,27 @@ class FcmService {
     final notification = message.notification;
     if (notification == null) return;
 
+    final imageUrl =
+        message.notification?.android?.imageUrl ??
+        message.data['imageUrl'];
+
+    StyleInformation? style;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      final localPath = await _downloadImage(imageUrl);
+      if (localPath != null) {
+        style = BigPictureStyleInformation(
+          FilePathAndroidBitmap(localPath),
+          contentTitle: notification.title,
+          summaryText: notification.body,
+        );
+      }
+    }
+
     await _localNotifications.show(
       notification.hashCode,
       notification.title,
       notification.body,
-      const NotificationDetails(
+      NotificationDetails(
         android: AndroidNotificationDetails(
           'golddesk_alerts',
           'GoldDesk alerts',
@@ -89,10 +107,33 @@ class FcmService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
+          styleInformation: style,
         ),
       ),
       payload: message.data['orderId'],
     );
+  }
+
+  Future<String?> _downloadImage(String url) async {
+    try {
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close().timeout(const Duration(seconds: 8));
+      if (response.statusCode < 200 || response.statusCode >= 300) return null;
+      final bytes = await response.fold<List<int>>(
+        <int>[],
+        (prev, chunk) => prev..addAll(chunk),
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/fcm_${DateTime.now().millisecondsSinceEpoch}.img',
+      );
+      await file.writeAsBytes(bytes, flush: true);
+      client.close(force: true);
+      return file.path;
+    } catch (_) {
+      return null;
+    }
   }
 
   void dispose() {

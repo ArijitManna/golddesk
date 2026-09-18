@@ -73,6 +73,7 @@ public class PlatformNotificationDispatcher
                     notification.Title,
                     notification.Body,
                     data,
+                    notification.ImageUrl,
                     cancellationToken);
             }
 

@@ -772,6 +772,11 @@
               <label for="pnBody">Message *</label>
               <textarea id="pnBody" maxlength="2000" placeholder="Notification text shown on mobile"></textarea>
             </div>
+            <div class="form-group">
+              <label for="pnImage">Image (optional)</label>
+              <input id="pnImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" />
+              <div style="margin-top:6px;font-size:12px;color:var(--muted)">JPG / PNG / WEBP / GIF, max 5MB. Shown as rich push image on mobile.</div>
+            </div>
             <div class="form-row">
               <div class="form-group" style="flex:1">
                 <label for="pnMode">Send mode</label>
@@ -798,6 +803,7 @@
             <table>
               <thead>
                 <tr>
+                  <th>Image</th>
                   <th>Title</th>
                   <th>Message</th>
                   <th>Schedule</th>
@@ -810,8 +816,11 @@
               <tbody>
                 ${rows.map(row => `
                   <tr>
+                    <td>${row.imageUrl
+                      ? `<img src="${escapeHtml(row.imageUrl)}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" />`
+                      : '<span style="color:var(--muted);font-size:12px">—</span>'}</td>
                     <td><strong>${escapeHtml(row.title)}</strong></td>
-                    <td style="max-width:260px">${escapeHtml(row.body)}</td>
+                    <td style="max-width:240px">${escapeHtml(row.body)}</td>
                     <td>${formatDate(row.scheduledAt)}</td>
                     <td>${statusBadgeNotif(row.status)}</td>
                     <td>${row.targetCount ?? 0}</td>
@@ -874,11 +883,21 @@
       btn.disabled = true;
       btn.textContent = mode.value === 'later' ? 'Scheduling...' : 'Sending...';
       try {
+        const imageInput = document.getElementById('pnImage');
+        const imageFile = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+        if (imageFile && imageFile.size > 5 * 1024 * 1024) {
+          msg.textContent = 'Image must be 5MB or less';
+          msg.classList.remove('hidden');
+          btn.disabled = false;
+          btn.textContent = 'Create Push';
+          return;
+        }
         const result = await AdminApi.createPlatformNotification({
           type: 'Push',
           title,
           body,
-          scheduledAt
+          scheduledAt,
+          imageFile
         });
         toast(result.message || 'Notification created');
         await renderNotifications();

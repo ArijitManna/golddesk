@@ -52,20 +52,36 @@ public class FcmNotificationSender : INotificationSender
         string title,
         string body,
         Dictionary<string, string>? data = null,
+        string? imageUrl = null,
         CancellationToken cancellationToken = default)
     {
         if (_messaging == null || string.IsNullOrWhiteSpace(deviceToken))
             return;
 
+        var payload = data != null
+            ? new Dictionary<string, string>(data)
+            : new Dictionary<string, string>();
+        if (!string.IsNullOrWhiteSpace(imageUrl))
+            payload["imageUrl"] = imageUrl;
+
         var message = new Message
         {
             Token = deviceToken,
-            Notification = new Notification { Title = title, Body = body },
-            Data = data ?? new Dictionary<string, string>(),
+            Notification = new Notification
+            {
+                Title = title,
+                Body = body,
+                ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl
+            },
+            Data = payload,
             Android = new AndroidConfig
             {
                 Priority = Priority.High,
-                Notification = new AndroidNotification { ChannelId = "golddesk_alerts" }
+                Notification = new AndroidNotification
+                {
+                    ChannelId = "golddesk_alerts",
+                    ImageUrl = string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl
+                }
             }
         };
 
@@ -87,6 +103,7 @@ public class FcmNotificationSender : INotificationSender
         string title,
         string body,
         Dictionary<string, string>? data = null,
+        string? imageUrl = null,
         CancellationToken cancellationToken = default)
     {
         var tokens = deviceTokens.Where(token => !string.IsNullOrWhiteSpace(token)).Distinct().ToList();
@@ -94,7 +111,7 @@ public class FcmNotificationSender : INotificationSender
             return;
 
         await Task.WhenAll(tokens.Select(token =>
-            SendPushNotificationAsync(token, title, body, data, cancellationToken)));
+            SendPushNotificationAsync(token, title, body, data, imageUrl, cancellationToken)));
     }
 
     private GoogleCredential? ResolveCredential(

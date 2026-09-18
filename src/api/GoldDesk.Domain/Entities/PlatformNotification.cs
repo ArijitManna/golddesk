@@ -11,6 +11,8 @@ public class PlatformNotification : BaseEntity
     public PlatformNotificationType Type { get; set; } = PlatformNotificationType.Push;
     public string Title { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
+    /// <summary>Public absolute URL used by FCM rich notifications.</summary>
+    public string? ImageUrl { get; set; }
     public DateTime? ScheduledAt { get; set; }
     public PlatformNotificationStatus Status { get; set; } = PlatformNotificationStatus.Scheduled;
     public DateTime? SentAt { get; set; }

@@ -74,7 +74,12 @@ public class NotificationService : INotificationService
                     { "type", type.ToString() }
                 };
 
-                await _pushSender.SendPushNotificationAsync(user.FcmToken, title, message, data, cancellationToken);
+                await _pushSender.SendPushNotificationAsync(
+                    user.FcmToken,
+                    title,
+                    message,
+                    data,
+                    cancellationToken: cancellationToken);
                 _logger.LogInformation("Push notification sent to user {UserId} for {Type}", userId, type);
             }
         }

@@ -13,6 +13,7 @@ public class PlatformNotificationConfiguration : IEntityTypeConfiguration<Platfo
 
         builder.Property(x => x.Title).HasMaxLength(200).IsRequired();
         builder.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+        builder.Property(x => x.ImageUrl).HasMaxLength(1000);
         builder.Property(x => x.ErrorMessage).HasMaxLength(1000);
 
         builder.HasIndex(x => x.Status);

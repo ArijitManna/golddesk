@@ -163,10 +163,31 @@ const AdminApi = (() => {
     return request(`/api/admin/platform-notifications${q ? `?${q}` : ''}`);
   }
 
-  function createPlatformNotification({ type, title, body, scheduledAt }) {
-    return request('/api/admin/platform-notifications', {
+  function createPlatformNotification({ type, title, body, scheduledAt, imageFile }) {
+    const form = new FormData();
+    if (type) form.append('type', type);
+    form.append('title', title);
+    form.append('body', body);
+    if (scheduledAt) form.append('scheduledAt', scheduledAt);
+    if (imageFile) form.append('image', imageFile);
+
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    return fetch('/api/admin/platform-notifications', {
       method: 'POST',
-      body: JSON.stringify({ type, title, body, scheduledAt })
+      headers,
+      body: form
+    }).then(async (response) => {
+      const text = await response.text();
+      let bodyJson = null;
+      try { bodyJson = text ? JSON.parse(text) : null; } catch { bodyJson = text; }
+      if (!response.ok) {
+        const message = bodyJson?.error || bodyJson?.detail || bodyJson?.title || `Request failed (${response.status})`;
+        throw new Error(message);
+      }
+      return bodyJson;
     });
   }
 

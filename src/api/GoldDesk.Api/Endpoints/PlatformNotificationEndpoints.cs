@@ -9,6 +9,12 @@ namespace GoldDesk.Api.Endpoints;
 
 public static class PlatformNotificationEndpoints
 {
+    private const long MaxImageBytes = 5L * 1024 * 1024; // 5 MB
+    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".webp", ".gif"
+    };
+
     public static void MapPlatformNotificationEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/admin/platform-notifications")
@@ -16,6 +22,7 @@ public static class PlatformNotificationEndpoints
             .RequireAuthorization(policy => policy.RequireRole("SuperAdmin"));
 
         group.MapGet("/", async (
+            HttpContext httpContext,
             string? type,
             ApplicationDbContext db) =>
         {
@@ -30,33 +37,41 @@ public static class PlatformNotificationEndpoints
             var rows = await query
                 .OrderByDescending(n => n.CreatedAt)
                 .Take(50)
-                .Select(n => new
-                {
-                    id = n.Id,
-                    type = n.Type.ToString(),
-                    title = n.Title,
-                    body = n.Body,
-                    scheduledAt = n.ScheduledAt,
-                    status = n.Status.ToString(),
-                    sentAt = n.SentAt,
-                    targetCount = n.TargetCount,
-                    errorMessage = n.ErrorMessage,
-                    createdAt = n.CreatedAt
-                })
                 .ToListAsync();
 
-            return Results.Ok(rows);
+            var result = rows.Select(n => new
+            {
+                id = n.Id,
+                type = n.Type.ToString(),
+                title = n.Title,
+                body = n.Body,
+                imageUrl = ResolvePublicImageUrl(httpContext, n.ImageUrl),
+                scheduledAt = n.ScheduledAt,
+                status = n.Status.ToString(),
+                sentAt = n.SentAt,
+                targetCount = n.TargetCount,
+                errorMessage = n.ErrorMessage,
+                createdAt = n.CreatedAt
+            });
+
+            return Results.Ok(result);
         })
         .WithName("ListPlatformNotifications");
 
         group.MapPost("/", async (
-            CreatePlatformNotificationRequest request,
+            HttpContext httpContext,
             ClaimsPrincipal user,
+            IWebHostEnvironment environment,
             ApplicationDbContext db,
-            PlatformNotificationDispatcher dispatcher) =>
+            PlatformNotificationDispatcher dispatcher,
+            [Microsoft.AspNetCore.Mvc.FromForm] string? type,
+            [Microsoft.AspNetCore.Mvc.FromForm] string? title,
+            [Microsoft.AspNetCore.Mvc.FromForm] string? body,
+            [Microsoft.AspNetCore.Mvc.FromForm] string? scheduledAt,
+            IFormFile? image) =>
         {
-            var title = (request.Title ?? string.Empty).Trim();
-            var body = (request.Body ?? string.Empty).Trim();
+            title = (title ?? string.Empty).Trim();
+            body = (body ?? string.Empty).Trim();
 
             if (string.IsNullOrWhiteSpace(title))
                 return Results.BadRequest(new { error = "Title is required" });
@@ -67,21 +82,21 @@ public static class PlatformNotificationEndpoints
             if (body.Length > 2000)
                 return Results.BadRequest(new { error = "Body max length is 2000" });
 
-            var type = PlatformNotificationType.Push;
-            if (!string.IsNullOrWhiteSpace(request.Type) &&
-                !Enum.TryParse(request.Type, true, out type))
+            var parsedType = PlatformNotificationType.Push;
+            if (!string.IsNullOrWhiteSpace(type) &&
+                !Enum.TryParse(type, true, out parsedType))
             {
                 return Results.BadRequest(new { error = "Unsupported notification type" });
             }
 
-            if (type != PlatformNotificationType.Push)
+            if (parsedType != PlatformNotificationType.Push)
                 return Results.BadRequest(new { error = "Only Push is supported for now" });
 
-            DateTime? scheduledAt = null;
-            if (!string.IsNullOrWhiteSpace(request.ScheduledAt))
+            DateTime? scheduleUtc = null;
+            if (!string.IsNullOrWhiteSpace(scheduledAt))
             {
                 if (!DateTime.TryParse(
-                        request.ScheduledAt,
+                        scheduledAt,
                         null,
                         System.Globalization.DateTimeStyles.RoundtripKind,
                         out var parsed))
@@ -89,7 +104,7 @@ public static class PlatformNotificationEndpoints
                     return Results.BadRequest(new { error = "Invalid scheduledAt datetime" });
                 }
 
-                scheduledAt = parsed.Kind switch
+                scheduleUtc = parsed.Kind switch
                 {
                     DateTimeKind.Utc => parsed,
                     DateTimeKind.Local => parsed.ToUniversalTime(),
@@ -97,15 +112,25 @@ public static class PlatformNotificationEndpoints
                 };
             }
 
+            string? imageUrl = null;
+            if (image != null && image.Length > 0)
+            {
+                var saved = await SaveImageAsync(httpContext, environment, image);
+                if (saved.Error != null)
+                    return Results.BadRequest(new { error = saved.Error });
+                imageUrl = saved.AbsoluteUrl;
+            }
+
             var now = DateTime.UtcNow;
-            var sendImmediately = scheduledAt == null || scheduledAt <= now.AddSeconds(30);
+            var sendImmediately = scheduleUtc == null || scheduleUtc <= now.AddSeconds(30);
 
             var notification = new PlatformNotification
             {
-                Type = type,
+                Type = parsedType,
                 Title = title,
                 Body = body,
-                ScheduledAt = scheduledAt ?? now,
+                ImageUrl = imageUrl,
+                ScheduledAt = scheduleUtc ?? now,
                 Status = PlatformNotificationStatus.Scheduled,
                 CreatedBy = TryGetUserId(user)
             };
@@ -124,6 +149,7 @@ public static class PlatformNotificationEndpoints
                 type = notification.Type.ToString(),
                 title = notification.Title,
                 body = notification.Body,
+                imageUrl = notification.ImageUrl,
                 scheduledAt = notification.ScheduledAt,
                 status = notification.Status.ToString(),
                 sentAt = notification.SentAt,
@@ -137,6 +163,7 @@ public static class PlatformNotificationEndpoints
                     : "Push scheduled"
             });
         })
+        .DisableAntiforgery()
         .WithName("CreatePlatformNotification");
 
         group.MapPost("/{id:guid}/cancel", async (
@@ -159,19 +186,56 @@ public static class PlatformNotificationEndpoints
         .WithName("CancelPlatformNotification");
     }
 
+    private static async Task<(string? AbsoluteUrl, string? Error)> SaveImageAsync(
+        HttpContext httpContext,
+        IWebHostEnvironment environment,
+        IFormFile image)
+    {
+        if (image.Length > MaxImageBytes)
+            return (null, "Image exceeds 5MB limit");
+
+        var ext = Path.GetExtension(image.FileName);
+        if (string.IsNullOrWhiteSpace(ext) || !AllowedImageExtensions.Contains(ext))
+            return (null, "Only JPG, PNG, WEBP, or GIF images are allowed");
+
+        var contentType = image.ContentType?.ToLowerInvariant() ?? "";
+        if (!string.IsNullOrEmpty(contentType) &&
+            !contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return (null, "File must be an image");
+        }
+
+        var folder = Path.Combine(environment.ContentRootPath, "uploads", "platform-notifications");
+        Directory.CreateDirectory(folder);
+
+        var fileName = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+        var filePath = Path.Combine(folder, fileName);
+        await using (var stream = File.Create(filePath))
+        {
+            await image.CopyToAsync(stream);
+        }
+
+        var relative = $"/uploads/platform-notifications/{fileName}";
+        var absolute = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}{relative}";
+        return (absolute, null);
+    }
+
+    private static string? ResolvePublicImageUrl(HttpContext httpContext, string? stored)
+    {
+        if (string.IsNullOrWhiteSpace(stored))
+            return null;
+        if (stored.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            stored.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return stored;
+        if (stored.StartsWith('/'))
+            return $"{httpContext.Request.Scheme}://{httpContext.Request.Host}{stored}";
+        return stored;
+    }
+
     private static Guid? TryGetUserId(ClaimsPrincipal user)
     {
         var raw = user.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? user.FindFirstValue("sub");
         return Guid.TryParse(raw, out var id) ? id : null;
     }
-}
-
-public record CreatePlatformNotificationRequest
-{
-    public string? Type { get; init; }
-    public string? Title { get; init; }
-    public string? Body { get; init; }
-    /// <summary>ISO-8601 datetime. Null/empty = send immediately.</summary>
-    public string? ScheduledAt { get; init; }
 }
