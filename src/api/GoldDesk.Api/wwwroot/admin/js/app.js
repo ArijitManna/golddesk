@@ -773,6 +773,15 @@
               <textarea id="pnBody" maxlength="2000" placeholder="Notification text shown on mobile"></textarea>
             </div>
             <div class="form-group">
+              <label>Send to *</label>
+              <div class="audience-checks">
+                <label class="audience-check"><input type="checkbox" id="pnAudShop" value="Shop" checked /> Shop</label>
+                <label class="audience-check"><input type="checkbox" id="pnAudShowroom" value="Showroom" checked /> Showroom</label>
+                <label class="audience-check"><input type="checkbox" id="pnAudKarigar" value="Karigar" checked /> Karigar</label>
+              </div>
+              <div style="margin-top:6px;font-size:12px;color:var(--muted)">Select one or more user types</div>
+            </div>
+            <div class="form-group">
               <label for="pnImage">Image (optional)</label>
               <input id="pnImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" />
               <div style="margin-top:6px;font-size:12px;color:var(--muted)">JPG / PNG / WEBP / GIF, max 5MB. Shown as rich push image on mobile.</div>
@@ -806,6 +815,7 @@
                   <th>Image</th>
                   <th>Title</th>
                   <th>Message</th>
+                  <th>Audience</th>
                   <th>Schedule</th>
                   <th>Status</th>
                   <th>Devices</th>
@@ -820,7 +830,10 @@
                       ? `<img src="${escapeHtml(row.imageUrl)}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" />`
                       : '<span style="color:var(--muted);font-size:12px">—</span>'}</td>
                     <td><strong>${escapeHtml(row.title)}</strong></td>
-                    <td style="max-width:240px">${escapeHtml(row.body)}</td>
+                    <td style="max-width:200px">${escapeHtml(row.body)}</td>
+                    <td>${(row.audiences || String(row.targetAudiences || '').split(',').filter(Boolean)).map(a =>
+                      `<span class="badge badge-${String(a).toLowerCase()}" style="margin:1px">${escapeHtml(a)}</span>`
+                    ).join(' ') || '—'}</td>
                     <td>${formatDate(row.scheduledAt)}</td>
                     <td>${statusBadgeNotif(row.status)}</td>
                     <td>${row.targetCount ?? 0}</td>
@@ -865,6 +878,16 @@
         return;
       }
 
+      const audiences = [];
+      if (document.getElementById('pnAudShop').checked) audiences.push('Shop');
+      if (document.getElementById('pnAudShowroom').checked) audiences.push('Showroom');
+      if (document.getElementById('pnAudKarigar').checked) audiences.push('Karigar');
+      if (audiences.length === 0) {
+        msg.textContent = 'Select at least one audience (Shop, Showroom, Karigar)';
+        msg.classList.remove('hidden');
+        return;
+      }
+
       let scheduledAt = null;
       if (mode.value === 'later') {
         if (!schedule.value) {
@@ -897,6 +920,7 @@
           title,
           body,
           scheduledAt,
+          audiences,
           imageFile
         });
         toast(result.message || 'Notification created');

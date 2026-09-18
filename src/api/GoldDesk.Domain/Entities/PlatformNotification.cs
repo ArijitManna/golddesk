@@ -13,6 +13,8 @@ public class PlatformNotification : BaseEntity
     public string Body { get; set; } = string.Empty;
     /// <summary>Public absolute URL used by FCM rich notifications.</summary>
     public string? ImageUrl { get; set; }
+    /// <summary>Comma-separated audiences: Shop, Showroom, Karigar.</summary>
+    public string TargetAudiences { get; set; } = "Shop,Showroom,Karigar";
     public DateTime? ScheduledAt { get; set; }
     public PlatformNotificationStatus Status { get; set; } = PlatformNotificationStatus.Scheduled;
     public DateTime? SentAt { get; set; }

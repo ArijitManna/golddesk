@@ -46,6 +46,8 @@ public static class PlatformNotificationEndpoints
                 title = n.Title,
                 body = n.Body,
                 imageUrl = ResolvePublicImageUrl(httpContext, n.ImageUrl),
+                audiences = PlatformNotificationDispatcher.ParseAudiences(n.TargetAudiences).ToArray(),
+                targetAudiences = n.TargetAudiences,
                 scheduledAt = n.ScheduledAt,
                 status = n.Status.ToString(),
                 sentAt = n.SentAt,
@@ -68,6 +70,7 @@ public static class PlatformNotificationEndpoints
             [Microsoft.AspNetCore.Mvc.FromForm] string? title,
             [Microsoft.AspNetCore.Mvc.FromForm] string? body,
             [Microsoft.AspNetCore.Mvc.FromForm] string? scheduledAt,
+            [Microsoft.AspNetCore.Mvc.FromForm] string? audiences,
             IFormFile? image) =>
         {
             title = (title ?? string.Empty).Trim();
@@ -81,6 +84,11 @@ public static class PlatformNotificationEndpoints
                 return Results.BadRequest(new { error = "Title max length is 200" });
             if (body.Length > 2000)
                 return Results.BadRequest(new { error = "Body max length is 2000" });
+
+            var targetAudiences = PlatformNotificationDispatcher.NormalizeAudiences(
+                (audiences ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            if (string.IsNullOrWhiteSpace(targetAudiences))
+                return Results.BadRequest(new { error = "Select at least one audience: Shop, Showroom, or Karigar" });
 
             var parsedType = PlatformNotificationType.Push;
             if (!string.IsNullOrWhiteSpace(type) &&
@@ -130,6 +138,7 @@ public static class PlatformNotificationEndpoints
                 Title = title,
                 Body = body,
                 ImageUrl = imageUrl,
+                TargetAudiences = targetAudiences,
                 ScheduledAt = scheduleUtc ?? now,
                 Status = PlatformNotificationStatus.Scheduled,
                 CreatedBy = TryGetUserId(user)
@@ -150,6 +159,8 @@ public static class PlatformNotificationEndpoints
                 title = notification.Title,
                 body = notification.Body,
                 imageUrl = notification.ImageUrl,
+                audiences = PlatformNotificationDispatcher.ParseAudiences(notification.TargetAudiences).ToArray(),
+                targetAudiences = notification.TargetAudiences,
                 scheduledAt = notification.ScheduledAt,
                 status = notification.Status.ToString(),
                 sentAt = notification.SentAt,

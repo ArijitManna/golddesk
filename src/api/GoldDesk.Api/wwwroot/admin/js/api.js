@@ -163,12 +163,13 @@ const AdminApi = (() => {
     return request(`/api/admin/platform-notifications${q ? `?${q}` : ''}`);
   }
 
-  function createPlatformNotification({ type, title, body, scheduledAt, imageFile }) {
+  function createPlatformNotification({ type, title, body, scheduledAt, audiences, imageFile }) {
     const form = new FormData();
     if (type) form.append('type', type);
     form.append('title', title);
     form.append('body', body);
     if (scheduledAt) form.append('scheduledAt', scheduledAt);
+    if (audiences && audiences.length) form.append('audiences', audiences.join(','));
     if (imageFile) form.append('image', imageFile);
 
     const headers = {};

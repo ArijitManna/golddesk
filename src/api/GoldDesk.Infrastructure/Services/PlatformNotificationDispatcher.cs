@@ -51,12 +51,8 @@ public class PlatformNotificationDispatcher
 
         try
         {
-            var tokens = await _db.Users
-                .IgnoreQueryFilters()
-                .Where(u => u.FcmToken != null && u.FcmToken != "")
-                .Select(u => u.FcmToken!)
-                .Distinct()
-                .ToListAsync(cancellationToken);
+            var audiences = ParseAudiences(notification.TargetAudiences);
+            var tokens = await ResolveTokensAsync(audiences, cancellationToken);
 
             notification.TargetCount = tokens.Count;
 
@@ -84,9 +80,10 @@ public class PlatformNotificationDispatcher
             await _db.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Platform push {Id} sent to {Count} device(s)",
+                "Platform push {Id} sent to {Count} device(s) for audiences [{Audiences}]",
                 notification.Id,
-                notification.TargetCount);
+                notification.TargetCount,
+                notification.TargetAudiences);
         }
         catch (Exception ex)
         {
@@ -98,5 +95,75 @@ public class PlatformNotificationDispatcher
             notification.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private async Task<List<string>> ResolveTokensAsync(
+        HashSet<string> audiences,
+        CancellationToken cancellationToken)
+    {
+        if (audiences.Count == 0)
+            return [];
+
+        var targetShop = audiences.Contains("Shop");
+        var targetShowroom = audiences.Contains("Showroom");
+        var targetKarigar = audiences.Contains("Karigar");
+
+        var query = _db.Users
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(u =>
+                u.FcmToken != null &&
+                u.FcmToken != "" &&
+                u.Role != UserRole.SuperAdmin &&
+                u.Status == UserStatus.Active);
+
+        query = query.Where(u =>
+            (targetKarigar &&
+             (u.Role == UserRole.Karigar || u.Tenant.BusinessType == BusinessType.Karigar))
+            ||
+            (targetShop &&
+             u.Role != UserRole.Karigar &&
+             u.Tenant.BusinessType == BusinessType.Shop)
+            ||
+            (targetShowroom &&
+             u.Role != UserRole.Karigar &&
+             u.Tenant.BusinessType == BusinessType.Showroom));
+
+        return await query
+            .Select(u => u.FcmToken!)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    public static HashSet<string> ParseAudiences(string? raw)
+    {
+        var canonical = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Shop"] = "Shop",
+            ["Showroom"] = "Showroom",
+            ["Karigar"] = "Karigar"
+        };
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var part in raw.Split(
+                     [',', ';', '|'],
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (canonical.TryGetValue(part, out var name))
+                result.Add(name);
+        }
+
+        return result;
+    }
+
+    public static string NormalizeAudiences(IEnumerable<string> audiences)
+    {
+        var set = ParseAudiences(string.Join(",", audiences));
+        var ordered = new[] { "Shop", "Showroom", "Karigar" }
+            .Where(a => set.Contains(a));
+        return string.Join(",", ordered);
     }
 }
