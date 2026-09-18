@@ -156,6 +156,26 @@ const AdminApi = (() => {
     return request('/api/admin/api-timing', { method: 'DELETE' });
   }
 
+  function getPlatformNotifications(type) {
+    const params = new URLSearchParams();
+    if (type) params.set('type', type);
+    const q = params.toString();
+    return request(`/api/admin/platform-notifications${q ? `?${q}` : ''}`);
+  }
+
+  function createPlatformNotification({ type, title, body, scheduledAt }) {
+    return request('/api/admin/platform-notifications', {
+      method: 'POST',
+      body: JSON.stringify({ type, title, body, scheduledAt })
+    });
+  }
+
+  function cancelPlatformNotification(id) {
+    return request(`/api/admin/platform-notifications/${id}/cancel`, {
+      method: 'POST'
+    });
+  }
+
   return {
     getToken,
     getUser,
@@ -172,6 +192,9 @@ const AdminApi = (() => {
     getAppVersionHistory,
     publishAppVersion,
     getApiTiming,
-    flashApiTiming
+    flashApiTiming,
+    getPlatformNotifications,
+    createPlatformNotification,
+    cancelPlatformNotification
   };
 })();

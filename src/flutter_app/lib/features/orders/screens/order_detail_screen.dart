@@ -215,14 +215,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
-              height: 40,
+              height: 48,
               child: OutlinedButton.icon(
                 onPressed: () => context.go('/orders/${order.id}/edit'),
-                icon: const Icon(Icons.edit, size: 16),
+                icon: const Icon(Icons.edit_outlined, size: 18),
                 label: const Text('Edit Order'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primaryDark,
                   side: const BorderSide(color: AppColors.primaryDark),
+                  minimumSize: const Size.fromHeight(48),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  alignment: Alignment.center,
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
                 ),
               ),
             ),
@@ -768,18 +776,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }) {
     return SizedBox(
       width: double.infinity,
-      height: 40,
+      height: 48,
       child: OutlinedButton.icon(
         onPressed: () => context.go('/orders/${order.id}/assign'),
         icon: Icon(
-          label == 'Reassign' ? Icons.swap_horiz : Icons.person_add_alt_1_outlined,
-          size: 16,
+          label == 'Reassign'
+              ? Icons.swap_horiz
+              : Icons.person_add_alt_1_outlined,
+          size: 18,
         ),
         label: Text(label),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.goldBronze,
           side: const BorderSide(color: AppColors.gold),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          alignment: Alignment.center,
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            height: 1.2,
+          ),
         ),
       ),
     );
@@ -788,15 +805,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget _buildCancelButton(OrderDetail order) {
     return SizedBox(
       width: double.infinity,
-      height: 40,
+      height: 48,
       child: OutlinedButton.icon(
         onPressed: () => _confirmCancel(order),
-        icon: const Icon(Icons.highlight_off_outlined, size: 16),
+        icon: const Icon(Icons.highlight_off_outlined, size: 18),
         label: const Text('Cancel Order'),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.error,
           side: const BorderSide(color: AppColors.error),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          alignment: Alignment.center,
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            height: 1.2,
+          ),
         ),
       ),
     );

@@ -34,6 +34,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<OrderEvent> OrderEvents => Set<OrderEvent>();
     public DbSet<AppVersion> AppVersions => Set<AppVersion>();
     public DbSet<ApiRequestLog> ApiRequestLogs => Set<ApiRequestLog>();
+    public DbSet<PlatformNotification> PlatformNotifications => Set<PlatformNotification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

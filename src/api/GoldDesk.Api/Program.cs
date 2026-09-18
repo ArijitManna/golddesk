@@ -176,6 +176,7 @@ app.MapNotificationEndpoints();
 app.MapFileEndpoints();
 app.MapAppVersionEndpoints();
 app.MapApiTimingEndpoints();
+app.MapPlatformNotificationEndpoints();
 
 // Serve APK downloads from output folder
 var outputPath = Path.Combine(app.Environment.ContentRootPath, "output");

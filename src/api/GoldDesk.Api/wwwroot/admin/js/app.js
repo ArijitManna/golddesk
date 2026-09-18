@@ -118,6 +118,7 @@
       else if (route.path === '/requests') await renderRequests();
       else if (route.path === '/businesses') await renderBusinesses();
       else if (route.path === '/version-control') await renderVersionControl();
+      else if (route.path === '/notifications') await renderNotifications();
       else if (route.path === '/api-timing') await renderApiTiming();
       else if (route.path === '/settings') renderSettings();
       else go('/dashboard');
@@ -143,6 +144,7 @@
     }
     if (path === '/businesses') return 'Businesses';
     if (path === '/version-control') return 'Version Control';
+    if (path === '/notifications') return 'Notifications';
     if (path === '/api-timing') return 'API Timing';
     if (path === '/settings') return 'Settings';
     return 'Admin';
@@ -181,6 +183,9 @@
         </a>
         <a class="nav-item ${path === '/version-control' ? 'active' : ''}" href="#/version-control">
           <span class="icon">V</span> Version Control
+        </a>
+        <a class="nav-item ${path === '/notifications' ? 'active' : ''}" href="#/notifications">
+          <span class="icon">N</span> Notifications
         </a>
         <div class="nav-section">Monitoring</div>
         <a class="nav-item ${path === '/api-timing' ? 'active' : ''}" href="#/api-timing">
@@ -687,6 +692,216 @@
         btn.textContent = 'Publish Version';
       }
     };
+  }
+
+  async function renderNotifications() {
+    const el = document.getElementById('pageContent');
+    const channel = (route.params.channel || 'push').toLowerCase();
+    const channels = [
+      { id: 'push', label: 'Push', ready: true },
+      { id: 'sms', label: 'SMS', ready: false },
+      { id: 'email', label: 'Email', ready: false }
+    ];
+
+    el.innerHTML = `<div class="empty">Loading notifications...</div>`;
+
+    let rows = [];
+    if (channel === 'push') {
+      try {
+        rows = await AdminApi.getPlatformNotifications('Push');
+      } catch (err) {
+        el.innerHTML = `<div class="error-banner">${escapeHtml(err.message)}</div>`;
+        return;
+      }
+    }
+
+    const statusBadgeNotif = (status) => {
+      const map = {
+        Sent: 'badge-active',
+        Scheduled: 'badge-pending',
+        Sending: 'badge-shop',
+        Failed: 'badge-inactive',
+        Cancelled: 'badge-inactive'
+      };
+      return `<span class="badge ${map[status] || 'badge-pending'}">${escapeHtml(status || '?')}</span>`;
+    };
+
+    el.innerHTML = `
+      <div class="channel-tabs">
+        ${channels.map(c => `
+          <a class="channel-tab ${channel === c.id ? 'active' : ''} ${c.ready ? '' : 'disabled'}"
+             href="${c.ready ? `#/notifications?channel=${c.id}` : '#'}"
+             ${c.ready ? '' : 'onclick="return false;"'}>
+            ${c.label}
+            ${c.ready ? '' : '<span class="coming">Soon</span>'}
+          </a>
+        `).join('')}
+      </div>
+
+      ${channel !== 'push' ? `
+        <div class="panel">
+          <div class="empty">This channel will be available later.</div>
+        </div>
+      ` : `
+        <div class="cards" style="margin-bottom:16px">
+          <div class="stat-card">
+            <div class="label">Channel</div>
+            <div class="value" style="font-size:22px;color:var(--navy)">Push</div>
+            <p>Broadcast FCM alert to all logged-in app users</p>
+          </div>
+          <div class="stat-card">
+            <div class="label">Sent</div>
+            <div class="value" style="font-size:28px;color:var(--green)">${rows.filter(r => r.status === 'Sent').length}</div>
+            <p>Successfully delivered campaigns</p>
+          </div>
+          <div class="stat-card">
+            <div class="label">Scheduled</div>
+            <div class="value" style="font-size:28px;color:var(--orange)">${rows.filter(r => r.status === 'Scheduled').length}</div>
+            <p>Waiting for send time</p>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-header"><h3>Create Push Notification</h3></div>
+          <div style="padding:18px">
+            <div class="form-group">
+              <label for="pnTitle">Title *</label>
+              <input id="pnTitle" type="text" maxlength="200" placeholder="e.g. GoldDesk update" />
+            </div>
+            <div class="form-group">
+              <label for="pnBody">Message *</label>
+              <textarea id="pnBody" maxlength="2000" placeholder="Notification text shown on mobile"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex:1">
+                <label for="pnMode">Send mode</label>
+                <select id="pnMode">
+                  <option value="now">Send now</option>
+                  <option value="later">Schedule for later</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex:1" id="pnScheduleWrap">
+                <label for="pnSchedule">Schedule time</label>
+                <input id="pnSchedule" type="datetime-local" disabled />
+                <div style="margin-top:6px;font-size:12px;color:var(--muted)">Uses your local timezone</div>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="pnCreateBtn" type="button" style="width:auto;min-width:180px">Create Push</button>
+            <div id="pnMsg" class="error-banner hidden" style="margin-top:12px"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h3>Push History</h3></div>
+          <div class="table-wrap">
+            ${rows.length === 0 ? `<div class="empty">No push notifications yet</div>` : `
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Message</th>
+                  <th>Schedule</th>
+                  <th>Status</th>
+                  <th>Devices</th>
+                  <th>Created</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map(row => `
+                  <tr>
+                    <td><strong>${escapeHtml(row.title)}</strong></td>
+                    <td style="max-width:260px">${escapeHtml(row.body)}</td>
+                    <td>${formatDate(row.scheduledAt)}</td>
+                    <td>${statusBadgeNotif(row.status)}</td>
+                    <td>${row.targetCount ?? 0}</td>
+                    <td>${formatDate(row.createdAt)}</td>
+                    <td>
+                      ${row.status === 'Scheduled'
+                        ? `<button class="btn btn-ghost btn-sm pn-cancel" data-id="${row.id}">Cancel</button>`
+                        : (row.errorMessage ? `<span style="color:var(--red);font-size:12px">${escapeHtml(row.errorMessage)}</span>` : '')}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>`}
+          </div>
+        </div>
+      `}
+    `;
+
+    if (channel !== 'push') return;
+
+    const mode = document.getElementById('pnMode');
+    const schedule = document.getElementById('pnSchedule');
+    const msg = document.getElementById('pnMsg');
+
+    const syncMode = () => {
+      const later = mode.value === 'later';
+      schedule.disabled = !later;
+      if (!later) schedule.value = '';
+    };
+    mode.onchange = syncMode;
+    syncMode();
+
+    document.getElementById('pnCreateBtn').onclick = async () => {
+      const title = document.getElementById('pnTitle').value.trim();
+      const body = document.getElementById('pnBody').value.trim();
+      const btn = document.getElementById('pnCreateBtn');
+      msg.classList.add('hidden');
+
+      if (!title || !body) {
+        msg.textContent = 'Title and message are required';
+        msg.classList.remove('hidden');
+        return;
+      }
+
+      let scheduledAt = null;
+      if (mode.value === 'later') {
+        if (!schedule.value) {
+          msg.textContent = 'Pick a schedule time';
+          msg.classList.remove('hidden');
+          return;
+        }
+        scheduledAt = new Date(schedule.value).toISOString();
+        if (Number.isNaN(Date.parse(scheduledAt))) {
+          msg.textContent = 'Invalid schedule time';
+          msg.classList.remove('hidden');
+          return;
+        }
+      }
+
+      btn.disabled = true;
+      btn.textContent = mode.value === 'later' ? 'Scheduling...' : 'Sending...';
+      try {
+        const result = await AdminApi.createPlatformNotification({
+          type: 'Push',
+          title,
+          body,
+          scheduledAt
+        });
+        toast(result.message || 'Notification created');
+        await renderNotifications();
+      } catch (err) {
+        msg.textContent = err.message || 'Failed to create notification';
+        msg.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Create Push';
+      }
+    };
+
+    document.querySelectorAll('.pn-cancel').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Cancel this scheduled push?')) return;
+        try {
+          await AdminApi.cancelPlatformNotification(btn.dataset.id);
+          toast('Cancelled');
+          await renderNotifications();
+        } catch (err) {
+          toast(err.message || 'Cancel failed');
+        }
+      };
+    });
   }
 
   async function renderApiTiming(preset = {}) {

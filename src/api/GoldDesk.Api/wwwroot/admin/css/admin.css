@@ -401,6 +401,52 @@ th { color: var(--muted); font-weight: 600; background: #fafbfc; }
 }
 .timing-legend span { font-weight: 600; }
 
+.channel-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.channel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.channel-tab.active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.channel-tab.disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.channel-tab .coming {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: var(--muted);
+}
+.channel-tab.active .coming {
+  background: rgba(255,255,255,.18);
+  color: #fff;
+}
+.form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 980px) {
   .cards { grid-template-columns: 1fr; }
   .sidebar { display: none; }

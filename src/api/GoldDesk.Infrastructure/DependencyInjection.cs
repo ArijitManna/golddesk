@@ -26,9 +26,11 @@ public static class DependencyInjection
         services.AddScoped<IAuthProvider, AuthProvider>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<INotificationSender, FcmNotificationSender>();
+        services.AddScoped<PlatformNotificationDispatcher>();
 
         // Background jobs
         services.AddHostedService<DueDateEvaluatorJob>();
+        services.AddHostedService<PlatformNotificationDispatchJob>();
 
         return services;
     }
