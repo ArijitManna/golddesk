@@ -26,6 +26,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthProvider, AuthProvider>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<INotificationSender, FcmNotificationSender>();
+        services.AddSingleton<IGoldRateService, GoldRateService>();
+        services.AddHttpClient(nameof(GoldRateService));
         services.AddScoped<PlatformNotificationDispatcher>();
 
         // Background jobs

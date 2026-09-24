@@ -25,6 +25,7 @@ public record ShopDashboardDto
     public List<BusinessOrderCountDto> ConnectedShops { get; init; } = new();
     public List<BusinessOrderCountDto> ConnectedShowrooms { get; init; } = new();
     public List<BusinessOrderCountDto> ExternalCustomers { get; init; } = new();
+    public List<BusinessOrderCountDto> Karigars { get; init; } = new();
     public List<OrderDto> RecentOrders { get; init; } = new();
     public List<OrderDto> OverdueOrders { get; init; } = new();
 }

@@ -16,4 +16,13 @@ class DashboardRepository {
       throw ApiException.fromDioError(e);
     }
   }
+
+  Future<GoldRateData> getGoldRate() async {
+    try {
+      final response = await _apiClient.dio.get('/dashboard/gold-rate');
+      return GoldRateData.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }

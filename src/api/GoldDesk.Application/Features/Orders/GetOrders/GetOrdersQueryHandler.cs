@@ -99,6 +99,12 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
             query = query.Where(o => o.OrderFromExternalBusinessId == request.ExternalCustomerId.Value);
         }
 
+        if (request.KarigarId.HasValue)
+        {
+            query = query.Where(o =>
+                o.Assignments.Any(a => a.IsActive && a.KarigarId == request.KarigarId.Value));
+        }
+
         // Search by order number or order-from business.
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

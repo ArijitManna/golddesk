@@ -16,6 +16,7 @@ import '../../auth/bloc/auth_state.dart';
 import '../bloc/dashboard_cubit.dart';
 import '../widgets/side_drawer.dart';
 import '../widgets/party_count_section.dart';
+import '../widgets/live_gold_rate_card.dart';
 
 class ShopDashboardScreen extends StatefulWidget {
   const ShopDashboardScreen({super.key});
@@ -29,11 +30,12 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   bool _platformLoading = false;
   String? _platformError;
   bool _showAtAGlance = true;
+  bool _showLiveGoldRate = true;
 
   @override
   void initState() {
     super.initState();
-    _loadAtAGlancePreference();
+    _loadDashboardPreferences();
     final authState = context.read<AuthBloc>().state;
     final isSuperAdmin =
         authState is AuthAuthenticated && authState.user.role == 'SuperAdmin';
@@ -44,9 +46,15 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
     }
   }
 
-  Future<void> _loadAtAGlancePreference() async {
-    final visible = await DashboardPreferences.isAtAGlanceVisible();
-    if (mounted) setState(() => _showAtAGlance = visible);
+  Future<void> _loadDashboardPreferences() async {
+    final glance = await DashboardPreferences.isAtAGlanceVisible();
+    final gold = await DashboardPreferences.isLiveGoldRateVisible();
+    if (mounted) {
+      setState(() {
+        _showAtAGlance = glance;
+        _showLiveGoldRate = gold;
+      });
+    }
   }
   Future<void> _loadPlatformReport() async {
     setState(() {
@@ -295,6 +303,10 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
             ),
             const SizedBox(height: 16),
             if (isShop) ...[
+              if (_showLiveGoldRate) ...[
+                const LiveGoldRateCard(),
+                const SizedBox(height: 16),
+              ],
               if (_showAtAGlance) ...[
                 _buildAtAGlance(data),
                 const SizedBox(height: 22),
@@ -375,6 +387,23 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
                     queryParameters: {
                       'externalCustomerId': customer.businessId,
                       'shopName': customer.businessName,
+                    },
+                  ).toString(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              PartyCountSection(
+                title: 'Karigars',
+                searchHint: 'Search karigar name / mobile',
+                emptyMessage: 'No active karigars yet.',
+                icon: Icons.handyman_outlined,
+                parties: data.karigars,
+                onTap: (karigar) => context.go(
+                  Uri(
+                    path: '/orders',
+                    queryParameters: {
+                      'karigarId': karigar.businessId,
+                      'shopName': karigar.businessName,
                     },
                   ).toString(),
                 ),

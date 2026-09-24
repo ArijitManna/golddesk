@@ -98,6 +98,7 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
         var connectedShops = new List<BusinessOrderCountDto>();
         var connectedShowrooms = new List<BusinessOrderCountDto>();
         var externalCustomers = new List<BusinessOrderCountDto>();
+        var karigars = new List<BusinessOrderCountDto>();
 
         var acceptedConnections = await _context.BusinessConnections
             .AsNoTracking()
@@ -144,6 +145,24 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
                 .OrderByDescending(p => p.OrderCount)
                 .ThenBy(p => p.BusinessName)
                 .ToList();
+
+            var shopKarigars = await _context.Karigars
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(k => k.TenantId == business.Id && k.Status == KarigarStatus.Active)
+                .ToListAsync(cancellationToken);
+            karigars = shopKarigars
+                .Select(k => new BusinessOrderCountDto
+                {
+                    BusinessId = k.Id,
+                    BusinessName = k.Name,
+                    Code = k.Mobile,
+                    OrderCount = orders.Count(o =>
+                        o.Assignments.Any(a => a.IsActive && a.KarigarId == k.Id))
+                })
+                .OrderByDescending(p => p.OrderCount)
+                .ThenBy(p => p.BusinessName)
+                .ToList();
         }
 
         var isShowroomViewer = business.BusinessType == BusinessType.Showroom;
@@ -182,6 +201,7 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
             ConnectedShops = connectedShops,
             ConnectedShowrooms = connectedShowrooms,
             ExternalCustomers = externalCustomers,
+            Karigars = karigars,
             RecentOrders = recentOrders,
             OverdueOrders = overdueOrders
         });

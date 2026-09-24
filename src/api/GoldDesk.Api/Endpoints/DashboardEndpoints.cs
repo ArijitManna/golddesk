@@ -1,3 +1,4 @@
+using GoldDesk.Application.Common.Interfaces;
 using GoldDesk.Application.Common.Models;
 using GoldDesk.Application.Features.Dashboard.KarigarDashboard;
 using GoldDesk.Application.Features.Dashboard.ShopDashboard;
@@ -21,6 +22,26 @@ public static class DashboardEndpoints
         })
         .WithName("GetShopDashboard")
         .WithDescription("Get shop owner dashboard with order stats and alerts");
+
+        shopGroup.MapGet("/gold-rate", async (IGoldRateService goldRates) =>
+        {
+            var snapshot = await goldRates.GetLatestAsync();
+            if (snapshot == null)
+                return Results.Ok(new { available = false });
+
+            return Results.Ok(new
+            {
+                available = true,
+                rate24k = snapshot.Rate24kPerGramInr,
+                rate22k = snapshot.Rate22kPerGramInr,
+                changePercent24k = snapshot.ChangePercent24k,
+                updatedAt = snapshot.UpdatedAtUtc,
+                source = snapshot.Source,
+                unit = "INR per gram"
+            });
+        })
+        .WithName("GetLiveGoldRate")
+        .WithDescription("Live 24K/22K gold rate in INR per gram (cached international spot)");
 
         // Karigar Dashboard
         var karigarGroup = app.MapGroup("/api/karigar")

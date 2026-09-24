@@ -22,6 +22,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _showAtAGlance = true;
+  bool _showLiveGoldRate = true;
   bool _prefsLoaded = false;
 
   @override
@@ -31,10 +32,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadDashboardPrefs() async {
-    final visible = await DashboardPreferences.isAtAGlanceVisible();
+    final glance = await DashboardPreferences.isAtAGlanceVisible();
+    final gold = await DashboardPreferences.isLiveGoldRateVisible();
     if (!mounted) return;
     setState(() {
-      _showAtAGlance = visible;
+      _showAtAGlance = glance;
+      _showLiveGoldRate = gold;
       _prefsLoaded = true;
     });
   }
@@ -42,6 +45,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _setAtAGlanceVisible(bool value) async {
     setState(() => _showAtAGlance = value);
     await DashboardPreferences.setAtAGlanceVisible(value);
+  }
+
+  Future<void> _setLiveGoldRateVisible(bool value) async {
+    setState(() => _showLiveGoldRate = value);
+    await DashboardPreferences.setLiveGoldRateVisible(value);
   }
 
   @override
@@ -121,6 +129,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ? _setAtAGlanceVisible
                                       : null,
                                 ),
+                                if (user?.businessType == 'Shop')
+                                  _settingsSwitchTile(
+                                    icon: Icons.trending_up,
+                                    title: 'Live Gold Rate',
+                                    subtitle:
+                                        'Show 24K / 22K market rate card on dashboard',
+                                    value: _showLiveGoldRate,
+                                    onChanged: _prefsLoaded
+                                        ? _setLiveGoldRateVisible
+                                        : null,
+                                  ),
                               ],
                               const SizedBox(height: 14),
                               _sectionTitle('App'),

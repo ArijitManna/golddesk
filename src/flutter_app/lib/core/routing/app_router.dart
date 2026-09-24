@@ -119,11 +119,12 @@ class AppRouter {
           final showroomId = state.uri.queryParameters['showroomId'];
           final externalCustomerId =
               state.uri.queryParameters['externalCustomerId'];
+          final karigarId = state.uri.queryParameters['karigarId'];
           return BlocProvider(
             create: (_) => getIt<OrderListCubit>(),
             child: OrderListScreen(
               key: ValueKey(
-                'orders_${status}_${due}_${source}_${shopId}_${showroomId}_$externalCustomerId',
+                'orders_${status}_${due}_${source}_${shopId}_${showroomId}_${externalCustomerId}_$karigarId',
               ),
               initialStatus: status,
               initialDue: due,
@@ -132,6 +133,7 @@ class AppRouter {
               initialShopName: shopName,
               initialShowroomId: showroomId,
               initialExternalCustomerId: externalCustomerId,
+              initialKarigarId: karigarId,
             ),
           );
         },

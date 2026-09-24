@@ -5,6 +5,7 @@ class DashboardPreferences {
   DashboardPreferences._();
 
   static const showAtAGlanceKey = 'dashboard_show_at_a_glance';
+  static const showLiveGoldRateKey = 'dashboard_show_live_gold_rate';
 
   static Future<bool> isAtAGlanceVisible() async {
     final prefs = await SharedPreferences.getInstance();
@@ -14,5 +15,15 @@ class DashboardPreferences {
   static Future<void> setAtAGlanceVisible(bool visible) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(showAtAGlanceKey, visible);
+  }
+
+  static Future<bool> isLiveGoldRateVisible() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(showLiveGoldRateKey) ?? true;
+  }
+
+  static Future<void> setLiveGoldRateVisible(bool visible) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(showLiveGoldRateKey, visible);
   }
 }

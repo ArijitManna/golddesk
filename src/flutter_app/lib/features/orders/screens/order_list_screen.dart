@@ -19,6 +19,7 @@ class OrderListScreen extends StatefulWidget {
   final String? initialShopName;
   final String? initialShowroomId;
   final String? initialExternalCustomerId;
+  final String? initialKarigarId;
 
   const OrderListScreen({
     super.key,
@@ -29,6 +30,7 @@ class OrderListScreen extends StatefulWidget {
     this.initialShopName,
     this.initialShowroomId,
     this.initialExternalCustomerId,
+    this.initialKarigarId,
   });
 
   @override
@@ -87,6 +89,7 @@ class _OrderListScreenState extends State<OrderListScreen>
       shopId: widget.initialShopId,
       showroomId: widget.initialShowroomId,
       externalCustomerId: widget.initialExternalCustomerId,
+      karigarId: widget.initialKarigarId,
     );
   }
 
@@ -146,6 +149,10 @@ class _OrderListScreenState extends State<OrderListScreen>
         widget.initialExternalCustomerId!.isNotEmpty) {
       return 'Selected customer';
     }
+    if (widget.initialKarigarId != null &&
+        widget.initialKarigarId!.isNotEmpty) {
+      return 'Selected karigar';
+    }
     return null;
   }
 
@@ -178,6 +185,7 @@ class _OrderListScreenState extends State<OrderListScreen>
       shopId: widget.initialShopId,
       showroomId: widget.initialShowroomId,
       externalCustomerId: widget.initialExternalCustomerId,
+      karigarId: widget.initialKarigarId,
     );
   }
 
@@ -191,6 +199,7 @@ class _OrderListScreenState extends State<OrderListScreen>
       shopId: widget.initialShopId,
       showroomId: widget.initialShowroomId,
       externalCustomerId: widget.initialExternalCustomerId,
+      karigarId: widget.initialKarigarId,
     );
   }
 

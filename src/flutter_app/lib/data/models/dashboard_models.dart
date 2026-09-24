@@ -16,6 +16,7 @@ class ShopDashboardData {
   final List<BusinessOrderCount> connectedShops;
   final List<BusinessOrderCount> connectedShowrooms;
   final List<BusinessOrderCount> externalCustomers;
+  final List<BusinessOrderCount> karigars;
   final List<OrderSummary> recentOrders;
   final List<OrderSummary> overdueOrders;
 
@@ -37,6 +38,7 @@ class ShopDashboardData {
     required this.connectedShops,
     required this.connectedShowrooms,
     required this.externalCustomers,
+    required this.karigars,
     required this.recentOrders,
     required this.overdueOrders,
   });
@@ -69,6 +71,11 @@ class ShopDashboardData {
           [],
       externalCustomers:
           (json['externalCustomers'] as List?)
+              ?.map((e) => BusinessOrderCount.fromJson(e))
+              .toList() ??
+          [],
+      karigars:
+          (json['karigars'] as List?)
               ?.map((e) => BusinessOrderCount.fromJson(e))
               .toList() ??
           [],
@@ -105,6 +112,33 @@ class BusinessOrderCount {
         businessName: json['businessName'],
         code: json['code'],
         orderCount: json['orderCount'] ?? 0,
+      );
+}
+
+class GoldRateData {
+  final bool available;
+  final double rate24k;
+  final double rate22k;
+  final double? changePercent24k;
+  final String? updatedAt;
+  final String? source;
+
+  const GoldRateData({
+    required this.available,
+    this.rate24k = 0,
+    this.rate22k = 0,
+    this.changePercent24k,
+    this.updatedAt,
+    this.source,
+  });
+
+  factory GoldRateData.fromJson(Map<String, dynamic> json) => GoldRateData(
+        available: json['available'] == true,
+        rate24k: (json['rate24k'] as num?)?.toDouble() ?? 0,
+        rate22k: (json['rate22k'] as num?)?.toDouble() ?? 0,
+        changePercent24k: (json['changePercent24k'] as num?)?.toDouble(),
+        updatedAt: json['updatedAt']?.toString(),
+        source: json['source']?.toString(),
       );
 }
 

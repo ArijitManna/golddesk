@@ -26,6 +26,7 @@ class OrderListLoaded extends OrderListState {
   final String? activeShopId;
   final String? activeShowroomId;
   final String? activeExternalCustomerId;
+  final String? activeKarigarId;
 
   const OrderListLoaded({
     required this.orders,
@@ -38,6 +39,7 @@ class OrderListLoaded extends OrderListState {
     this.activeShopId,
     this.activeShowroomId,
     this.activeExternalCustomerId,
+    this.activeKarigarId,
   });
 
   @override
@@ -51,6 +53,7 @@ class OrderListLoaded extends OrderListState {
     activeShopId,
     activeShowroomId,
     activeExternalCustomerId,
+    activeKarigarId,
   ];
 }
 
@@ -75,6 +78,7 @@ class OrderListCubit extends Cubit<OrderListState> {
     String? shopId,
     String? showroomId,
     String? externalCustomerId,
+    String? karigarId,
   }) async {
     emit(OrderListLoading());
     try {
@@ -86,6 +90,7 @@ class OrderListCubit extends Cubit<OrderListState> {
         shopId: shopId,
         showroomId: showroomId,
         externalCustomerId: externalCustomerId,
+        karigarId: karigarId,
         page: 1,
         pageSize: 20,
       );
@@ -100,6 +105,7 @@ class OrderListCubit extends Cubit<OrderListState> {
         activeShopId: shopId,
         activeShowroomId: showroomId,
         activeExternalCustomerId: externalCustomerId,
+        activeKarigarId: karigarId,
       ));
     } on ApiException catch (e) {
       emit(OrderListError(e.message));
@@ -120,6 +126,7 @@ class OrderListCubit extends Cubit<OrderListState> {
         shopId: currentState.activeShopId,
         showroomId: currentState.activeShowroomId,
         externalCustomerId: currentState.activeExternalCustomerId,
+        karigarId: currentState.activeKarigarId,
         page: currentState.page + 1,
         pageSize: 20,
       );
@@ -134,6 +141,7 @@ class OrderListCubit extends Cubit<OrderListState> {
         activeShopId: currentState.activeShopId,
         activeShowroomId: currentState.activeShowroomId,
         activeExternalCustomerId: currentState.activeExternalCustomerId,
+        activeKarigarId: currentState.activeKarigarId,
       ));
     } catch (_) {
       // Silently fail on load more
