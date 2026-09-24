@@ -395,7 +395,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
               PartyCountSection(
                 title: 'Karigars',
                 searchHint: 'Search karigar name / mobile',
-                emptyMessage: 'No active karigars yet.',
+                emptyMessage: 'No connected karigars yet.',
                 icon: Icons.handyman_outlined,
                 parties: data.karigars,
                 onTap: (karigar) => context.go(

@@ -88,17 +88,11 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
             o.Assignments.Any(a => a.IsActive && a.DueDate < today) &&
             o.Status != OrderStatus.Ready);
 
-        // Active Karigars count
-        var activeKarigars = business.BusinessType == BusinessType.Shop
-            ? await _context.Karigars
-                .IgnoreQueryFilters()
-                .CountAsync(k => k.TenantId == business.Id && k.Status == KarigarStatus.Active, cancellationToken)
-            : 0;
-
         var connectedShops = new List<BusinessOrderCountDto>();
         var connectedShowrooms = new List<BusinessOrderCountDto>();
         var externalCustomers = new List<BusinessOrderCountDto>();
         var karigars = new List<BusinessOrderCountDto>();
+        var activeKarigars = 0;
 
         var acceptedConnections = await _context.BusinessConnections
             .AsNoTracking()
@@ -146,11 +140,24 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
                 .ThenBy(p => p.BusinessName)
                 .ToList();
 
-            var shopKarigars = await _context.Karigars
-                .AsNoTracking()
-                .IgnoreQueryFilters()
-                .Where(k => k.TenantId == business.Id && k.Status == KarigarStatus.Active)
-                .ToListAsync(cancellationToken);
+            // Network karigars live on their own tenant; shops reach them via ShopKarigar connections
+            // (same source as GET /karigars and Karigar-wise reports).
+            var connectedKarigarBusinessIds = acceptedConnections
+                .Where(c => c.ConnectionType == ConnectionType.ShopKarigar)
+                .Select(c => c.FromBusinessId == business.Id ? c.ToBusinessId : c.FromBusinessId)
+                .Distinct()
+                .ToList();
+
+            var shopKarigars = connectedKarigarBusinessIds.Count == 0
+                ? new List<Karigar>()
+                : await _context.Karigars
+                    .AsNoTracking()
+                    .IgnoreQueryFilters()
+                    .Where(k => connectedKarigarBusinessIds.Contains(k.TenantId) &&
+                                k.Status == KarigarStatus.Active)
+                    .ToListAsync(cancellationToken);
+
+            activeKarigars = shopKarigars.Count;
             karigars = shopKarigars
                 .Select(k => new BusinessOrderCountDto
                 {
