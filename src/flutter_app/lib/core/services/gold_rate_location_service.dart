@@ -8,6 +8,8 @@ class GoldRateLocationService {
   static const _cityCachedAtKey = 'gold_rate_detected_city_at';
   static const _cacheTtl = Duration(hours: 12);
 
+  final Geocoding _geocoding = Geocoding();
+
   /// Returns a city name when location is available; otherwise null (API uses India).
   Future<String?> detectCity({bool forceRefresh = false}) async {
     if (!forceRefresh) {
@@ -35,7 +37,7 @@ class GoldRateLocationService {
         ),
       );
 
-      final placemarks = await placemarkFromCoordinates(
+      final placemarks = await _geocoding.placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
