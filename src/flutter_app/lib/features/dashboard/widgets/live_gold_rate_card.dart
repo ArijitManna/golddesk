@@ -128,9 +128,11 @@ class _LiveGoldRateCardState extends State<LiveGoldRateCard> {
               ),
             ],
           ),
-          const Text(
-            'Live Market Rates (24K / 22K)',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
+          Text(
+            _rate?.source?.isNotEmpty == true
+                ? _rate!.source!
+                : 'India market rates (24K / 22K)',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
           const SizedBox(height: 12),
           if (_loading)
