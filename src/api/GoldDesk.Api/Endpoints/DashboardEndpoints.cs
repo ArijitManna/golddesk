@@ -23,9 +23,9 @@ public static class DashboardEndpoints
         .WithName("GetShopDashboard")
         .WithDescription("Get shop owner dashboard with order stats and alerts");
 
-        shopGroup.MapGet("/gold-rate", async (IGoldRateService goldRates) =>
+        shopGroup.MapGet("/gold-rate", async (string? city, IGoldRateService goldRates) =>
         {
-            var snapshot = await goldRates.GetLatestAsync();
+            var snapshot = await goldRates.GetLatestAsync(city);
             if (snapshot == null)
                 return Results.Ok(new { available = false });
 
@@ -37,11 +37,12 @@ public static class DashboardEndpoints
                 changePercent24k = snapshot.ChangePercent24k,
                 updatedAt = snapshot.UpdatedAtUtc,
                 source = snapshot.Source,
+                city = snapshot.City,
                 unit = "INR per gram"
             });
         })
         .WithName("GetLiveGoldRate")
-        .WithDescription("Live 24K/22K gold rate in INR per gram (cached international spot)");
+        .WithDescription("Live 24K/22K gold rate in INR per gram for the detected city (India fallback)");
 
         // Karigar Dashboard
         var karigarGroup = app.MapGroup("/api/karigar")

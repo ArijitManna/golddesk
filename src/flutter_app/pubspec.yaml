@@ -54,6 +54,8 @@ dependencies:
   path_provider: ^2.1.5
   open_filex: ^4.7.0
   permission_handler: ^11.4.0
+  geolocator: ^13.0.4
+  geocoding: ^3.0.0
   firebase_core: ^4.13.0
   firebase_messaging: ^16.5.0
 

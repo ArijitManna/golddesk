@@ -122,6 +122,7 @@ class GoldRateData {
   final double? changePercent24k;
   final String? updatedAt;
   final String? source;
+  final String? city;
 
   const GoldRateData({
     required this.available,
@@ -130,6 +131,7 @@ class GoldRateData {
     this.changePercent24k,
     this.updatedAt,
     this.source,
+    this.city,
   });
 
   factory GoldRateData.fromJson(Map<String, dynamic> json) => GoldRateData(
@@ -139,6 +141,7 @@ class GoldRateData {
         changePercent24k: (json['changePercent24k'] as num?)?.toDouble(),
         updatedAt: json['updatedAt']?.toString(),
         source: json['source']?.toString(),
+        city: json['city']?.toString(),
       );
 }
 

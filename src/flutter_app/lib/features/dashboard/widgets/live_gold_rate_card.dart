@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/services/gold_rate_location_service.dart';
 import '../../../data/models/dashboard_models.dart';
 import '../../../data/repositories/dashboard_repository.dart';
 
@@ -13,9 +14,11 @@ class LiveGoldRateCard extends StatefulWidget {
 }
 
 class _LiveGoldRateCardState extends State<LiveGoldRateCard> {
+  final _locationService = GoldRateLocationService();
   GoldRateData? _rate;
   bool _loading = true;
   String? _error;
+  String? _detectedCity;
 
   @override
   void initState() {
@@ -23,15 +26,19 @@ class _LiveGoldRateCardState extends State<LiveGoldRateCard> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool forceLocationRefresh = false}) async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final rate = await getIt<DashboardRepository>().getGoldRate();
+      final city = await _locationService.detectCity(
+        forceRefresh: forceLocationRefresh,
+      );
+      final rate = await getIt<DashboardRepository>().getGoldRate(city: city);
       if (!mounted) return;
       setState(() {
+        _detectedCity = city ?? rate.city;
         _rate = rate;
         _loading = false;
         if (!rate.available) _error = 'Rate unavailable';
@@ -52,6 +59,12 @@ class _LiveGoldRateCardState extends State<LiveGoldRateCard> {
       symbol: '\u20B9',
       decimalDigits: 0,
     );
+
+    final subtitle = _rate?.source?.isNotEmpty == true
+        ? _rate!.source!
+        : (_detectedCity != null && _detectedCity!.isNotEmpty)
+            ? '$_detectedCity market rates (24K / 22K)'
+            : 'India market rates (24K / 22K)';
 
     return Container(
       width: double.infinity,
@@ -120,7 +133,9 @@ class _LiveGoldRateCardState extends State<LiveGoldRateCard> {
                 ),
               ),
               IconButton(
-                onPressed: _loading ? null : _load,
+                onPressed: _loading
+                    ? null
+                    : () => _load(forceLocationRefresh: true),
                 icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -129,9 +144,7 @@ class _LiveGoldRateCardState extends State<LiveGoldRateCard> {
             ],
           ),
           Text(
-            _rate?.source?.isNotEmpty == true
-                ? _rate!.source!
-                : 'India market rates (24K / 22K)',
+            subtitle,
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
           const SizedBox(height: 12),
