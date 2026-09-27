@@ -18,6 +18,8 @@ class OrderRepository {
     String? showroomId,
     String? externalCustomerId,
     String? karigarId,
+    String? deliveryFrom,
+    String? deliveryTo,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -34,6 +36,8 @@ class OrderRepository {
           if (externalCustomerId != null)
             'externalCustomerId': externalCustomerId,
           if (karigarId != null) 'karigarId': karigarId,
+          if (deliveryFrom != null) 'deliveryFrom': deliveryFrom,
+          if (deliveryTo != null) 'deliveryTo': deliveryTo,
           'page': page,
           'pageSize': pageSize,
         },
@@ -213,11 +217,41 @@ class OrderRepository {
     }
   }
 
+  /// Appends an image to the item; the first image becomes the primary one.
+  Future<String> addOrderItemImage(String orderItemId, String filePath) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          filePath,
+          filename: filePath.split(RegExp(r'[/\\]')).last,
+        ),
+      });
+      final response = await _apiClient.dio.post(
+        '/files/upload/order-item/$orderItemId/images',
+        data: formData,
+      );
+      return response.data['imagePath'];
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> deleteOrderItemImage(String orderItemId, String path) async {
+    try {
+      await _apiClient.dio.delete(
+        '/files/order-item/$orderItemId/images',
+        queryParameters: {'path': path},
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
   Future<List<KarigarItem>> getKarigars() async {
     try {
       final response = await _apiClient.dio.get(
         '/karigars',
-        queryParameters: {'activeOnly': true, 'pageSize': 50},
+        queryParameters: {'activeOnly': true, 'pageSize': 200},
       );
       return (response.data['items'] as List)
           .map((e) => KarigarItem.fromJson(e))

@@ -8,6 +8,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/widgets/golddesk_text_field.dart';
+import '../../../core/widgets/order_image.dart';
 import '../../../data/models/connection_models.dart';
 import '../../../data/models/order_models.dart';
 import '../../../data/repositories/connection_repository.dart';
@@ -103,7 +104,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       form.totalWeightController.text =
           lineTotal == 0 ? '' : lineTotal.toString();
       form.sizeController.text = i.size ?? '';
-      form.existingImagePath = i.imagePath;
+      form.existingImagePaths.addAll(i.imagePaths);
       _items.add(form);
     }
     if (_items.isEmpty) _items.add(_OrderItemForm());
@@ -404,45 +405,248 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     }
   }
 
-  Future<void> _pickItemImage(int index) async {
-    final source = await showModalBottomSheet<ImageSource>(
+  static const _maxImagesPerItem = 10;
+
+  Future<void> _addItemImages(_OrderItemForm item, ImageSource source) async {
+    final remaining = _maxImagesPerItem - item.imageCount;
+    if (remaining <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum $_maxImagesPerItem photos per item'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    final picker = ImagePicker();
+    final List<String> picked;
+    if (source == ImageSource.gallery) {
+      final photos = await picker.pickMultiImage(
+        imageQuality: 70,
+        maxWidth: 1200,
+      );
+      picked = photos.map((p) => p.path).take(remaining).toList();
+    } else {
+      final photo = await picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 1200,
+      );
+      picked = [if (photo != null) photo.path];
+    }
+    if (picked.isNotEmpty && mounted) {
+      setState(() => item.localImagePaths.addAll(picked));
+    }
+  }
+
+  Future<void> _manageItemImages(int index) async {
+    final item = _items[index];
+    await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(
-                Icons.photo_camera_outlined,
-                color: AppColors.goldBronze,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          Future<void> add(ImageSource source) async {
+            await _addItemImages(item, source);
+            setSheetState(() {});
+          }
+
+          final tiles = <Widget>[
+            for (var i = 0; i < item.existingImagePaths.length; i++)
+              _imageTile(
+                image: NetworkImage(
+                  '${AppConstants.serverUrl}${item.existingImagePaths[i]}',
+                ),
+                isPrimary: i == 0,
+                onOpen: () => _previewItemImages(item, i),
+                onRemove: () {
+                  setState(() {
+                    item.removedImagePaths.add(item.existingImagePaths[i]);
+                    item.existingImagePaths.removeAt(i);
+                  });
+                  setSheetState(() {});
+                },
               ),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.photo_library_outlined,
-                color: AppColors.goldBronze,
+            for (var i = 0; i < item.localImagePaths.length; i++)
+              _imageTile(
+                image: FileImage(File(item.localImagePaths[i])),
+                isPrimary: item.existingImagePaths.isEmpty && i == 0,
+                onOpen: () => _previewItemImages(
+                  item,
+                  item.existingImagePaths.length + i,
+                ),
+                onRemove: () {
+                  setState(() => item.localImagePaths.removeAt(i));
+                  setSheetState(() {});
+                },
               ),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+          ];
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Item photos (${item.imageCount}/$_maxImagesPerItem)',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'The first photo is shown on the order list.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (tiles.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text(
+                          'No photos yet',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    )
+                  else
+                    Wrap(spacing: 8, runSpacing: 8, children: tiles),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => add(ImageSource.camera),
+                          icon: const Icon(Icons.photo_camera_outlined),
+                          label: const Text('Camera'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.goldBronze,
+                            side: const BorderSide(color: AppColors.gold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => add(ImageSource.gallery),
+                          icon: const Icon(Icons.photo_library_outlined),
+                          label: const Text('Gallery'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.goldBronze,
+                            side: const BorderSide(color: AppColors.gold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      child: const Text('Done'),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
-    if (source == null) return;
-    final photo = await ImagePicker().pickImage(
-      source: source,
-      imageQuality: 70,
-      maxWidth: 1200,
+  }
+
+  void _previewItemImages(_OrderItemForm item, int index) {
+    showOrderImageGallery(
+      context,
+      images: [
+        ...item.existingImagePaths.map(
+          (p) => NetworkImage('${AppConstants.serverUrl}$p'),
+        ),
+        ...item.localImagePaths.map((p) => FileImage(File(p))),
+      ],
+      initialIndex: index,
+      label: item.nameController.text.isEmpty
+          ? null
+          : item.nameController.text,
     );
-    if (photo != null) {
-      setState(() => _items[index].localImagePath = photo.path);
-    }
+  }
+
+  Widget _imageTile({
+    required ImageProvider image,
+    required bool isPrimary,
+    required VoidCallback onOpen,
+    required VoidCallback onRemove,
+  }) {
+    return SizedBox(
+      width: 72,
+      height: 72,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: onOpen,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image(
+                  image: image,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _itemPlaceholder(),
+                ),
+              ),
+            ),
+          ),
+          if (isPrimary)
+            Positioned(
+              left: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: const BoxDecoration(
+                  color: AppColors.gold,
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(6),
+                    bottomLeft: Radius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Main',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          Positioned(
+            right: 2,
+            top: 2,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _onSave() {
@@ -492,10 +696,21 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         }).toList(),
       );
 
-      final images = _items.map((item) => item.localImagePath).toList();
+      final images =
+          _items.map((item) => List<String>.of(item.localImagePaths)).toList();
       final cubit = context.read<CreateOrderCubit>();
       if (_isEdit) {
-        cubit.updateOrder(widget.orderId!, request, itemImages: images);
+        final removed = <String, List<String>>{
+          for (final item in _items)
+            if (item.existingId != null && item.removedImagePaths.isNotEmpty)
+              item.existingId!: List<String>.of(item.removedImagePaths),
+        };
+        cubit.updateOrder(
+          widget.orderId!,
+          request,
+          itemImages: images,
+          removedImages: removed,
+        );
       } else {
         cubit.createOrder(request, itemImages: images);
       }
@@ -525,7 +740,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               backgroundColor: AppColors.success,
             ),
           );
-          context.go('/orders/${state.order.id}');
+          if (_isEdit && context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/orders/${state.order.id}');
+          }
         } else if (state is CreateOrderError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -541,7 +760,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           backgroundColor: AppColors.navBar,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-            onPressed: () => _isEdit
+            onPressed: () => context.canPop()
+                ? context.pop()
+                : _isEdit
                 ? context.go('/orders/${widget.orderId}')
                 : context.go('/orders'),
           ),
@@ -809,7 +1030,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               GestureDetector(
-                onTap: () => _pickItemImage(index),
+                onTap: () => _manageItemImages(index),
                 child: _buildItemThumb(item),
               ),
               const SizedBox(width: 8),
@@ -1023,20 +1244,20 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
   Widget _buildItemThumb(_OrderItemForm item) {
     Widget child;
-    if (item.localImagePath != null) {
-      child = Image.file(
-        File(item.localImagePath!),
-        width: 48,
-        height: 48,
-        fit: BoxFit.cover,
-      );
-    } else if (item.existingImagePath != null) {
+    if (item.existingImagePaths.isNotEmpty) {
       child = Image.network(
-        '${AppConstants.serverUrl}${item.existingImagePath}',
+        '${AppConstants.serverUrl}${item.existingImagePaths.first}',
         width: 48,
         height: 48,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _itemPlaceholder(),
+      );
+    } else if (item.localImagePaths.isNotEmpty) {
+      child = Image.file(
+        File(item.localImagePaths.first),
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
       );
     } else {
       child = _itemPlaceholder();
@@ -1047,6 +1268,15 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       child: Stack(
         children: [
           child,
+          if (item.imageCount > 1)
+            Positioned(
+              left: 2,
+              top: 2,
+              child: MoreImagesBadge(
+                extraCount: item.imageCount - 1,
+                fontSize: 9,
+              ),
+            ),
           Positioned(
             right: 0,
             bottom: 0,
@@ -1179,8 +1409,11 @@ class _OrderItemForm {
   final sizeController = TextEditingController();
   String? existingId;
   String? selectedItemId;
-  String? localImagePath;
-  String? existingImagePath;
+  final List<String> localImagePaths = [];
+  final List<String> existingImagePaths = [];
+  final List<String> removedImagePaths = [];
+
+  int get imageCount => existingImagePaths.length + localImagePaths.length;
 
   void dispose() {
     nameController.dispose();

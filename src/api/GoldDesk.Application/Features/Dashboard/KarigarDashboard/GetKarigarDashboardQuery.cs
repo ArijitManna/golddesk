@@ -44,5 +44,6 @@ public record KarigarOrderDto
     public string? AssignmentNotes { get; init; }
     public decimal TotalWeight { get; init; }
     public string? FirstItemImage { get; init; }
+    public int ImageCount { get; init; }
     public string? FirstItemSize { get; init; }
 }

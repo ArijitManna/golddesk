@@ -243,6 +243,7 @@ public class GetShopDashboardQueryHandler : IRequestHandler<GetShopDashboardQuer
                 : activeAssignment?.DueDate.ToString("yyyy-MM-dd")
                     ?? o.DeliveryDate?.ToString("yyyy-MM-dd"),
             FirstItemImage = o.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+            ImageCount = o.Items.Sum(i => (i.ImagePath != null ? 1 : 0) + i.AdditionalImagePaths.Count),
             FirstItemSize = o.Items
                 .Where(i => !string.IsNullOrWhiteSpace(i.Size))
                 .Select(i => i.Size)

@@ -6,6 +6,13 @@ namespace GoldDesk.Api.Endpoints;
 
 public static class FileEndpoints
 {
+    private const int MaxImagesPerOrderItem = 10;
+
+    private static List<string> OrderItemImagePaths(GoldDesk.Domain.Entities.OrderItem item) =>
+        (item.ImagePath != null ? new[] { item.ImagePath } : Array.Empty<string>())
+            .Concat(item.AdditionalImagePaths)
+            .ToList();
+
     public static void MapFileEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/files")
@@ -75,6 +82,116 @@ public static class FileEndpoints
         .DisableAntiforgery()
         .WithName("UploadOrderItemImage")
         .WithDescription("Upload an image for an order item");
+
+        // Add another image to an order item (first image becomes the primary one)
+        group.MapPost("/upload/order-item/{orderItemId:guid}/images", async (
+            Guid orderItemId,
+            IFormFile file,
+            IApplicationDbContext context,
+            ICurrentUserService currentUser,
+            IWebHostEnvironment env) =>
+        {
+            if (file.Length == 0)
+                return Results.BadRequest(new { error = "No file uploaded" });
+
+            if (file.Length > 5 * 1024 * 1024)
+                return Results.BadRequest(new { error = "File size exceeds 5MB limit" });
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var ext = Path.GetExtension(file.FileName).ToLower();
+            if (!allowedExtensions.Contains(ext))
+                return Results.BadRequest(new { error = "Only jpg, png, webp images are allowed" });
+
+            var orderItem = await context.OrderItems
+                .IgnoreQueryFilters()
+                .Include(oi => oi.Order)
+                .FirstOrDefaultAsync(oi => oi.Id == orderItemId);
+
+            if (orderItem == null)
+                return Results.NotFound(new { error = "Order item not found" });
+
+            if (currentUser.TenantId != orderItem.Order.TenantId &&
+                currentUser.TenantId != orderItem.Order.CreatedByBusinessId)
+                return Results.Json(new { error = "Only the order Shop or creator can upload this order image" }, statusCode: 403);
+
+            var currentCount = (orderItem.ImagePath != null ? 1 : 0) + orderItem.AdditionalImagePaths.Count;
+            if (currentCount >= MaxImagesPerOrderItem)
+                return Results.BadRequest(new { error = $"Maximum {MaxImagesPerOrderItem} images allowed per item" });
+
+            var uploadsFolder = Path.Combine(env.ContentRootPath, "uploads", "order-items");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = $"{orderItemId}_{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var relativePath = $"/uploads/order-items/{fileName}";
+            if (string.IsNullOrEmpty(orderItem.ImagePath))
+                orderItem.ImagePath = relativePath;
+            else
+                orderItem.AdditionalImagePaths = [.. orderItem.AdditionalImagePaths, relativePath];
+            await context.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                imagePath = relativePath,
+                imagePaths = OrderItemImagePaths(orderItem)
+            });
+        })
+        .DisableAntiforgery()
+        .WithName("AddOrderItemImage")
+        .WithDescription("Add an image to an order item without replacing existing images");
+
+        // Remove one image from an order item
+        group.MapDelete("/order-item/{orderItemId:guid}/images", async (
+            Guid orderItemId,
+            string path,
+            IApplicationDbContext context,
+            ICurrentUserService currentUser,
+            IWebHostEnvironment env) =>
+        {
+            var orderItem = await context.OrderItems
+                .IgnoreQueryFilters()
+                .Include(oi => oi.Order)
+                .FirstOrDefaultAsync(oi => oi.Id == orderItemId);
+
+            if (orderItem == null)
+                return Results.NotFound(new { error = "Order item not found" });
+
+            if (currentUser.TenantId != orderItem.Order.TenantId &&
+                currentUser.TenantId != orderItem.Order.CreatedByBusinessId)
+                return Results.Json(new { error = "Only the order Shop or creator can remove this order image" }, statusCode: 403);
+
+            if (orderItem.ImagePath == path)
+            {
+                orderItem.ImagePath = orderItem.AdditionalImagePaths.FirstOrDefault();
+                orderItem.AdditionalImagePaths = orderItem.AdditionalImagePaths.Skip(1).ToList();
+            }
+            else if (orderItem.AdditionalImagePaths.Contains(path))
+            {
+                orderItem.AdditionalImagePaths = orderItem.AdditionalImagePaths.Where(p => p != path).ToList();
+            }
+            else
+            {
+                return Results.NotFound(new { error = "Image not found on this item" });
+            }
+
+            await context.SaveChangesAsync();
+
+            if (path.StartsWith("/uploads/order-items/"))
+            {
+                var oldPath = Path.Combine(env.ContentRootPath, path.TrimStart('/'));
+                if (File.Exists(oldPath)) File.Delete(oldPath);
+            }
+
+            return Results.Ok(new { imagePaths = OrderItemImagePaths(orderItem) });
+        })
+        .WithName("DeleteOrderItemImage")
+        .WithDescription("Remove one image from an order item");
 
         // General image upload (returns path, can be attached later)
         group.MapPost("/upload/item/{itemId:guid}", async (

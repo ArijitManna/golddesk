@@ -160,6 +160,7 @@ class OrderSummary {
   final String? assignmentStatus;
   final String? dueDate;
   final String? firstItemImage;
+  final int imageCount;
   final String? firstItemSize;
   final String source;
   final String acceptanceStatus;
@@ -182,6 +183,7 @@ class OrderSummary {
     this.assignmentStatus,
     this.dueDate,
     this.firstItemImage,
+    this.imageCount = 0,
     this.firstItemSize,
     this.source = 'Direct',
     this.acceptanceStatus = 'Accepted',
@@ -206,6 +208,7 @@ class OrderSummary {
       assignmentStatus: json['assignmentStatus'],
       dueDate: json['dueDate'],
       firstItemImage: json['firstItemImage'],
+      imageCount: (json['imageCount'] as num?)?.toInt() ?? 0,
       firstItemSize: json['firstItemSize'],
       source: json['source'] ?? 'Direct',
       acceptanceStatus: json['acceptanceStatus'] ?? 'Accepted',

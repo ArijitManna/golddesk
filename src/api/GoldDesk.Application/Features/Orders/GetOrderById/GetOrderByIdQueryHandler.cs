@@ -103,6 +103,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
             AssignmentStatus = isShowroomViewer ? null : activeAssignment?.Status.ToString(),
             DueDate = dueDate,
             FirstItemImage = order.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+            ImageCount = order.Items.Sum(i => (i.ImagePath != null ? 1 : 0) + i.AdditionalImagePaths.Count),
             FirstItemSize = order.Items
                 .Where(i => !string.IsNullOrWhiteSpace(i.Size))
                 .Select(i => i.Size)
@@ -127,7 +128,10 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Resul
                 MakingCharge = isKarigarViewer ? 0 : i.MakingCharge,
                 Amount = isKarigarViewer ? 0 : i.Amount,
                 Size = i.Size,
-                ImagePath = i.ImagePath
+                ImagePath = i.ImagePath,
+                ImagePaths = (i.ImagePath != null ? new[] { i.ImagePath } : Array.Empty<string>())
+                    .Concat(i.AdditionalImagePaths)
+                    .ToList()
             }).ToList(),
             Assignments = isShowroomViewer || isKarigarViewer
                 ? new List<AssignmentDto>()

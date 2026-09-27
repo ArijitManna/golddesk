@@ -27,6 +27,8 @@ class OrderListLoaded extends OrderListState {
   final String? activeShowroomId;
   final String? activeExternalCustomerId;
   final String? activeKarigarId;
+  final String? activeDeliveryFrom;
+  final String? activeDeliveryTo;
 
   const OrderListLoaded({
     required this.orders,
@@ -40,11 +42,13 @@ class OrderListLoaded extends OrderListState {
     this.activeShowroomId,
     this.activeExternalCustomerId,
     this.activeKarigarId,
+    this.activeDeliveryFrom,
+    this.activeDeliveryTo,
   });
 
   @override
   List<Object?> get props => [
-    orders.length,
+    orders,
     totalCount,
     page,
     activeFilter,
@@ -54,6 +58,8 @@ class OrderListLoaded extends OrderListState {
     activeShowroomId,
     activeExternalCustomerId,
     activeKarigarId,
+    activeDeliveryFrom,
+    activeDeliveryTo,
   ];
 }
 
@@ -70,6 +76,7 @@ class OrderListCubit extends Cubit<OrderListState> {
 
   OrderListCubit(this._repository) : super(OrderListInitial());
 
+  /// [silent] keeps the current list on screen while refreshing.
   Future<void> loadOrders({
     String? status,
     String? due,
@@ -79,8 +86,11 @@ class OrderListCubit extends Cubit<OrderListState> {
     String? showroomId,
     String? externalCustomerId,
     String? karigarId,
+    String? deliveryFrom,
+    String? deliveryTo,
+    bool silent = false,
   }) async {
-    emit(OrderListLoading());
+    if (!silent || state is! OrderListLoaded) emit(OrderListLoading());
     try {
       final response = await _repository.getOrders(
         status: status,
@@ -91,6 +101,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         showroomId: showroomId,
         externalCustomerId: externalCustomerId,
         karigarId: karigarId,
+        deliveryFrom: deliveryFrom,
+        deliveryTo: deliveryTo,
         page: 1,
         pageSize: 20,
       );
@@ -106,11 +118,13 @@ class OrderListCubit extends Cubit<OrderListState> {
         activeShowroomId: showroomId,
         activeExternalCustomerId: externalCustomerId,
         activeKarigarId: karigarId,
+        activeDeliveryFrom: deliveryFrom,
+        activeDeliveryTo: deliveryTo,
       ));
     } on ApiException catch (e) {
-      emit(OrderListError(e.message));
+      if (!silent) emit(OrderListError(e.message));
     } catch (e) {
-      emit(OrderListError('Failed to load orders'));
+      if (!silent) emit(OrderListError('Failed to load orders'));
     }
   }
 
@@ -127,6 +141,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         showroomId: currentState.activeShowroomId,
         externalCustomerId: currentState.activeExternalCustomerId,
         karigarId: currentState.activeKarigarId,
+        deliveryFrom: currentState.activeDeliveryFrom,
+        deliveryTo: currentState.activeDeliveryTo,
         page: currentState.page + 1,
         pageSize: 20,
       );
@@ -142,6 +158,8 @@ class OrderListCubit extends Cubit<OrderListState> {
         activeShowroomId: currentState.activeShowroomId,
         activeExternalCustomerId: currentState.activeExternalCustomerId,
         activeKarigarId: currentState.activeKarigarId,
+        activeDeliveryFrom: currentState.activeDeliveryFrom,
+        activeDeliveryTo: currentState.activeDeliveryTo,
       ));
     } catch (_) {
       // Silently fail on load more

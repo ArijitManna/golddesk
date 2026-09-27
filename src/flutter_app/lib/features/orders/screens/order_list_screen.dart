@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/order_status_labels.dart';
 import '../../../core/widgets/app_bottom_navigation.dart';
@@ -10,6 +11,8 @@ import '../../../data/models/dashboard_models.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../bloc/order_list_cubit.dart';
+
+enum _DeliveryFilter { all, today, tomorrow, next7, thisMonth, custom }
 
 class OrderListScreen extends StatefulWidget {
   final String? initialStatus;
@@ -41,6 +44,8 @@ class _OrderListScreenState extends State<OrderListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();
+  _DeliveryFilter _dateFilter = _DeliveryFilter.all;
+  DateTimeRange? _customRange;
 
   /// Parallel arrays: tab label, status filter, due filter
   late final List<Tab> _tabs;
@@ -82,15 +87,75 @@ class _OrderListScreenState extends State<OrderListScreen>
       initialIndex: initialIndex,
     );
     _tabController.addListener(_onTabChanged);
+    _load();
+  }
+
+  void _load({bool silent = false}) {
+    final index = _tabController.index;
+    final range = _deliveryRange();
+    final fmt = DateFormat('yyyy-MM-dd');
     context.read<OrderListCubit>().loadOrders(
-      status: _statusFilters[initialIndex],
-      due: _dueFilters[initialIndex],
+      status: _statusFilters[index],
+      due: _dueFilters[index],
+      search: _searchController.text.isEmpty ? null : _searchController.text,
       source: widget.initialSource,
       shopId: widget.initialShopId,
       showroomId: widget.initialShowroomId,
       externalCustomerId: widget.initialExternalCustomerId,
       karigarId: widget.initialKarigarId,
+      deliveryFrom: range == null ? null : fmt.format(range.start),
+      deliveryTo: range == null ? null : fmt.format(range.end),
+      silent: silent,
     );
+  }
+
+  DateTimeRange? _deliveryRange() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return switch (_dateFilter) {
+      _DeliveryFilter.today => DateTimeRange(start: today, end: today),
+      _DeliveryFilter.tomorrow => DateTimeRange(
+        start: today.add(const Duration(days: 1)),
+        end: today.add(const Duration(days: 1)),
+      ),
+      _DeliveryFilter.next7 => DateTimeRange(
+        start: today,
+        end: today.add(const Duration(days: 6)),
+      ),
+      _DeliveryFilter.thisMonth => DateTimeRange(
+        start: DateTime(today.year, today.month, 1),
+        end: DateTime(today.year, today.month + 1, 0),
+      ),
+      _DeliveryFilter.custom => _customRange,
+      _DeliveryFilter.all => null,
+    };
+  }
+
+  Future<void> _selectDateFilter(_DeliveryFilter filter) async {
+    if (filter == _DeliveryFilter.custom) {
+      final now = DateTime.now();
+      final picked = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(now.year + 3),
+        initialDateRange: _customRange,
+        helpText: 'Delivery date range',
+      );
+      if (picked == null || !mounted) return;
+      setState(() {
+        _customRange = picked;
+        _dateFilter = _DeliveryFilter.custom;
+      });
+    } else {
+      if (filter == _dateFilter) return;
+      setState(() => _dateFilter = filter);
+    }
+    _load();
+  }
+
+  Future<void> _openOrder(String orderId) async {
+    await context.push('/orders/$orderId');
+    if (mounted) _load(silent: true);
   }
 
   List<Tab> _buildTabs() {
@@ -176,32 +241,10 @@ class _OrderListScreenState extends State<OrderListScreen>
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    final index = _tabController.index;
-    context.read<OrderListCubit>().loadOrders(
-      status: _statusFilters[index],
-      due: _dueFilters[index],
-      search: _searchController.text.isEmpty ? null : _searchController.text,
-      source: widget.initialSource,
-      shopId: widget.initialShopId,
-      showroomId: widget.initialShowroomId,
-      externalCustomerId: widget.initialExternalCustomerId,
-      karigarId: widget.initialKarigarId,
-    );
+    _load();
   }
 
-  void _reloadCurrent() {
-    final index = _tabController.index;
-    context.read<OrderListCubit>().loadOrders(
-      status: _statusFilters[index],
-      due: _dueFilters[index],
-      search: _searchController.text.isEmpty ? null : _searchController.text,
-      source: widget.initialSource,
-      shopId: widget.initialShopId,
-      showroomId: widget.initialShowroomId,
-      externalCustomerId: widget.initialExternalCustomerId,
-      karigarId: widget.initialKarigarId,
-    );
-  }
+  void _reloadCurrent() => _load();
 
   @override
   void dispose() {
@@ -325,6 +368,7 @@ class _OrderListScreenState extends State<OrderListScreen>
               onSubmitted: (_) => _reloadCurrent(),
             ),
           ),
+          _buildDateFilterBar(),
           Expanded(
             child: BlocBuilder<OrderListCubit, OrderListState>(
               builder: (context, state) {
@@ -388,6 +432,72 @@ class _OrderListScreenState extends State<OrderListScreen>
     );
   }
 
+  Widget _buildDateFilterBar() {
+    final customLabel = _dateFilter == _DeliveryFilter.custom &&
+            _customRange != null
+        ? '${DateFormat('d MMM').format(_customRange!.start)} - ${DateFormat('d MMM').format(_customRange!.end)}'
+        : 'Pick dates';
+    final options = <(_DeliveryFilter, String)>[
+      (_DeliveryFilter.all, 'All dates'),
+      (_DeliveryFilter.today, 'Today'),
+      (_DeliveryFilter.tomorrow, 'Tomorrow'),
+      (_DeliveryFilter.next7, 'Next 7 days'),
+      (_DeliveryFilter.thisMonth, 'This month'),
+      (_DeliveryFilter.custom, customLabel),
+    ];
+
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(right: 6),
+            child: Row(
+              children: [
+                Icon(Icons.event_outlined, size: 16, color: AppColors.goldBronze),
+                SizedBox(width: 4),
+                Text(
+                  'Delivery',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (final (filter, label) in options)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: ChoiceChip(
+                label: Text(label),
+                avatar: filter == _DeliveryFilter.custom
+                    ? const Icon(Icons.date_range, size: 14)
+                    : null,
+                selected: _dateFilter == filter,
+                onSelected: (_) => _selectDateFilter(filter),
+                visualDensity: VisualDensity.compact,
+                labelStyle: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _dateFilter == filter
+                      ? Colors.white
+                      : AppColors.textPrimary,
+                ),
+                selectedColor: AppColors.goldBronze,
+                backgroundColor: Colors.white,
+                showCheckmark: false,
+                side: BorderSide(color: AppColors.gold.withValues(alpha: 0.45)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOrderCard(OrderSummary order) {
     final auth = context.read<AuthBloc>().state;
     final businessType = auth is AuthAuthenticated
@@ -401,7 +511,7 @@ class _OrderListScreenState extends State<OrderListScreen>
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: () => context.go('/orders/${order.id}'),
+          onTap: () => _openOrder(order.id),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -426,6 +536,8 @@ class _OrderListScreenState extends State<OrderListScreen>
                     imagePath: order.firstItemImage,
                     size: 54,
                     label: order.orderNo,
+                    imageCount: order.imageCount,
+                    orderId: order.id,
                   ),
                 ),
                 const SizedBox(width: 12),

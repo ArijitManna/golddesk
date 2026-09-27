@@ -20,6 +20,10 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
         builder.Property(oi => oi.Amount).HasPrecision(18, 2);
         builder.Property(oi => oi.Size).HasMaxLength(50);
         builder.Property(oi => oi.ImagePath).HasMaxLength(500);
+        builder.Property(oi => oi.AdditionalImagePaths)
+            .HasColumnType("text[]")
+            .HasDefaultValueSql("'{}'::text[]")
+            .IsRequired();
 
         builder.HasOne(oi => oi.Order)
             .WithMany(o => o.Items)

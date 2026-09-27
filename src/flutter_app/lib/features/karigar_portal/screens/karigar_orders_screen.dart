@@ -202,6 +202,8 @@ class _KarigarOrdersScreenState extends State<KarigarOrdersScreen>
                 imagePath: order.firstItemImage,
                 size: 50,
                 label: order.orderNo,
+                imageCount: order.imageCount,
+                orderId: order.orderId,
               ),
               const SizedBox(width: 12),
               Expanded(

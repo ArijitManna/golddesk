@@ -22,6 +22,8 @@ public record OrderDto
     public string? AssignmentStatus { get; init; }
     public string? DueDate { get; init; }
     public string? FirstItemImage { get; init; }
+    /// <summary>Total images across all items of the order.</summary>
+    public int ImageCount { get; init; }
     public string? FirstItemSize { get; init; }
     public string Source { get; init; } = "Direct";
     public Guid CreatedByBusinessId { get; init; }
@@ -51,6 +53,8 @@ public record OrderItemDto
     public decimal Amount { get; init; }
     public string? Size { get; init; }
     public string? ImagePath { get; init; }
+    /// <summary>All images, primary first.</summary>
+    public List<string> ImagePaths { get; init; } = new();
 }
 
 public record AssignmentDto

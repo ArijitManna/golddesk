@@ -93,6 +93,7 @@ public class GetKarigarOrdersQueryHandler : IRequestHandler<GetKarigarOrdersQuer
                 AssignmentNotes = a.Notes,
                 TotalWeight = a.Order.TotalWeight,
                 FirstItemImage = a.Order.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+                ImageCount = a.Order.Items.Sum(i => (i.ImagePath != null ? 1 : 0) + i.AdditionalImagePaths.Count),
                 FirstItemSize = a.Order.Items
                     .Where(i => i.Size != null && i.Size != "")
                     .Select(i => i.Size)

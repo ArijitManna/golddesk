@@ -105,6 +105,23 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
                 o.Assignments.Any(a => a.IsActive && a.KarigarId == request.KarigarId.Value));
         }
 
+        // Delivery date range: active assignment due date, else order delivery date.
+        if (request.DeliveryFrom.HasValue)
+        {
+            var from = request.DeliveryFrom.Value;
+            query = query.Where(o =>
+                o.Assignments.Any(a => a.IsActive && a.DueDate >= from) ||
+                (!o.Assignments.Any(a => a.IsActive) && o.DeliveryDate != null && o.DeliveryDate >= from));
+        }
+
+        if (request.DeliveryTo.HasValue)
+        {
+            var to = request.DeliveryTo.Value;
+            query = query.Where(o =>
+                o.Assignments.Any(a => a.IsActive && a.DueDate <= to) ||
+                (!o.Assignments.Any(a => a.IsActive) && o.DeliveryDate != null && o.DeliveryDate <= to));
+        }
+
         // Search by order number or order-from business.
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -170,6 +187,7 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, Result<Page
                             .FirstOrDefault()
                         ?? (o.DeliveryDate != null ? o.DeliveryDate.Value.ToString("yyyy-MM-dd") : null),
                 FirstItemImage = o.Items.Select(i => i.ImagePath).FirstOrDefault(p => p != null),
+                ImageCount = o.Items.Sum(i => (i.ImagePath != null ? 1 : 0) + i.AdditionalImagePaths.Count),
                 FirstItemSize = o.Items
                     .Where(i => i.Size != null && i.Size != "")
                     .Select(i => i.Size)

@@ -15,6 +15,8 @@ public record GetOrdersQuery : IRequest<Result<PagedResult<OrderDto>>>
     public Guid? ShowroomId { get; init; }
     public Guid? ExternalCustomerId { get; init; }
     public Guid? KarigarId { get; init; }
+    public DateOnly? DeliveryFrom { get; init; }
+    public DateOnly? DeliveryTo { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }

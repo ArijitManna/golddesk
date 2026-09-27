@@ -195,6 +195,9 @@ class OrderItemDetail {
   final String? size;
   final String? imagePath;
 
+  /// All images, primary first.
+  final List<String> imagePaths;
+
   OrderItemDetail({
     required this.id,
     this.itemMasterId,
@@ -207,9 +210,15 @@ class OrderItemDetail {
     required this.amount,
     this.size,
     this.imagePath,
+    this.imagePaths = const [],
   });
 
   factory OrderItemDetail.fromJson(Map<String, dynamic> json) {
+    final imagePath = json['imagePath'] as String?;
+    final paths = (json['imagePaths'] as List?)
+            ?.whereType<String>()
+            .toList() ??
+        const <String>[];
     return OrderItemDetail(
       id: json['id'],
       itemMasterId: json['itemMasterId'],
@@ -221,7 +230,10 @@ class OrderItemDetail {
       makingCharge: (json['makingCharge'] ?? 0).toDouble(),
       amount: (json['amount'] ?? 0).toDouble(),
       size: json['size'],
-      imagePath: json['imagePath'],
+      imagePath: imagePath,
+      imagePaths: paths.isNotEmpty
+          ? paths
+          : [if (imagePath != null) imagePath],
     );
   }
 }

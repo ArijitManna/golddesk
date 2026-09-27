@@ -59,7 +59,7 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
 
   Future<void> createOrder(
     CreateOrderRequest request, {
-    List<String?> itemImages = const [],
+    List<List<String>> itemImages = const [],
   }) async {
     emit(CreateOrderLoading());
     try {
@@ -80,11 +80,19 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
   Future<void> updateOrder(
     String orderId,
     CreateOrderRequest request, {
-    List<String?> itemImages = const [],
+    List<List<String>> itemImages = const [],
+    Map<String, List<String>> removedImages = const {},
   }) async {
     emit(CreateOrderLoading());
     try {
       final order = await _repository.updateOrder(orderId, request);
+      for (final entry in removedImages.entries) {
+        for (final path in entry.value) {
+          try {
+            await _repository.deleteOrderItemImage(entry.key, path);
+          } catch (_) {}
+        }
+      }
       await _uploadItemImages(
         order.id,
         itemImages,
@@ -100,15 +108,15 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
 
   Future<void> _uploadItemImages(
     String orderId,
-    List<String?> itemImages, {
+    List<List<String>> itemImages, {
     List<String?> existingIds = const [],
   }) async {
-    if (itemImages.every((e) => e == null)) return;
+    if (itemImages.every((e) => e.isEmpty)) return;
     final detail = await _repository.getOrderById(orderId);
     final used = <String>{};
     for (var i = 0; i < itemImages.length; i++) {
-      final path = itemImages[i];
-      if (path == null) continue;
+      final paths = itemImages[i];
+      if (paths.isEmpty) continue;
 
       String? targetId;
       final existingId = i < existingIds.length ? existingIds[i] : null;
@@ -134,9 +142,11 @@ class CreateOrderCubit extends Cubit<CreateOrderState> {
 
       if (targetId == null) continue;
       used.add(targetId);
-      try {
-        await _repository.uploadOrderItemImage(targetId, path);
-      } catch (_) {}
+      for (final path in paths) {
+        try {
+          await _repository.addOrderItemImage(targetId, path);
+        } catch (_) {}
+      }
     }
   }
 }

@@ -27,6 +27,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     context.read<OrderDetailCubit>().loadOrder(widget.orderId);
   }
 
+  Future<void> _openAndReload(String location) async {
+    await context.push(location);
+    if (!mounted) return;
+    context.read<OrderDetailCubit>().loadOrder(widget.orderId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<OrderDetailCubit, OrderDetailState>(
@@ -39,7 +45,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             backgroundColor: AppColors.navBar,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-              onPressed: () => context.go('/orders'),
+              onPressed: () => context.canPop()
+                  ? context.pop()
+                  : context.go('/orders'),
             ),
             title: const Text(
               'Order Details',
@@ -52,13 +60,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               if (canEdit)
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => context.go('/orders/${widget.orderId}/edit'),
+                  onPressed: () => _openAndReload('/orders/${widget.orderId}/edit'),
                   tooltip: 'Edit Order',
                 ),
               IconButton(
                 icon: const Icon(Icons.receipt_long_outlined),
                 onPressed: () =>
-                    context.go('/orders/${widget.orderId}/receipt'),
+                    context.push('/orders/${widget.orderId}/receipt'),
                 tooltip: 'View Receipt',
               ),
               if (state is OrderDetailLoaded)
@@ -217,7 +225,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               width: double.infinity,
               height: 48,
               child: OutlinedButton.icon(
-                onPressed: () => context.go('/orders/${order.id}/edit'),
+                onPressed: () => _openAndReload('/orders/${order.id}/edit'),
                 icon: const Icon(Icons.edit_outlined, size: 18),
                 label: const Text('Edit Order'),
                 style: OutlinedButton.styleFrom(
@@ -531,22 +539,35 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: item.imagePath != null
-                ? () => showZoomableOrderImagePath(
+            onTap: item.imagePaths.isNotEmpty
+                ? () => showOrderImageGalleryPaths(
                       context,
-                      imagePath: item.imagePath!,
+                      imagePaths: item.imagePaths,
                       label: item.itemName,
                     )
                 : null,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: item.imagePath != null
-                  ? Image.network(
-                      '${AppConstants.serverUrl}${item.imagePath}',
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _itemPlaceholder(),
+              child: item.imagePaths.isNotEmpty
+                  ? Stack(
+                      children: [
+                        Image.network(
+                          '${AppConstants.serverUrl}${item.imagePaths.first}',
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _itemPlaceholder(),
+                        ),
+                        if (item.imagePaths.length > 1)
+                          Positioned(
+                            right: 2,
+                            bottom: 2,
+                            child: MoreImagesBadge(
+                              extraCount: item.imagePaths.length - 1,
+                              fontSize: 9,
+                            ),
+                          ),
+                      ],
                     )
                   : _itemPlaceholder(),
             ),
@@ -778,7 +799,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       width: double.infinity,
       height: 48,
       child: OutlinedButton.icon(
-        onPressed: () => context.go('/orders/${order.id}/assign'),
+        onPressed: () => _openAndReload('/orders/${order.id}/assign'),
         icon: Icon(
           label == 'Reassign'
               ? Icons.swap_horiz

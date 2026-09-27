@@ -1064,7 +1064,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.go('/orders/${order.id}'),
+        onTap: () => context.push('/orders/${order.id}'),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -1073,6 +1073,8 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
                 imagePath: order.firstItemImage,
                 size: 44,
                 label: order.orderNo,
+                imageCount: order.imageCount,
+                orderId: order.id,
               ),
               const SizedBox(width: 10),
               Expanded(

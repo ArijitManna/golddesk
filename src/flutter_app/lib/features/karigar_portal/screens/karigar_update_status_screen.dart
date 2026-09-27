@@ -369,22 +369,34 @@ class _KarigarUpdateStatusScreenState extends State<KarigarUpdateStatusScreen> {
         child: Row(
           children: [
             GestureDetector(
-              onTap: item.imagePath != null
-                  ? () => showZoomableOrderImagePath(
+              onTap: item.imagePaths.isNotEmpty
+                  ? () => showOrderImageGalleryPaths(
                         context,
-                        imagePath: item.imagePath!,
+                        imagePaths: item.imagePaths,
                         label: item.itemName,
                       )
                   : null,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: item.imagePath != null
-                    ? Image.network(
-                        '${AppConstants.serverUrl}${item.imagePath}',
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _itemPlaceholder(),
+                child: item.imagePaths.isNotEmpty
+                    ? Stack(
+                        children: [
+                          Image.network(
+                            '${AppConstants.serverUrl}${item.imagePaths.first}',
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _itemPlaceholder(),
+                          ),
+                          if (item.imagePaths.length > 1)
+                            Positioned(
+                              right: 2,
+                              bottom: 2,
+                              child: MoreImagesBadge(
+                                extraCount: item.imagePaths.length - 1,
+                              ),
+                            ),
+                        ],
                       )
                     : _itemPlaceholder(),
               ),

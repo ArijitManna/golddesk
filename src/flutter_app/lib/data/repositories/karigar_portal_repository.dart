@@ -139,6 +139,7 @@ class KarigarOrderItem {
   final String? assignmentNotes;
   final double totalWeight;
   final String? firstItemImage;
+  final int imageCount;
   final String? firstItemSize;
 
   KarigarOrderItem({
@@ -154,6 +155,7 @@ class KarigarOrderItem {
     this.assignmentNotes,
     required this.totalWeight,
     this.firstItemImage,
+    this.imageCount = 0,
     this.firstItemSize,
   });
 
@@ -171,6 +173,7 @@ class KarigarOrderItem {
         assignmentNotes: json['assignmentNotes'],
         totalWeight: (json['totalWeight'] ?? 0).toDouble(),
         firstItemImage: json['firstItemImage'],
+        imageCount: (json['imageCount'] as num?)?.toInt() ?? 0,
         firstItemSize: json['firstItemSize'],
       );
 }

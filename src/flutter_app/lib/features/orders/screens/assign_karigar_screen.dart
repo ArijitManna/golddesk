@@ -24,6 +24,7 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
   final _assignDateController = TextEditingController();
   final _dueDateController = TextEditingController();
   final _notesController = TextEditingController();
+  final _karigarSearchController = TextEditingController();
   List<KarigarItem> _karigars = [];
   OrderDetail? _order;
   bool _dueDateAuto = false;
@@ -99,11 +100,120 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
     context.read<OrderDetailCubit>().assignKarigar(widget.orderId, request);
   }
 
+  void _close() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/orders/${widget.orderId}');
+    }
+  }
+
+  List<KarigarItem> get _filteredKarigars {
+    final q = _karigarSearchController.text.trim().toLowerCase();
+    if (q.isEmpty) return _karigars;
+    return _karigars
+        .where((k) =>
+            k.name.toLowerCase().contains(q) ||
+            (k.specialization?.toLowerCase().contains(q) ?? false))
+        .toList();
+  }
+
+  Widget _buildKarigarPicker() {
+    final filtered = _filteredKarigars;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _karigarSearchController,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: 'Search karigar by name or work',
+            prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.gold),
+            suffixIcon: _karigarSearchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () {
+                      _karigarSearchController.clear();
+                      setState(() {});
+                    },
+                  )
+                : null,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          constraints: const BoxConstraints(maxHeight: 260),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: filtered.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(
+                    child: Text(
+                      'No karigar matches your search',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    final k = filtered[i];
+                    final selected = _selectedKarigar?.id == k.id;
+                    return ListTile(
+                      dense: true,
+                      selected: selected,
+                      selectedTileColor: AppColors.gold.withValues(alpha: 0.1),
+                      leading: Icon(
+                        selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                        color: selected ? AppColors.gold : AppColors.textLight,
+                        size: 20,
+                      ),
+                      title: Text(
+                        k.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      subtitle: k.specialization != null && k.specialization!.isNotEmpty
+                          ? Text(k.specialization!)
+                          : null,
+                      onTap: () => setState(() => _selectedKarigar = k),
+                    );
+                  },
+                ),
+        ),
+        if (_selectedKarigar != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Selected: ${_selectedKarigar!.name}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.goldBronze,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _assignDateController.dispose();
     _dueDateController.dispose();
     _notesController.dispose();
+    _karigarSearchController.dispose();
     super.dispose();
   }
 
@@ -116,7 +226,7 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Karigar assigned successfully!'), backgroundColor: AppColors.success),
             );
-            context.go('/orders/${widget.orderId}');
+            _close();
           }
         } else if (state is OrderDetailError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -129,7 +239,7 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
           backgroundColor: AppColors.primaryDark,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios),
-            onPressed: () => context.go('/orders/${widget.orderId}'),
+            onPressed: _close,
           ),
           title: const Text('Send to Karigar'),
         ),
@@ -193,16 +303,7 @@ class _AssignKarigarScreenState extends State<AssignKarigarScreen> {
                           ),
                         )
                       else
-                        DropdownButtonFormField<KarigarItem>(
-                          value: _selectedKarigar,
-                          items: _karigars.map((k) => DropdownMenuItem(
-                            value: k,
-                            child: Text('${k.name}${k.specialization != null ? ' (${k.specialization})' : ''}'),
-                          )).toList(),
-                          onChanged: (val) => setState(() => _selectedKarigar = val),
-                          decoration: const InputDecoration(hintText: 'Select Karigar'),
-                          validator: (val) => val == null ? 'Karigar is required' : null,
-                        ),
+                        _buildKarigarPicker(),
                       const SizedBox(height: 20),
                       GoldDeskTextField(
                         label: 'Assign Date',

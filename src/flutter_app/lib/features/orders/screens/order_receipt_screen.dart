@@ -53,7 +53,9 @@ class _OrderReceiptScreenState extends State<OrderReceiptScreen> {
         backgroundColor: AppColors.primaryDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.go('/orders/${widget.orderId}'),
+          onPressed: () => context.canPop()
+              ? context.pop()
+              : context.go('/orders/${widget.orderId}'),
         ),
         title: const Text('Order Receipt'),
         actions: [

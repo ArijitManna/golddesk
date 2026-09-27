@@ -14,7 +14,10 @@ public class OrderItem : BaseEntity
     public decimal MakingCharge { get; set; }
     public decimal Amount { get; set; }
     public string? Size { get; set; }
+    /// <summary>Primary image, shown on lists. Older app versions only read this.</summary>
     public string? ImagePath { get; set; }
+    /// <summary>Extra images after the primary one, in display order.</summary>
+    public List<string> AdditionalImagePaths { get; set; } = new();
 
     // Navigation properties
     public Order Order { get; set; } = null!;
