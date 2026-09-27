@@ -533,14 +533,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   }
 
   Widget _buildOrderPipeline(ShopDashboardData data) {
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 8,
-      childAspectRatio: 0.92,
-      children: [
+    final cards = <Widget>[
         _pipelineCard(
           label: 'TO GIVE WORK',
           count: data.pending,
@@ -582,8 +575,30 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
           iconColor: AppColors.statusDelivered,
           onTap: () => context.go('/orders?status=Delivered'),
         ),
-      ],
-    );
+    ];
+
+    const perRow = 3;
+    final rows = <Widget>[];
+    for (var i = 0; i < cards.length; i += perRow) {
+      final rowCards = cards.sublist(i, (i + perRow).clamp(0, cards.length));
+      if (rows.isNotEmpty) rows.add(const SizedBox(height: 8));
+      rows.add(
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var j = 0; j < perRow; j++) ...[
+                if (j > 0) const SizedBox(width: 8),
+                Expanded(
+                  child: j < rowCards.length ? rowCards[j] : const SizedBox(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(children: rows);
   }
 
   Widget _pipelineCard({
@@ -597,65 +612,71 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   }) {
     return Material(
       color: background,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
                   Icon(icon, color: iconColor, size: 18),
-                  const Spacer(),
-                  Text(
-                    '$count',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: iconColor,
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      '$count',
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: iconColor,
+                        height: 1,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      letterSpacing: 0.1,
-                      height: 1.15,
+                  if (badge != null) ...[
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusReady,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        badge,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  ],
                 ],
               ),
-            ),
-            if (badge != null)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.statusReady,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    badge,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  letterSpacing: 0.2,
+                  height: 1.15,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
