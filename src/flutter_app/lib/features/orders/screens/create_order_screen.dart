@@ -29,6 +29,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   final _formKey = GlobalKey<FormState>();
   final _orderDateController = TextEditingController();
   final _deliveryDateController = TextEditingController();
+  String? _originalDeliveryDate;
   final _notesController = TextEditingController();
   final List<_OrderItemForm> _items = [_OrderItemForm()];
   List<Map<String, dynamic>> _masterItems = [];
@@ -87,6 +88,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   void _populateFromOrder(OrderDetail order) {
     _orderDateController.text = order.orderDate;
     _deliveryDateController.text = order.deliveryDate ?? '';
+    _originalDeliveryDate = order.deliveryDate;
     _notesController.text = order.notes ?? '';
     for (final item in _items) {
       item.dispose();
@@ -403,6 +405,45 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       controller.text = DateFormat('yyyy-MM-dd').format(date);
       setState(() {});
     }
+  }
+
+  DateTime get _earliestDeliveryDate {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final orderDate = DateTime.tryParse(_orderDateController.text);
+    return orderDate != null && orderDate.isAfter(today) ? orderDate : today;
+  }
+
+  Future<void> _pickDeliveryDate() async {
+    final first = _earliestDeliveryDate;
+    final current = DateTime.tryParse(_deliveryDateController.text);
+    final date = await showDatePicker(
+      context: context,
+      initialDate: current != null && !current.isBefore(first) ? current : first,
+      firstDate: first,
+      lastDate: DateTime(first.year + 5, 12, 31),
+      helpText: 'Select delivery date',
+    );
+    if (date != null) {
+      _deliveryDateController.text = DateFormat('yyyy-MM-dd').format(date);
+      setState(() {});
+    }
+  }
+
+  String? _validateDeliveryDate(String? value) {
+    if (value == null || value.isEmpty) return null;
+    // Keep an existing order's saved delivery date valid even if it has passed.
+    if (_isEdit && value == _originalDeliveryDate) return null;
+    final date = DateTime.tryParse(value);
+    if (date == null) return 'Invalid date';
+    final first = _earliestDeliveryDate;
+    if (date.isBefore(first)) {
+      final orderDate = DateTime.tryParse(_orderDateController.text);
+      return orderDate != null && first == orderDate
+          ? 'Must be on/after order date'
+          : 'Past date not allowed';
+    }
+    return null;
   }
 
   static const _maxImagesPerItem = 10;
@@ -836,8 +877,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                     hint: 'Optional',
                                     controller: _deliveryDateController,
                                     readOnly: true,
-                                    onTap: () =>
-                                        _pickDate(_deliveryDateController),
+                                    onTap: _pickDeliveryDate,
+                                    validator: _validateDeliveryDate,
                                     suffixIcon: const Icon(
                                       Icons.local_shipping_outlined,
                                       size: 16,
