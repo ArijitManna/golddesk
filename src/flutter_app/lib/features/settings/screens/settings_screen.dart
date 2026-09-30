@@ -22,7 +22,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _showAtAGlance = true;
-  bool _showLiveGoldRate = true;
+  bool _showLiveGoldRate = false;
   bool _prefsLoaded = false;
 
   @override

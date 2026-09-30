@@ -30,7 +30,7 @@ class _ShopDashboardScreenState extends State<ShopDashboardScreen> {
   bool _platformLoading = false;
   String? _platformError;
   bool _showAtAGlance = true;
-  bool _showLiveGoldRate = true;
+  bool _showLiveGoldRate = false;
 
   @override
   void initState() {

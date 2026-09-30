@@ -19,7 +19,7 @@ class DashboardPreferences {
 
   static Future<bool> isLiveGoldRateVisible() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(showLiveGoldRateKey) ?? true;
+    return prefs.getBool(showLiveGoldRateKey) ?? false;
   }
 
   static Future<void> setLiveGoldRateVisible(bool visible) async {

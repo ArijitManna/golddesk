@@ -113,6 +113,20 @@ class _OrderImageGalleryDialogState extends State<_OrderImageGalleryDialog> {
   late int _index;
   bool _zoomed = false;
 
+  /// Fingers currently on screen. Paging must stop as soon as a second finger
+  /// lands, otherwise the PageView's drag wins the gesture and pinch never zooms.
+  int _pointers = 0;
+
+  void _onPointerDown(PointerDownEvent _) {
+    _pointers++;
+    if (_pointers == 2) setState(() {});
+  }
+
+  void _onPointerUp(PointerEvent _) {
+    if (_pointers > 0) _pointers--;
+    if (_pointers == 1) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
@@ -146,21 +160,26 @@ class _OrderImageGalleryDialogState extends State<_OrderImageGalleryDialog> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: PageView.builder(
-              controller: _pageController,
-              physics: _zoomed
-                  ? const NeverScrollableScrollPhysics()
-                  : const PageScrollPhysics(),
-              itemCount: count,
-              onPageChanged: (i) => setState(() {
-                _index = i;
-                _zoomed = false;
-              }),
-              itemBuilder: (_, i) => _ZoomableImagePage(
-                image: widget.images[i],
-                onZoomChanged: (z) {
-                  if (z != _zoomed) setState(() => _zoomed = z);
-                },
+            child: Listener(
+              onPointerDown: _onPointerDown,
+              onPointerUp: _onPointerUp,
+              onPointerCancel: _onPointerUp,
+              child: PageView.builder(
+                controller: _pageController,
+                physics: !multiple || _zoomed || _pointers >= 2
+                    ? const NeverScrollableScrollPhysics()
+                    : const PageScrollPhysics(),
+                itemCount: count,
+                onPageChanged: (i) => setState(() {
+                  _index = i;
+                  _zoomed = false;
+                }),
+                itemBuilder: (_, i) => _ZoomableImagePage(
+                  image: widget.images[i],
+                  onZoomChanged: (z) {
+                    if (z != _zoomed) setState(() => _zoomed = z);
+                  },
+                ),
               ),
             ),
           ),
@@ -345,8 +364,8 @@ class _ZoomableImagePageState extends State<_ZoomableImagePage> {
     final x = -position.dx * (zoom - 1);
     final y = -position.dy * (zoom - 1);
     _transformationController.value = Matrix4.identity()
-      ..translate(x, y)
-      ..scale(zoom);
+      ..translateByDouble(x, y, 0, 1)
+      ..scaleByDouble(zoom, zoom, 1, 1);
   }
 
   @override
