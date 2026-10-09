@@ -457,6 +457,7 @@
                 <th>Type</th>
                 <th>Owner</th>
                 <th>Mobile</th>
+                <th>Email</th>
                 <th>Status</th>
                 <th>Registered</th>
                 <th>Actions</th>
@@ -469,6 +470,7 @@
                   <td>${typeBadge(row.businessType)}</td>
                   <td>${escapeHtml(row.ownerName)}</td>
                   <td>${escapeHtml(row.mobile)}</td>
+                  <td>${escapeHtml(row.email || '')}</td>
                   <td>${statusBadge(row.status)}</td>
                   <td>${formatDate(row.registeredAt)}</td>
                   <td class="actions">
@@ -476,7 +478,8 @@
                       ? `<button class="btn btn-danger btn-sm" data-deactivate="${row.tenantId}" data-name="${escapeHtml(row.shopName)}">Inactivate</button>`
                       : row.status === 'Suspended'
                         ? `<button class="btn btn-success btn-sm" data-activate="${row.tenantId}" data-name="${escapeHtml(row.shopName)}">Activate</button>`
-                        : '<span style="color:var(--muted);font-size:12px">?</span>'}
+                        : ''}
+                    <button class="btn btn-ghost btn-sm" data-reset-password="${row.tenantId}" data-name="${escapeHtml(row.shopName)}" data-email="${escapeHtml(row.email || '')}">Reset Password</button>
                   </td>
                 </tr>
               `).join('')}
@@ -506,6 +509,69 @@
     el.querySelectorAll('[data-activate]').forEach(btn => {
       btn.onclick = () => openStatusModal(btn.dataset.activate, btn.dataset.name, true);
     });
+
+    el.querySelectorAll('[data-reset-password]').forEach(btn => {
+      btn.onclick = () => openResetPasswordModal(btn.dataset.resetPassword, btn.dataset.name, btn.dataset.email);
+    });
+  }
+
+  function openResetPasswordModal(tenantId, name, email) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal">
+        <h3>Reset password: ${escapeHtml(name)}</h3>
+        <p>Set a new login password${email ? ` for <strong>${escapeHtml(email)}</strong>` : ''}. The user will need to log in again with this password.</p>
+        <div class="form-group">
+          <label for="newPassword">New Password</label>
+          <input id="newPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Minimum 6 characters" />
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" />
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:-6px 0 14px;color:var(--muted)">
+          <input type="checkbox" id="showPassword" /> Show password
+        </label>
+        <div class="modal-actions">
+          <button class="btn btn-ghost btn-sm" id="cancelReset">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="confirmReset">Set Password</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+
+    const pwd = backdrop.querySelector('#newPassword');
+    const confirm = backdrop.querySelector('#confirmPassword');
+    pwd.focus();
+    backdrop.querySelector('#showPassword').onchange = (e) => {
+      const type = e.target.checked ? 'text' : 'password';
+      pwd.type = type;
+      confirm.type = type;
+    };
+    backdrop.querySelector('#cancelReset').onclick = () => backdrop.remove();
+
+    const submit = backdrop.querySelector('#confirmReset');
+    submit.onclick = async () => {
+      const newPassword = pwd.value;
+      if (newPassword.length < 6) {
+        toast('Password must be at least 6 characters');
+        return;
+      }
+      if (newPassword !== confirm.value) {
+        toast('Passwords do not match');
+        return;
+      }
+      submit.disabled = true;
+      try {
+        const res = await AdminApi.resetBusinessPassword(tenantId, newPassword);
+        backdrop.remove();
+        toast(res?.message || 'Password reset');
+      } catch (err) {
+        toast(err.message);
+        submit.disabled = false;
+      }
+    };
   }
 
   function openStatusModal(tenantId, name, activate) {

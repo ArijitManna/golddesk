@@ -108,6 +108,13 @@ const AdminApi = (() => {
     return request(`/api/admin/businesses/${tenantId}/activate`, { method: 'POST' });
   }
 
+  function resetBusinessPassword(tenantId, newPassword) {
+    return request(`/api/admin/businesses/${tenantId}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ newPassword })
+    });
+  }
+
   function getCurrentAppVersion() {
     return request('/app-version/current');
   }
@@ -210,6 +217,7 @@ const AdminApi = (() => {
     getReport,
     deactivateBusiness,
     activateBusiness,
+    resetBusinessPassword,
     getCurrentAppVersion,
     getAppVersionHistory,
     publishAppVersion,

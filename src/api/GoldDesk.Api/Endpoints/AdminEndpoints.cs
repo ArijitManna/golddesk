@@ -3,6 +3,7 @@ using GoldDesk.Application.Features.Admin.ApproveShop;
 using GoldDesk.Application.Features.Admin.GetPendingRegistrations;
 using GoldDesk.Application.Features.Admin.GetPlatformShopsReport;
 using GoldDesk.Application.Features.Admin.RejectShop;
+using GoldDesk.Application.Features.Admin.ResetBusinessPassword;
 using GoldDesk.Application.Features.Admin.SetBusinessStatus;
 using MediatR;
 
@@ -79,6 +80,18 @@ public static class AdminEndpoints
         })
         .WithName("ActivateBusiness")
         .WithDescription("Reactivate an inactive shop, showroom, or karigar business");
+
+        group.MapPost("/businesses/{tenantId:guid}/reset-password", async (Guid tenantId, ResetBusinessPasswordRequest request, IMediator mediator) =>
+        {
+            var result = await mediator.Send(new ResetBusinessPasswordCommand
+            {
+                TenantId = tenantId,
+                NewPassword = request.NewPassword
+            });
+            return ToResponse(result);
+        })
+        .WithName("ResetBusinessPassword")
+        .WithDescription("Set a new login password for a shop, showroom, or karigar owner");
     }
 
     private static IResult ToResponse<T>(Result<T> result)
@@ -102,4 +115,9 @@ public record ApproveShopRequest
 public record RejectShopRequest
 {
     public string Reason { get; init; } = string.Empty;
+}
+
+public record ResetBusinessPasswordRequest
+{
+    public string NewPassword { get; init; } = string.Empty;
 }
