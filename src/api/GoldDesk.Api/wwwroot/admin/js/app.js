@@ -59,6 +59,54 @@
     return `<span class="badge ${cls}">${status || 'Pending'}</span>`;
   }
 
+  // Search text per list, kept across re-renders (e.g. after approve/inactivate).
+  const tableSearchTerms = {};
+
+  function tableSearchBox(key, placeholder) {
+    return `<input type="search" class="table-search" data-search-key="${key}"
+      placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(tableSearchTerms[key] || '')}" />`;
+  }
+
+  /** Filters the rows of each panel's table as the user types in its .table-search box. */
+  function bindTableSearch(root) {
+    root.querySelectorAll('.table-search').forEach(input => {
+      const panel = input.closest('.panel');
+      if (!panel) return;
+      const rows = [...panel.querySelectorAll('tbody tr')].map(tr => ({
+        tr,
+        text: [...tr.cells]
+          .filter(td => !td.classList.contains('actions'))
+          .map(td => td.textContent)
+          .join(' ')
+          .toLowerCase()
+      }));
+      const countEl = panel.querySelector('[data-search-count]');
+      const wrap = panel.querySelector('.table-wrap');
+      let noMatch = null;
+      if (wrap && rows.length) {
+        noMatch = document.createElement('div');
+        noMatch.className = 'empty hidden';
+        noMatch.textContent = 'No matching records';
+        wrap.appendChild(noMatch);
+      }
+
+      const apply = () => {
+        tableSearchTerms[input.dataset.searchKey] = input.value;
+        const terms = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        let visible = 0;
+        rows.forEach(r => {
+          const match = terms.every(t => r.text.includes(t));
+          r.tr.style.display = match ? '' : 'none';
+          if (match) visible++;
+        });
+        if (countEl) countEl.textContent = terms.length ? `${visible} of ${rows.length}` : `${rows.length}`;
+        if (noMatch) noMatch.classList.toggle('hidden', visible > 0);
+      };
+      input.oninput = apply;
+      apply();
+    });
+  }
+
   function escapeHtml(str) {
     return String(str ?? '')
       .replaceAll('&', '&amp;')
@@ -325,7 +373,8 @@
       </div>
       <div class="panel" style="margin-top:12px">
         <div class="panel-header">
-          <h3>Pending Requests (${items.length})</h3>
+          <h3>Pending Requests (<span data-search-count>${items.length}</span>)</h3>
+          ${tableSearchBox('requests', 'Search name, mobile, email...')}
         </div>
         <div class="table-wrap">
           ${items.length === 0 ? `<div class="empty">No pending registrations</div>` : `
@@ -363,6 +412,8 @@
         </div>
       </div>
     `;
+
+    bindTableSearch(el);
 
     el.querySelectorAll('.tab').forEach(btn => {
       btn.onclick = () => {
@@ -446,7 +497,8 @@
       </div>
       <div class="panel">
         <div class="panel-header">
-          <h3>${type || 'All'} Businesses (${shops.length})</h3>
+          <h3>${type || 'All'} Businesses (<span data-search-count>${shops.length}</span>)</h3>
+          ${tableSearchBox('businesses', 'Search name, owner, mobile, email...')}
         </div>
         <div class="table-wrap">
           ${shops.length === 0 ? `<div class="empty">No businesses found</div>` : `
@@ -488,6 +540,8 @@
         </div>
       </div>
     `;
+
+    bindTableSearch(el);
 
     document.getElementById('bizType').onchange = (e) => {
       const v = e.target.value;
@@ -692,7 +746,10 @@
       </div>
 
       <div class="panel">
-        <div class="panel-header"><h3>Version History</h3></div>
+        <div class="panel-header">
+          <h3>Version History (<span data-search-count>${history.length}</span>)</h3>
+          ${tableSearchBox('versions', 'Search version or notes...')}
+        </div>
         <div class="table-wrap">
           ${history.length === 0 ? `<div class="empty">No versions published yet</div>` : `
           <table>
@@ -718,6 +775,8 @@
         </div>
       </div>
     `;
+
+    bindTableSearch(document.getElementById('pageContent'));
 
     const msg = document.getElementById('vcPublishMsg');
     document.getElementById('vcPublishBtn').onclick = async () => {
@@ -872,7 +931,10 @@
         </div>
 
         <div class="panel">
-          <div class="panel-header"><h3>Push History</h3></div>
+          <div class="panel-header">
+            <h3>Push History (<span data-search-count>${rows.length}</span>)</h3>
+            ${tableSearchBox('push', 'Search title, message, status...')}
+          </div>
           <div class="table-wrap">
             ${rows.length === 0 ? `<div class="empty">No push notifications yet</div>` : `
             <table>
@@ -919,6 +981,8 @@
     `;
 
     if (channel !== 'push') return;
+
+    bindTableSearch(el);
 
     const mode = document.getElementById('pnMode');
     const schedule = document.getElementById('pnSchedule');
