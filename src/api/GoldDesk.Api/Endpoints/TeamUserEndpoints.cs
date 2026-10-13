@@ -2,6 +2,7 @@ using GoldDesk.Application.Common.Models;
 using GoldDesk.Application.Features.TeamUsers.CreateTeamUser;
 using GoldDesk.Application.Features.TeamUsers.DeactivateTeamUser;
 using GoldDesk.Application.Features.TeamUsers.GetTeamUsers;
+using GoldDesk.Application.Features.TeamUsers.ResetTeamUserPassword;
 using MediatR;
 
 namespace GoldDesk.Api.Endpoints;
@@ -38,6 +39,16 @@ public static class TeamUserEndpoints
                 : ToErrorResponse(result);
         })
         .WithName("DeactivateTeamUser");
+
+        group.MapPost("/{id:guid}/reset-password", async (Guid id, ResetTeamUserPasswordRequest request, IMediator mediator) =>
+        {
+            var result = await mediator.Send(
+                new ResetTeamUserPasswordCommand(id, request.OwnerPassword, request.NewPassword));
+            return result.IsSuccess
+                ? Results.Ok(new { message = "Password reset successfully" })
+                : ToErrorResponse(result);
+        })
+        .WithName("ResetTeamUserPassword");
     }
 
     private static IResult ToResponse<T>(Result<T> result)

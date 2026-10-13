@@ -35,6 +35,8 @@ import '../../features/settings/screens/edit_profile_screen.dart';
 import '../../features/settings/screens/notification_preferences_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/team_users_screen.dart';
+import '../../features/settings/screens/team_user_detail_screen.dart';
+import '../../data/repositories/team_user_repository.dart';
 import '../../features/splash/splash_screen.dart';
 
 class AppRouter {
@@ -220,6 +222,14 @@ class AppRouter {
         path: '/settings/team-users',
         name: 'team-users',
         builder: (context, state) => const TeamUsersScreen(),
+      ),
+      GoRoute(
+        path: '/settings/team-users/:id',
+        name: 'team-user-detail',
+        builder: (context, state) => TeamUserDetailScreen(
+          userId: state.pathParameters['id']!,
+          initialUser: state.extra is TeamUserData ? state.extra as TeamUserData : null,
+        ),
       ),
       // Karigar Portal routes
       GoRoute(

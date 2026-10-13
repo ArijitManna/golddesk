@@ -229,10 +229,16 @@ class _TeamUsersScreenState extends State<TeamUsersScreen> {
     );
   }
 
+  Future<void> _openUser(TeamUserData user) async {
+    await context.push('/settings/team-users/${user.id}', extra: user);
+    if (mounted) _load();
+  }
+
   Widget _buildUserCard(TeamUserData user) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: () => _openUser(user),
         leading: CircleAvatar(
           backgroundColor: user.isActive
               ? AppColors.gold.withValues(alpha: 0.15)

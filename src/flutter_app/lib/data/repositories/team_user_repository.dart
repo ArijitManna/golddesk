@@ -44,6 +44,21 @@ class TeamUserRepository {
       throw ApiException.fromDioError(e);
     }
   }
+
+  Future<void> resetTeamUserPassword({
+    required String userId,
+    required String ownerPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _apiClient.dio.post('/team-users/$userId/reset-password', data: {
+        'ownerPassword': ownerPassword,
+        'newPassword': newPassword,
+      });
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }
 
 class TeamUserData {
